@@ -1,0 +1,14 @@
+spring:
+  application:
+    name=PuppyRun
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true     # ???? SQL? ??? ???? ??
+
+  docker:
+    compose:
+      lifecycle-management: start_and_stop # ?? ?? ? ??? ???? stop ??
+      skip:
+        in-tests: false
