@@ -1,10 +1,9 @@
-package org.zerock.puppyrun.common.JWT;
+package org.zerock.puppyrun.common.auth.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
@@ -14,8 +13,8 @@ import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.zerock.puppyrun.common.JWT.exception.InvalidTokenException;
-import org.zerock.puppyrun.common.JWT.exception.TokenExpirationException;
+import org.zerock.puppyrun.common.auth.jwt.exception.InvalidTokenException;
+import org.zerock.puppyrun.common.auth.jwt.exception.TokenExpirationException;
 import org.zerock.puppyrun.member.entity.UserRole;
 
 @Slf4j
@@ -112,7 +111,7 @@ public class JwtTokenProvider {
         return createToken(MemberId, role, accessTokenExpiration);
     }
 
-    public String generateRefreshToken(UUID MemberId, UserRole role){
+    public String generateRefreshToken(UUID MemberId, UserRole role) {
         return createToken(MemberId, role, refreshTokenExpiration);
     }
 

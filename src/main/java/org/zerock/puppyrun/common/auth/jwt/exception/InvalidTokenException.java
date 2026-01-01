@@ -1,4 +1,4 @@
-package org.zerock.puppyrun.common.JWT.exception;
+package org.zerock.puppyrun.common.auth.jwt.exception;
 
 import org.zerock.puppyrun.common.exception.BusinessException;
 import org.zerock.puppyrun.common.exception.ErrorCode;
