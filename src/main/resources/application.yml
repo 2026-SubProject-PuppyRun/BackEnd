@@ -5,10 +5,15 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true     # ???? SQL? ??? ???? ??
+    show-sql: true
 
   docker:
     compose:
-      lifecycle-management: start_and_stop # ?? ?? ? ??? ???? stop ??
+      lifecycle-management: start_and_stop
       skip:
         in-tests: false
+
+
+discord:
+  webhooks:
+    url: ${discord_webhooks_url}
