@@ -1,0 +1,119 @@
+package org.zerock.puppyrun.common.JWT;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.UUID;
+import javax.crypto.SecretKey;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.zerock.puppyrun.common.JWT.exception.InvalidTokenException;
+import org.zerock.puppyrun.common.JWT.exception.TokenExpirationException;
+import org.zerock.puppyrun.member.entity.UserRole;
+
+@Slf4j
+@Component
+public class JwtTokenProvider {
+    @Value("${jwt.secret}")
+    private String secret;
+
+    @Value("${jwt.access-token-expiration}")
+    private long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token-expiration}")
+    private long refreshTokenExpiration;
+
+    private SecretKey key;
+
+    @PostConstruct
+    public void init() {
+        // .env에 넣은 비밀키가 일반 문자열이라면 UTF-8 바이트로 변환
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * 토큰 생성
+     */
+    private String createToken(UUID MemberId, UserRole role, long expiration) {
+        return Jwts.builder()
+                .subject(String.valueOf(MemberId))
+                .claim("ROLE_", role)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiration)) // 만료 시각
+                .signWith(key)
+                .compact();
+    }
+
+    // 토큰 검증
+    public boolean validateToken(String token) {
+        try {
+            getClaims(token);
+            return true;
+        } catch (TokenExpirationException e) {
+            log.info("만료된 JWT 토큰입니다. : {}", e.getMessage());
+        } catch (InvalidTokenException e) {
+            log.info("JWT 토큰이 잘못되었습니다. : {}", e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * JWT 토큰에서 Claims 추출
+     */
+    private Claims getClaims(String token) {
+        Claims claims;
+        try {
+            claims = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new TokenExpirationException("만료된 토큰입니다.", e);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new InvalidTokenException("유효하지 않은 토큰입니다.", e);
+        }
+        return claims;
+    }
+
+    /**
+     * 토큰에서 유저 role 추출
+     *
+     * @param token
+     * @return UserRole
+     */
+    public UserRole getUserRole(String token) {
+        String userRole = getClaims(token).get("ROLE_", String.class);
+        log.info("userRole: {}", userRole);
+        return UserRole.valueOf(userRole);
+    }
+
+    /**
+     * 토큰에서 유저 id 추출
+     *
+     * @param token
+     * @return UserId (UUID)
+     */
+    public UUID getUserId(String token) {
+        String userId = getClaims(token).getSubject();
+        log.info("userId: {}", userId);
+        return UUID.fromString(userId);
+    }
+
+
+    public String generateAccessToken(UUID MemberId, UserRole role) {
+        return createToken(MemberId, role, accessTokenExpiration);
+    }
+
+    public String generateRefreshToken(UUID MemberId, UserRole role){
+        return createToken(MemberId, role, refreshTokenExpiration);
+    }
+
+}
