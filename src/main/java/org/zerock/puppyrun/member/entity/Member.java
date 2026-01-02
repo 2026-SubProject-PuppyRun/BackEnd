@@ -10,8 +10,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.UUID;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.zerock.puppyrun.common.entity.BaseTimeEntity;
+import org.zerock.puppyrun.member.DTO.MemberDTO;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -27,15 +31,46 @@ public class Member extends BaseTimeEntity {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
+    @Getter
     @Column(name = "password", nullable = false)
     private String password;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private UserRole role = UserRole.USER;
+    private UserRole role;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private Status status = Status.ACTIVE;
+    private Status status;
 
+    @Builder
+    public Member(String nickName, String email, String password) {
+        this.nickName = nickName;
+        this.email = email;
+        this.password = password;
+        this.role = UserRole.USER; // 생성시 USER 할당
+        this.status = Status.ACTIVE; // 생성시 ACTIVE 할당
+    }
+
+    public void setAdmin() {
+        this.role = UserRole.ADMIN;
+    }
+
+    public void setDeactivate() {
+        this.status = Status.DEACTIVATE;
+    }
+
+    public void setActive() {
+        this.status = Status.ACTIVE;
+    }
+    
+    public MemberDTO toDto() {
+        return MemberDTO.builder()
+                .id(this.id)
+                .nickName(this.nickName)
+                .email(this.email)
+                .userRole(this.role)
+                .status(this.status)
+                .build();
+    }
 }
