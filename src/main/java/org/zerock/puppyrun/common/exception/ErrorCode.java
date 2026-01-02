@@ -19,6 +19,7 @@ public enum ErrorCode {
     MISSING_AUTHORIZATION_HEADER(HttpStatus.UNAUTHORIZED, "AUTH_003", "Authorization 헤더가 없거나 Bearer 토큰 형식이 아닙니다."),
     NOT_EXISTS_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_004", "토큰이 존재하지 않습니다."),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "AUTH_005", "토큰이 만료되었습니다."),
+    USER_FORBIDDEN(HttpStatus.FORBIDDEN, "AUTH_006", "접근 권한이 없습니다."),
 
 
     // 유저 에러
@@ -26,5 +27,5 @@ public enum ErrorCode {
 
     private final HttpStatus httpStatus;
     private final String code;
-    private final String message;
+    private final String description;
 }
