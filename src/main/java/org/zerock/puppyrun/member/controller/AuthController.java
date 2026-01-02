@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.zerock.puppyrun.member.DTO.MemberDTO;
@@ -19,7 +20,8 @@ import org.zerock.puppyrun.member.service.SignInService;
 import org.zerock.puppyrun.member.service.SignUpService;
 
 @RequiredArgsConstructor
-@RestController("/api/auth")
+@RestController
+@RequestMapping("/api/auth")
 public class AuthController {
     private final SignInService signInService;
     private final SignUpService signUpService;
@@ -50,7 +52,7 @@ public class AuthController {
                 .accessToken(tokenDTO.accessToken())
                 .refreshToken(tokenDTO.refreshToken())
                 .email(memberDTO.email())
-                .nickname(memberDTO.nickName())
+                .nickName(memberDTO.nickName())
                 .build();
         return ResponseEntity.ok(response);
     }
