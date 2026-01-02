@@ -26,6 +26,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse errorResponse = ErrorResponse.of(
                 e.getErrorCode().getCode(),
+                e.getDescription(),
                 e.getMessage(),
                 request.getRequestURI()
         );
@@ -56,6 +57,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse errorResponse = ErrorResponse.of(
                 errorCode.getCode(),
+                errorCode.getDescription(),
                 errorMessage,
                 request.getRequestURI()
         );
@@ -80,6 +82,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse errorResponse = ErrorResponse.of(
                 errorCode.getCode(),
+                errorCode.getDescription(),
                 e.getMessage(),
                 request.getRequestURI()
         );
