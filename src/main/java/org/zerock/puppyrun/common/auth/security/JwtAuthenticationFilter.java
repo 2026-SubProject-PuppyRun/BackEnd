@@ -1,5 +1,7 @@
 package org.zerock.puppyrun.common.auth.security;
 
+import static org.zerock.puppyrun.common.auth.security.PublicEndpoints.ALLOWED;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,10 +11,12 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.zerock.puppyrun.common.auth.jwt.JwtTokenProvider;
 import org.zerock.puppyrun.common.exception.ErrorCode;
@@ -27,6 +31,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final ObjectMapper objectMapper;
+    private static final AntPathMatcher pathMatcher = new AntPathMatcher();
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+            return true;
+        }
+        return ALLOWED.stream()
+                .anyMatch(pattern -> pathMatcher.match(pattern, path));
+    }
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
