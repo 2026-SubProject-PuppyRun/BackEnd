@@ -12,6 +12,9 @@ spring:
       lifecycle-management: start_and_stop
       skip:
         in-tests: false
+          
+  jackson:
+    property-naming-strategy: SNAKE_CASE
 
 # JWT 설정 (토큰 만료 시간을 초 단위로 설정)
 jwt:
