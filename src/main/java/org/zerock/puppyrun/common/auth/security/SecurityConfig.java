@@ -55,6 +55,7 @@ public class SecurityConfig {
                         // 공개 API (인증 불필요)
                         .requestMatchers(
                                 "/api/auth/check-email",       // 이메일 중복 체크
+                                "/api/auth/check-nickname",    // 닉네임 중복 체크
                                 "/api/auth/sign-up",           // 회원가입
                                 "/api/auth/sign-in",           // 로그인
                                 "/api/auth/find-id",           // 아이디 찾기
