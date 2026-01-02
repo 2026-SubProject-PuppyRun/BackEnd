@@ -1,6 +1,5 @@
 package org.zerock.puppyrun.member.service;
 
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -9,7 +8,6 @@ import org.zerock.puppyrun.member.DTO.MemberDTO;
 import org.zerock.puppyrun.member.DTO.TokenDTO;
 import org.zerock.puppyrun.member.controller.request.SignUpRequest;
 import org.zerock.puppyrun.member.entity.Member;
-import org.zerock.puppyrun.member.entity.UserRole;
 import org.zerock.puppyrun.member.exception.ExistingUserException;
 import org.zerock.puppyrun.member.repository.MemberRepository;
 

@@ -7,6 +7,6 @@ public record SignUpResponse(
         String accessToken,
         String refreshToken,
         String email,
-        String nickname
+        String nickName
 ) {
 }
