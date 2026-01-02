@@ -34,4 +34,8 @@ public class Member extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private UserRole role = UserRole.USER;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Status status = Status.ACTIVE;
+
 }
