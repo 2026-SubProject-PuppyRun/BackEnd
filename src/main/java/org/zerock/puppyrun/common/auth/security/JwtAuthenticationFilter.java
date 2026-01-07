@@ -2,6 +2,7 @@ package org.zerock.puppyrun.common.auth.security;
 
 import static org.zerock.puppyrun.common.auth.security.PublicEndpoints.ALLOWED;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.zerock.puppyrun.common.auth.jwt.JwtTokenProvider;
+import org.zerock.puppyrun.common.auth.jwt.exception.InvalidTokenException;
+import org.zerock.puppyrun.common.auth.jwt.exception.TokenExpirationException;
 import org.zerock.puppyrun.common.exception.ErrorCode;
 import org.zerock.puppyrun.common.exception.ErrorResponse;
 import org.zerock.puppyrun.member.entity.UserRole;
@@ -55,12 +58,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 토큰 검증
-        if (!jwtTokenProvider.validateToken(accessToken)) {
-            setErrorResponse(request, response, ErrorCode.INVALID_TOKEN);
-            return;
-        }
-
         try {
             UUID userId = jwtTokenProvider.getUserId(accessToken);
             UserRole userRole = jwtTokenProvider.getUserRole(accessToken);
@@ -77,6 +74,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 log.info("JWT 인증 성공 - User ID: {}, Role: {}", userId, role);
             }
+        } catch (TokenExpirationException e) {
+            log.warn("JWT 토큰 만료: {}", e.getMessage());
+            setErrorResponse(request, response, ErrorCode.TOKEN_EXPIRED); // 토큰 만료 시 에러 응답
+            return;
+        } catch (InvalidTokenException e) {
+            log.warn("JWT 토큰 유효하지 않음: {}", e.getMessage());
+            setErrorResponse(request, response, ErrorCode.INVALID_TOKEN); // 토큰 유효하지 않음 시 에러 응답
+            return;
         } catch (Exception e) {
             log.warn("JWT 토큰 파싱 실패: {}", e.getMessage());
             SecurityContextHolder.clearContext();

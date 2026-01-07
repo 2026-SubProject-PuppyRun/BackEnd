@@ -50,19 +50,6 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // 토큰 검증
-    public boolean validateToken(String token) {
-        try {
-            getClaims(token);
-            return true;
-        } catch (TokenExpirationException e) {
-            log.info("만료된 JWT 토큰입니다. : {}", e.getMessage());
-        } catch (InvalidTokenException e) {
-            log.info("JWT 토큰이 잘못되었습니다. : {}", e.getMessage());
-        }
-        return false;
-    }
-
     /**
      * JWT 토큰에서 Claims 추출
      */
