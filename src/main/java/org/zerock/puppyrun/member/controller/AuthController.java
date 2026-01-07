@@ -16,21 +16,19 @@ import org.zerock.puppyrun.member.controller.request.SignUpRequest;
 import org.zerock.puppyrun.member.controller.response.CheckResponse;
 import org.zerock.puppyrun.member.controller.response.SignInResponse;
 import org.zerock.puppyrun.member.controller.response.SignUpResponse;
-import org.zerock.puppyrun.member.service.SignInService;
-import org.zerock.puppyrun.member.service.SignUpService;
+import org.zerock.puppyrun.member.service.AuthService;
 
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    private final SignInService signInService;
-    private final SignUpService signUpService;
+    private final AuthService authService;
 
     // 로그인
     @PostMapping("/sign-in")
     public ResponseEntity<SignInResponse> signIn(@Valid @RequestBody SignInRequest request) {
 
-        TokenDTO tokenDTO = signInService.signIn(request);
+        TokenDTO tokenDTO = authService.signIn(request);
 
         SignInResponse response = SignInResponse.builder()
                 .accessToken(tokenDTO.accessToken())
@@ -44,9 +42,9 @@ public class AuthController {
     @PostMapping("/sign-up")
     public ResponseEntity<SignUpResponse> signUp(@Valid @RequestBody SignUpRequest request) {
 
-        MemberDTO memberDTO = signUpService.registrarMember(request);
+        MemberDTO memberDTO = authService.registrarMember(request);
 
-        TokenDTO tokenDTO = signUpService.crateToken(memberDTO);
+        TokenDTO tokenDTO = authService.crateToken(memberDTO);
 
         SignUpResponse response = SignUpResponse.builder()
                 .accessToken(tokenDTO.accessToken())
@@ -63,7 +61,7 @@ public class AuthController {
 
         CheckResponse response = CheckResponse.builder()
                 .object(email)
-                .isExists(signUpService.isExistsByEmail(email))
+                .isExists(authService.isExistsByEmail(email))
                 .build();
         return ResponseEntity.ok(response);
     }
@@ -73,7 +71,7 @@ public class AuthController {
     public ResponseEntity<CheckResponse> checkNickname(@RequestParam String nickname) {
         CheckResponse response = CheckResponse.builder()
                 .object(nickname)
-                .isExists(signUpService.isExistsByNickname(nickname))
+                .isExists(authService.isExistsByNickname(nickname))
                 .build();
         return ResponseEntity.ok(response);
     }
