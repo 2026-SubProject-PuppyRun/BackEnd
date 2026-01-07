@@ -17,6 +17,7 @@ import org.zerock.puppyrun.member.repository.MemberRepository;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AuthService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
@@ -33,14 +34,15 @@ public class AuthService {
         return memberRepository.existsByEmail(email);
     }
 
-    private Member saveMember(Member member) {
+    @Transactional
+    protected Member saveMember(Member member) {
         return memberRepository.save(member);
     }
 
     /**
      * AccessToken 및 RefreshToken 생성
      *
-     * @param memberDTO
+     * @param MemberDTO
      * @return TokenDTO
      */
     public TokenDTO crateToken(MemberDTO memberDTO) {
@@ -53,9 +55,10 @@ public class AuthService {
     /**
      * 회원가입 처리 메서드
      *
-     * @param request
+     * @param SignUpRequest
      * @return MemberDTO
      */
+    @Transactional
     public MemberDTO registrarMember(SignUpRequest request) {
         if (isExistsByNickname(request.nickName())) {
             throw new ExistingUserException("이미 존재하는 닉네임입니다. : " + request.nickName());
@@ -100,10 +103,12 @@ public class AuthService {
         return maskedLocal + "@" + domain;
     }
 
-    /*
+    /**
      * 로그인 처리 (AccessToken,RefreshToken 포함)
+     *
+     * @param SignInRequest
+     * @return TokenDTO
      */
-    @Transactional(readOnly = true)
     public TokenDTO signIn(SignInRequest request) {
         return memberRepository.findByEmail(request.email())
                 .map(member -> {
@@ -120,4 +125,10 @@ public class AuthService {
                 })
                 .orElseThrow(() -> new UserNotFoundException("존재하지 않는 회원입니다."));
     }
+
+    /**
+     *
+     */
+
+
 }
