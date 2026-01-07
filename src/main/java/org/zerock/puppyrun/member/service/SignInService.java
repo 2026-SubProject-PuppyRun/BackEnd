@@ -34,11 +34,12 @@ public class SignInService {
 
                     UUID id = member.toDto().id();
                     UserRole userRole = member.toDto().userRole();
+                    String email = member.toDto().email();
 
                     // 토큰 쌍 생성 (Access + Refresh)
                     return TokenDTO.builder()
-                            .accessToken(jwtTokenProvider.generateAccessToken(id, userRole))
-                            .refreshToken(jwtTokenProvider.generateRefreshToken(id, userRole))
+                            .accessToken(jwtTokenProvider.generateAccessToken(id, email, userRole))
+                            .refreshToken(jwtTokenProvider.generateRefreshToken(id, email, userRole))
                             .build();
                 })
                 .orElseThrow(() -> new UserNotFoundException("존재하지 않는 회원입니다."));

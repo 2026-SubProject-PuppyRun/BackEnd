@@ -41,8 +41,10 @@ public class SignUpService {
      */
     public TokenDTO crateToken(MemberDTO memberDTO) {
         return TokenDTO.builder()
-                .accessToken(jwtTokenProvider.generateAccessToken(memberDTO.id(), memberDTO.userRole()))
-                .refreshToken(jwtTokenProvider.generateRefreshToken(memberDTO.id(), memberDTO.userRole()))
+                .accessToken(
+                        jwtTokenProvider.generateAccessToken(memberDTO.id(), memberDTO.email(), memberDTO.userRole()))
+                .refreshToken(
+                        jwtTokenProvider.generateRefreshToken(memberDTO.id(), memberDTO.email(), memberDTO.userRole()))
                 .build();
     }
 

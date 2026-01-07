@@ -59,20 +59,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         try {
-            UUID userId = jwtTokenProvider.getUserId(accessToken);
-            UserRole userRole = jwtTokenProvider.getUserRole(accessToken);
+            UserPrincipal userPrincipal = jwtTokenProvider.getUserPrincipal(accessToken);
 
-            if (userId != null && userRole != null) {
-                String role = "ROLE_" + userRole.name();
+            if (userPrincipal != null) {
+                String role = "ROLE_" + userPrincipal.role().name();
+                String userId = userPrincipal.id().toString();
+                String email = userPrincipal.email();
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                userId,
+                                userPrincipal,
                                 null,
                                 List.of(new SimpleGrantedAuthority(role))
                         );
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.info("JWT 인증 성공 - User ID: {}, Role: {}", userId, role);
+                log.info("JWT 인증 성공 - User ID: {}, User Email: {}, Role: {}", userId, email, role);
             }
         } catch (TokenExpirationException e) {
             log.warn("JWT 토큰 만료: {}", e.getMessage());
