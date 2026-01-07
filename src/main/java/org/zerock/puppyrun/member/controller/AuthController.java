@@ -16,6 +16,7 @@ import org.zerock.puppyrun.member.controller.request.SignUpRequest;
 import org.zerock.puppyrun.member.controller.response.CheckResponse;
 import org.zerock.puppyrun.member.controller.response.SignInResponse;
 import org.zerock.puppyrun.member.controller.response.SignUpResponse;
+import org.zerock.puppyrun.member.controller.response.TokenReissuanceResponse;
 import org.zerock.puppyrun.member.service.AuthService;
 
 @RequiredArgsConstructor
@@ -72,6 +73,17 @@ public class AuthController {
         CheckResponse response = CheckResponse.builder()
                 .object(nickname)
                 .isExists(authService.isExistsByNickname(nickname))
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+    // 토큰 갱신
+    @GetMapping("/refresh")
+    public ResponseEntity<TokenReissuanceResponse> refreshToken(@RequestParam String refresh) {
+        TokenDTO tokenDTO = authService.AccessTokenReissuance(refresh);
+        TokenReissuanceResponse response = TokenReissuanceResponse.builder()
+                .accessToken(tokenDTO.accessToken())
+                .refreshToken(tokenDTO.refreshToken())
                 .build();
         return ResponseEntity.ok(response);
     }

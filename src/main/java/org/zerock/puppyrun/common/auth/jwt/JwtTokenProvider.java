@@ -92,6 +92,24 @@ public class JwtTokenProvider {
         return new UserPrincipal(UUID.fromString(userId), email, UserRole.valueOf(userRole));
     }
 
+    /**
+     * Refresh Token 검증 및 User ID 추출
+     * - 토큰 타입이 REFRESH 인지 확인
+     */
+    public UUID getUserIdFromRefreshToken(String token) {
+        Claims claims = getClaims(token);
+
+        // 토큰 타입 추출
+        String type = claims.get("type", String.class);
+
+        // REFRESH 타입이 아니면 예외 발생 (Access Token 등 차단)
+        if (!TokenType.REFRESH.name().equals(type)) {
+            throw new InvalidTokenException("Refresh Token이 아닙니다.");
+        }
+
+        return UUID.fromString(claims.getSubject());
+    }
+
 
     public String generateAccessToken(MemberDTO memberDTO) {
         return createToken(memberDTO.id(), memberDTO.email(), memberDTO.userRole(), TokenType.ACCESS,

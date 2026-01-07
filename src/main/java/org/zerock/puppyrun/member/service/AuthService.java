@@ -1,10 +1,12 @@
 package org.zerock.puppyrun.member.service;
 
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.common.auth.jwt.JwtTokenProvider;
+import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.member.DTO.MemberDTO;
 import org.zerock.puppyrun.member.DTO.TokenDTO;
 import org.zerock.puppyrun.member.controller.request.SignInRequest;
@@ -34,9 +36,9 @@ public class AuthService {
         return memberRepository.existsByEmail(email);
     }
 
-    @Transactional
-    protected Member saveMember(Member member) {
-        return memberRepository.save(member);
+    protected Member findMemberById(UUID id) {
+        return memberRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("존재하지 않는 회원입니다."));
     }
 
     /**
@@ -76,7 +78,7 @@ public class AuthService {
                 .password(encryptedPassword)
                 .build();
 
-        Member savedMember = saveMember(member);
+        Member savedMember = memberRepository.save(member);
         return savedMember.toDto();
     }
 
@@ -127,8 +129,23 @@ public class AuthService {
     }
 
     /**
+     * AccessToken 재발급
      *
+     * @return TokenDTO
      */
+    public TokenDTO AccessTokenReissuance(String refreshToken) {
+        UUID userId = jwtTokenProvider.getUserIdFromRefreshToken(refreshToken);
+
+        Member member = findMemberById(userId);
+
+        String newAccessToken = jwtTokenProvider.generateAccessToken(member.toDto());
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(member.toDto());
+
+        return TokenDTO.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken) // 새 리프레시 토큰 반환
+                .build();
+    }
 
 
 }
