@@ -32,14 +32,10 @@ public class SignInService {
                         throw new UserUnauthorizedException("비밀번호가 틀립니다.");
                     }
 
-                    UUID id = member.toDto().id();
-                    UserRole userRole = member.toDto().userRole();
-                    String email = member.toDto().email();
-
                     // 토큰 쌍 생성 (Access + Refresh)
                     return TokenDTO.builder()
-                            .accessToken(jwtTokenProvider.generateAccessToken(id, email, userRole))
-                            .refreshToken(jwtTokenProvider.generateRefreshToken(id, email, userRole))
+                            .accessToken(jwtTokenProvider.generateAccessToken(member.toDto()))
+                            .refreshToken(jwtTokenProvider.generateRefreshToken(member.toDto()))
                             .build();
                 })
                 .orElseThrow(() -> new UserNotFoundException("존재하지 않는 회원입니다."));

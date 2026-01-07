@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.zerock.puppyrun.common.auth.jwt.exception.InvalidTokenException;
 import org.zerock.puppyrun.common.auth.jwt.exception.TokenExpirationException;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
+import org.zerock.puppyrun.member.DTO.MemberDTO;
 import org.zerock.puppyrun.member.entity.UserRole;
 
 @Slf4j
@@ -91,12 +92,12 @@ public class JwtTokenProvider {
     }
 
 
-    public String generateAccessToken(UUID MemberId, String email, UserRole role) {
-        return createToken(MemberId, email, role, accessTokenExpiration);
+    public String generateAccessToken(MemberDTO memberDTO) {
+        return createToken(memberDTO.id(), memberDTO.email(), memberDTO.userRole(), accessTokenExpiration);
     }
 
-    public String generateRefreshToken(UUID MemberId, String email, UserRole role) {
-        return createToken(MemberId, email, role, refreshTokenExpiration);
+    public String generateRefreshToken(MemberDTO memberDTO) {
+        return createToken(memberDTO.id(), memberDTO.email(), memberDTO.userRole(), refreshTokenExpiration);
     }
 
 }
