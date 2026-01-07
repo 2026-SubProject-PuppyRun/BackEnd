@@ -42,11 +42,12 @@ public class JwtTokenProvider {
     /**
      * 토큰 생성
      */
-    private String createToken(UUID MemberId, String email, UserRole role, long expiration) {
+    private String createToken(UUID MemberId, String email, UserRole role, TokenType type, long expiration) {
         return Jwts.builder()
                 .subject(String.valueOf(MemberId))
                 .claim("ROLE_", role)
                 .claim("email", email)
+                .claim("type", type)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration)) // 만료 시각
                 .signWith(key)
@@ -93,11 +94,13 @@ public class JwtTokenProvider {
 
 
     public String generateAccessToken(MemberDTO memberDTO) {
-        return createToken(memberDTO.id(), memberDTO.email(), memberDTO.userRole(), accessTokenExpiration);
+        return createToken(memberDTO.id(), memberDTO.email(), memberDTO.userRole(), TokenType.ACCESS,
+                accessTokenExpiration);
     }
 
     public String generateRefreshToken(MemberDTO memberDTO) {
-        return createToken(memberDTO.id(), memberDTO.email(), memberDTO.userRole(), refreshTokenExpiration);
+        return createToken(memberDTO.id(), memberDTO.email(), memberDTO.userRole(), TokenType.REFRESH,
+                refreshTokenExpiration);
     }
 
 }
