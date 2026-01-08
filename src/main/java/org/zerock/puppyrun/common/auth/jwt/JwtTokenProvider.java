@@ -15,6 +15,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.zerock.puppyrun.common.auth.jwt.exception.InvalidTokenException;
 import org.zerock.puppyrun.common.auth.jwt.exception.TokenExpirationException;
+import org.zerock.puppyrun.common.auth.security.UserPrincipal;
+import org.zerock.puppyrun.member.DTO.MemberDTO;
 import org.zerock.puppyrun.member.entity.UserRole;
 
 @Slf4j
@@ -40,10 +42,12 @@ public class JwtTokenProvider {
     /**
      * 토큰 생성
      */
-    private String createToken(UUID MemberId, UserRole role, long expiration) {
+    private String createToken(UUID MemberId, String email, UserRole role, TokenType type, long expiration) {
         return Jwts.builder()
                 .subject(String.valueOf(MemberId))
                 .claim("ROLE_", role)
+                .claim("email", email)
+                .claim("type", type)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration)) // 만료 시각
                 .signWith(key)
@@ -70,36 +74,51 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 토큰에서 유저 role 추출
+     * 토큰에서 유저 Principal 추출
      *
      * @param token
-     * @return UserRole
+     * @return UserPrincipal
      */
-    public UserRole getUserRole(String token) {
-        String userRole = getClaims(token).get("ROLE_", String.class);
+    public UserPrincipal getUserPrincipal(String token) {
+        Claims claims = getClaims(token);
+
+        String userId = claims.getSubject();
+        log.info("userId: {}", userId);
+        String email = claims.get("email", String.class);
+        log.info("email: {}", email);
+        String userRole = claims.get("ROLE_", String.class);
         log.info("userRole: {}", userRole);
-        return UserRole.valueOf(userRole);
+
+        return new UserPrincipal(UUID.fromString(userId), email, UserRole.valueOf(userRole));
     }
 
     /**
-     * 토큰에서 유저 id 추출
-     *
-     * @param token
-     * @return UserId (UUID)
+     * Refresh Token 검증 및 User ID 추출
+     * - 토큰 타입이 REFRESH 인지 확인
      */
-    public UUID getUserId(String token) {
-        String userId = getClaims(token).getSubject();
-        log.info("userId: {}", userId);
-        return UUID.fromString(userId);
+    public UUID getUserIdFromRefreshToken(String token) {
+        Claims claims = getClaims(token);
+
+        // 토큰 타입 추출
+        String type = claims.get("type", String.class);
+
+        // REFRESH 타입이 아니면 예외 발생 (Access Token 등 차단)
+        if (!TokenType.REFRESH.name().equals(type)) {
+            throw new InvalidTokenException("Refresh Token이 아닙니다.");
+        }
+
+        return UUID.fromString(claims.getSubject());
     }
 
 
-    public String generateAccessToken(UUID MemberId, UserRole role) {
-        return createToken(MemberId, role, accessTokenExpiration);
+    public String generateAccessToken(MemberDTO memberDTO) {
+        return createToken(memberDTO.id(), memberDTO.email(), memberDTO.userRole(), TokenType.ACCESS,
+                accessTokenExpiration);
     }
 
-    public String generateRefreshToken(UUID MemberId, UserRole role) {
-        return createToken(MemberId, role, refreshTokenExpiration);
+    public String generateRefreshToken(MemberDTO memberDTO) {
+        return createToken(memberDTO.id(), memberDTO.email(), memberDTO.userRole(), TokenType.REFRESH,
+                refreshTokenExpiration);
     }
 
 }
