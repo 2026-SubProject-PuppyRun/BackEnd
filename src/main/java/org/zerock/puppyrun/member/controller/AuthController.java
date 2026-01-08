@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -78,8 +79,8 @@ public class AuthController {
     }
 
     // 토큰 갱신
-    @GetMapping("/refresh")
-    public ResponseEntity<TokenReissuanceResponse> refreshToken(@RequestParam String refresh) {
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenReissuanceResponse> refreshToken(@RequestHeader("Refresh-Token") String refresh) {
         TokenDTO tokenDTO = authService.AccessTokenReissuance(refresh);
         TokenReissuanceResponse response = TokenReissuanceResponse.builder()
                 .accessToken(tokenDTO.accessToken())
