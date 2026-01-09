@@ -45,6 +45,9 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
+
+    // 테스트할 때 쓸 가짜 DB
+    testImplementation 'com.h2database:h2'
 }
 
 tasks.named('test') {
