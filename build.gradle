@@ -21,7 +21,10 @@ configurations {
 }
 
 repositories {
-    mavenCentral()
+    repositories {
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
 }
 
 dependencies {
@@ -48,6 +51,10 @@ dependencies {
 
     // 테스트할 때 쓸 가짜 DB
     testImplementation 'com.h2database:h2'
+
+    // Discord 로그 알림 의존성
+    implementation 'com.github.napstr:logback-discord-appender:1.0.0'
+
 }
 
 tasks.named('test') {
