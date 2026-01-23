@@ -32,6 +32,7 @@ public class AccountController {
         AccountResponse response = AccountResponse.builder()
                 .email(maskEmail)
                 .nickName(memberDTO.nickName())
+                .profileImage(memberDTO.profileImage())
                 .UserRole(memberDTO.userRole().toString())
                 .build();
         return ResponseEntity.ok(response);
@@ -50,6 +51,7 @@ public class AccountController {
         AccountResponse response = AccountResponse.builder()
                 .email(maskEmail)
                 .nickName(memberDTO.nickName())
+                .profileImage(memberDTO.profileImage())
                 .UserRole(memberDTO.userRole().toString())
                 .build();
         return ResponseEntity.ok(response);
@@ -67,6 +69,7 @@ public class AccountController {
         AccountResponse response = AccountResponse.builder()
                 .email(maskEmail)
                 .nickName(memberDTO.nickName())
+                .profileImage(memberDTO.profileImage())
                 .UserRole(memberDTO.userRole().toString())
                 .build();
         return ResponseEntity.ok(response);
