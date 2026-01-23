@@ -1,9 +1,8 @@
-package org.zerock.puppyrun.member.controller.request;
+package org.zerock.puppyrun.auth.controller.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
-import lombok.NonNull;
 
 @Builder
 public record SignInRequest(

@@ -1,4 +1,4 @@
-package org.zerock.puppyrun.member.controller.request;
+package org.zerock.puppyrun.auth.controller.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

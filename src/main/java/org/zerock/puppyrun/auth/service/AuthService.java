@@ -1,4 +1,4 @@
-package org.zerock.puppyrun.member.service;
+package org.zerock.puppyrun.auth.service;
 
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -6,11 +6,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.common.auth.jwt.JwtTokenProvider;
-import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.member.DTO.MemberDTO;
-import org.zerock.puppyrun.member.DTO.TokenDTO;
-import org.zerock.puppyrun.member.controller.request.SignInRequest;
-import org.zerock.puppyrun.member.controller.request.SignUpRequest;
+import org.zerock.puppyrun.auth.DTO.TokenDTO;
+import org.zerock.puppyrun.auth.controller.request.SignInRequest;
+import org.zerock.puppyrun.auth.controller.request.SignUpRequest;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.exception.ExistingUserException;
 import org.zerock.puppyrun.member.exception.UserNotFoundException;
