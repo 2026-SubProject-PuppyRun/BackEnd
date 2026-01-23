@@ -29,5 +29,4 @@ jwt:
   refresh-token-expiration: 1209600000
 
 discord:
-  webhooks:
-    url: https://discord.com/api/webhooks/dummy-url-for-test
+  webhooks-url: https://discord.com/api/webhooks/dummy-url-for-test
