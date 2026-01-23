@@ -82,29 +82,6 @@ public class AuthService {
     }
 
     /**
-     * 이메일 마스킹 처리
-     */
-    private String maskEmail(String email) {
-        if (email == null || !email.contains("@")) {
-            return null;
-        }
-
-        String[] parts = email.split("@");
-        String localPart = parts[0];
-        String domain = parts[1];
-
-        // 앞부분의 처음 1-2자만 보이게 하고 나머지는 ****로 마스킹
-        String maskedLocal;
-        if (localPart.length() <= 2) {
-            maskedLocal = localPart.charAt(0) + "****";
-        } else {
-            maskedLocal = localPart.substring(0, 2) + "****";
-        }
-
-        return maskedLocal + "@" + domain;
-    }
-
-    /**
      * 로그인 처리 (AccessToken,RefreshToken 포함)
      *
      * @param SignInRequest
