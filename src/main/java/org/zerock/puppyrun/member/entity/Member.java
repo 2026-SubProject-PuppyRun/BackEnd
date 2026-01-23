@@ -10,11 +10,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.UUID;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.zerock.puppyrun.common.entity.BaseTimeEntity;
+import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.member.DTO.MemberDTO;
 
 @Entity
@@ -63,7 +63,18 @@ public class Member extends BaseTimeEntity {
     public void setActive() {
         this.status = Status.ACTIVE;
     }
-    
+
+    public void updatePassword(String encryptedPassword) {
+        this.password = encryptedPassword;
+    }
+
+    public void updateNickName(String newNickName) {
+        if (nickName.equals(newNickName)) {
+            throw new InvalidValueException("기존 닉네임과 동일합니다.");
+        }
+        this.nickName = newNickName;
+    }
+
     public MemberDTO toDto() {
         return MemberDTO.builder()
                 .id(this.id)
