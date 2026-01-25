@@ -106,6 +106,10 @@ public class MemberService {
     @Transactional
     public MemberDTO nickNameChange(UUID id, String newNickName) {
         Member member = findMemberById(id);
+        if (memberRepository.existsByNickName(newNickName)) {
+            throw new InvalidValueException("이미 존재하는 닉네임입니다.");
+        }
+
         member.updateNickName(newNickName);
         return member.toDto();
     }
