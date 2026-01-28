@@ -53,6 +53,10 @@ dependencies {
     // Discord 로그 알림 의존성
     implementation 'com.github.napstr:logback-discord-appender:1.0.0'
 
+    // 캐시 의존성
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
+
 }
 
 tasks.named('test') {
