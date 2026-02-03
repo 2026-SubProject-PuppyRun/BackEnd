@@ -25,3 +25,7 @@ jwt:
 
 discord:
   webhooks-url: ${discord_webhooks_url}
+
+data-kr:
+  api-key: ${DATA_API_KEY}
+  forecest-url: ${DATA_FORECEST_URL}
