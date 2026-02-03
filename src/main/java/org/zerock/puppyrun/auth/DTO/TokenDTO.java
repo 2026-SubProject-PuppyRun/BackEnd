@@ -1,9 +1,9 @@
-package org.zerock.puppyrun.member.controller.response;
+package org.zerock.puppyrun.auth.DTO;
 
 import lombok.Builder;
 
 @Builder
-public record TokenReissuanceResponse(
+public record TokenDTO(
         String accessToken,
         String refreshToken
 ) {

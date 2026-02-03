@@ -11,6 +11,7 @@ public record MemberDTO(
         String nickName,
         String email,
         UserRole userRole,
-        Status status
+        Status status,
+        String profileImage
 ) {
 }

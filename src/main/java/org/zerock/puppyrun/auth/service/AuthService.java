@@ -1,4 +1,4 @@
-package org.zerock.puppyrun.member.service;
+package org.zerock.puppyrun.auth.service;
 
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -6,11 +6,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.common.auth.jwt.JwtTokenProvider;
-import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.member.DTO.MemberDTO;
-import org.zerock.puppyrun.member.DTO.TokenDTO;
-import org.zerock.puppyrun.member.controller.request.SignInRequest;
-import org.zerock.puppyrun.member.controller.request.SignUpRequest;
+import org.zerock.puppyrun.auth.DTO.TokenDTO;
+import org.zerock.puppyrun.auth.controller.request.SignInRequest;
+import org.zerock.puppyrun.auth.controller.request.SignUpRequest;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.exception.ExistingUserException;
 import org.zerock.puppyrun.member.exception.UserNotFoundException;
@@ -80,29 +79,6 @@ public class AuthService {
 
         Member savedMember = memberRepository.save(member);
         return savedMember.toDto();
-    }
-
-    /**
-     * 이메일 마스킹 처리
-     */
-    private String maskEmail(String email) {
-        if (email == null || !email.contains("@")) {
-            return null;
-        }
-
-        String[] parts = email.split("@");
-        String localPart = parts[0];
-        String domain = parts[1];
-
-        // 앞부분의 처음 1-2자만 보이게 하고 나머지는 ****로 마스킹
-        String maskedLocal;
-        if (localPart.length() <= 2) {
-            maskedLocal = localPart.charAt(0) + "****";
-        } else {
-            maskedLocal = localPart.substring(0, 2) + "****";
-        }
-
-        return maskedLocal + "@" + domain;
     }
 
     /**

@@ -1,4 +1,4 @@
-package org.zerock.puppyrun.member.controller.response;
+package org.zerock.puppyrun.auth.controller.response;
 
 import lombok.Builder;
 

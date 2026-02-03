@@ -10,17 +10,20 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.UUID;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.zerock.puppyrun.common.entity.BaseTimeEntity;
+import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.member.DTO.MemberDTO;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "member")
 public class Member extends BaseTimeEntity {
+    // 기본 프로필 이미지 경로를 상수로 정의
+    private static final String DEFAULT_PROFILE_IMAGE = "/images/default/profile.png";
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -34,6 +37,9 @@ public class Member extends BaseTimeEntity {
     @Getter
     @Column(name = "password", nullable = false)
     private String password;
+
+    @Column(name = "profile_image")
+    private String profileImage;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -50,6 +56,7 @@ public class Member extends BaseTimeEntity {
         this.password = password;
         this.role = UserRole.USER; // 생성시 USER 할당
         this.status = Status.ACTIVE; // 생성시 ACTIVE 할당
+        this.profileImage = DEFAULT_PROFILE_IMAGE; // 생성시 기본 이미지 경로 할당
     }
 
     public void setAdmin() {
@@ -63,7 +70,23 @@ public class Member extends BaseTimeEntity {
     public void setActive() {
         this.status = Status.ACTIVE;
     }
-    
+
+    public void updatePassword(String encryptedPassword) {
+        this.password = encryptedPassword;
+    }
+
+    public void updateProfileImage(String profileImage) {
+        // TODO 기능 개발 예정
+        this.profileImage = profileImage;
+    }
+
+    public void updateNickName(String newNickName) {
+        if (nickName.equals(newNickName)) {
+            throw new InvalidValueException("기존 닉네임과 동일합니다.");
+        }
+        this.nickName = newNickName;
+    }
+
     public MemberDTO toDto() {
         return MemberDTO.builder()
                 .id(this.id)
@@ -71,6 +94,7 @@ public class Member extends BaseTimeEntity {
                 .email(this.email)
                 .userRole(this.role)
                 .status(this.status)
+                .profileImage(this.profileImage)
                 .build();
     }
 }
