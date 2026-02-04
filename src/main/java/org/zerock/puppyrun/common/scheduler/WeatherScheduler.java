@@ -1,6 +1,6 @@
 package org.zerock.puppyrun.common.scheduler;
 
-import java.util.Arrays;
+import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +16,8 @@ import org.zerock.puppyrun.weather.DTO.WeatherApiPara;
 import org.zerock.puppyrun.weather.DTO.WeatherDTO;
 import org.zerock.puppyrun.weather.service.WeatherApiClient;
 import org.zerock.puppyrun.weather.service.WeatherMapper;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
@@ -31,23 +33,32 @@ public class WeatherScheduler {
         log.info("날씨 데이터 정기 업데이트 시작");
         DateTimeDTO dateTimeDTO = weatherApiClient.createCurrentDateTimeDto();
 
-        Arrays.stream(RegionType.values()).forEach(region -> {
-            WeatherApiPara para = new WeatherApiPara(dateTimeDTO.baseDate(), dateTimeDTO.baseTime(), region.getNx(),
-                    region.getNy());
+        Flux.fromArray(RegionType.values())
+                .delayElements(Duration.ofMillis(500)) // 요청 간 0.5초 딜레이
+                .flatMap(region -> {
+                    WeatherApiPara para = new WeatherApiPara(
+                            dateTimeDTO.baseDate(),
+                            dateTimeDTO.baseTime(),
+                            region.getNx(),
+                            region.getNy()
+                    );
 
-            weatherApiClient.fetchWeather(para)
-                    .subscribe(
-                            response -> {
+                    return weatherApiClient.fetchWeather(para)
+                            .doOnNext(response -> {
                                 try {
                                     List<WeatherDTO> dtoList = weatherMapper.toWeatherDTOList(response);
                                     putWeatherToCache(region.name(), dtoList);
                                 } catch (Exception e) {
-                                    log.error("스케줄러 갱신 중 오류 발생 (Region: {}): {}", region.name(), e.getMessage());
+                                    log.error("데이터 처리 중 오류 (Region: {}): {}", region.name(), e.getMessage());
                                 }
-                            },
-                            error -> log.error("API 호출 실패 (Region: {}): {}", region.name(), error.getMessage())
-                    );
-        });
+                            })
+                            // 에러 발생 시 로그만 찍고 진행
+                            .onErrorResume(e -> {
+                                log.error("API 호출 실패 (Region: {}): {}", region.name(), e.getMessage());
+                                return Mono.empty();
+                            });
+                })
+                .subscribe();
     }
 
     private void putWeatherToCache(String key, List<WeatherDTO> weatherDTOList) {
