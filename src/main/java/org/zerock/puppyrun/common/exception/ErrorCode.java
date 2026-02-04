@@ -21,6 +21,14 @@ public enum ErrorCode {
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "AUTH_005", "토큰이 만료되었습니다."),
     USER_FORBIDDEN(HttpStatus.FORBIDDEN, "AUTH_006", "접근 권한이 없습니다."),
 
+    // cache 에러
+    CACHE_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "CACHE_001", "캐시를 찾을 수 없습니다."),
+
+    // 외부 API 에러
+    EXTERNAL_API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "API_001", "외부 API 요청 중 오류가 발생했습니다."),
+
+    // 날씨 에러
+    INVALID_WEATHER(HttpStatus.INTERNAL_SERVER_ERROR, "WEATHER_001", "잘못된 날씨입니다."),
 
     // 유저 에러
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_001", "유저를 찾을 수 없습니다."),

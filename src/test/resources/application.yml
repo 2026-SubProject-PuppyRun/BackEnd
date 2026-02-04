@@ -2,7 +2,6 @@ spring:
   application:
     name: PuppyRun
 
-  # [1] 테스트는 가벼운 H2 DB(메모리)를 사용하자 (MySQL X)
   datasource:
     url: jdbc:h2:mem:testdb;MODE=MySQL
     driver-class-name: org.h2.Driver
@@ -14,7 +13,7 @@ spring:
     show-sql: true
     database-platform: org.hibernate.dialect.H2Dialect
 
-  # [2] 중요! CI에서는 도커 컴포즈를 끄고 H2만 쓰도록 강제 종료
+  # 도커 컴포즈를 끄고 H2만 쓰도록 강제 종료
   docker:
     compose:
       enabled: false
@@ -22,7 +21,6 @@ spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
 
-# [3] 에러 나던 빈칸(변수)들에 가짜 값을 채워넣기
 jwt:
   secret: this-is-a-very-long-dummy-secret-key-for-test-only-do-not-use-real-key
   access-token-expiration: 900000
@@ -30,3 +28,7 @@ jwt:
 
 discord:
   webhooks-url: https://discord.com/api/webhooks/dummy-url-for-test
+
+data-kr:
+  api-key: api-key
+  forecest-url: http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0
