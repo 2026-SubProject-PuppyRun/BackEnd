@@ -79,8 +79,8 @@ public class WeatherMapper {
         String temp = valueMap.getOrDefault(TEMP, "-1");
 
         return WeatherDTO.Detail.builder()
-                .sky(skyType.getCode())
-                .pty(ptyType.getCode())
+                .sky(skyType)
+                .pty(ptyType)
                 .temp(temp)
                 .build();
     }

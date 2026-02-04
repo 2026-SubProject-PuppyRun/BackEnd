@@ -23,8 +23,8 @@ public record WeatherResponse(
     public static WeatherResponse of(WeatherDTO dto, RegionType region) {
         Detail detail = Detail.builder()
                 .temp(dto.detail().temp())
-                .sky(dto.detail().sky())
-                .pty(dto.detail().pty())
+                .sky(dto.detail().sky().getCode())
+                .pty(dto.detail().pty().getCode())
                 .build();
         return WeatherResponse.builder()
                 .detail(detail)

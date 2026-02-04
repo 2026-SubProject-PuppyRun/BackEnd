@@ -12,8 +12,8 @@ public record WeatherDTO(
     @Builder
     public record Detail(
             String temp, // 온도
-            String sky,  // 하늘
-            String pty   // 강수
+            SkyType sky,  // 하늘
+            PrecipitationType pty   // 강수
     ) {
     }
 }

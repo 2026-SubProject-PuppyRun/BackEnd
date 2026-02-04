@@ -24,10 +24,7 @@ public class WeatherService {
     private final WeatherApiClient weatherApiClient;
     private final WeatherMapper weatherMapper;
 
-    /**
-     * 조회된 예보 리스트 중 현재 시간(30분 단위 반올림)에 가장 적합한 데이터를 필터링
-     */
-    public WeatherDTO getNearestTimeWeather(List<WeatherDTO> weatherDTOList) {
+    public DateTimeDTO getTargetTime() {
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
         LocalDateTime nearestHour = now.plusMinutes(30).truncatedTo(ChronoUnit.HOURS);
 
@@ -35,12 +32,23 @@ public class WeatherService {
         String targetDate = nearestHour.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String targetTime = nearestHour.format(DateTimeFormatter.ofPattern("HHmm"));
 
+        return new DateTimeDTO(targetDate, targetTime);
+    }
+
+    /**
+     * 조회된 예보 리스트 중 현재 시간(30분 단위 반올림)에 가장 적합한 데이터를 필터링
+     */
+    public WeatherDTO getNearestTimeWeather(List<WeatherDTO> weatherDTOList) {
+        DateTimeDTO target = getTargetTime();
+        String targetDate = target.baseDate();
+        String targetTime = target.baseTime();
+
         // 리스트에서 해당 시간대의 날씨 찾기
         return weatherDTOList.stream()
                 .filter(dto -> dto.date().equals(targetDate) && dto.time().equals(targetTime))
                 .findFirst()
                 .orElseThrow(() -> {
-                    log.error("시간 : {}, 날씨 정보를 찾을 수 없습니다.", targetTime);
+                    log.error("타겟 시간 : {}, 날씨 정보를 찾을 수 없습니다.", targetTime);
                     return new WeatherNotFoundException("해당 시간대의 날씨 정보를 찾을 수 없습니다.");
                 });
     }
