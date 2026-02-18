@@ -23,11 +23,6 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
 
-    private Member findMemberById(UUID id) {
-        return memberRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("존재하지 않는 회원입니다."));
-    }
-
     /**
      * 비밀번호 일치 여부 확인
      *
@@ -71,7 +66,7 @@ public class MemberService {
      * @return MemberDTO
      */
     public MemberDTO memberInformationView(UUID id) {
-        return findMemberById(id).toDto();
+        return memberRepository.findByIdOrThrow(id).toDto();
     }
 
     /**
@@ -87,7 +82,7 @@ public class MemberService {
             throw new InvalidValueException("기존 비밀번호와 동일합니다.");
         }
 
-        Member member = findMemberById(id);
+        Member member = memberRepository.findByIdOrThrow(id);
         String encodedPassword = member.getPassword();
         matchPassword(oldPassword, encodedPassword); // 현재 비밀번호 검증
         String encryptedPassword = passwordEncoder.encode(newPassword);
@@ -105,7 +100,7 @@ public class MemberService {
      */
     @Transactional
     public MemberDTO nickNameChange(UUID id, String newNickName) {
-        Member member = findMemberById(id);
+        Member member = memberRepository.findByIdOrThrow(id);
         if (memberRepository.existsByNickName(newNickName)) {
             throw new InvalidValueException("이미 존재하는 닉네임입니다.");
         }
@@ -123,7 +118,7 @@ public class MemberService {
     @Transactional
     public void accountDelete(UUID id, String password) {
         // TODO 나중에 기능 개발 할 예정
-        Member member = findMemberById(id);
+        Member member = memberRepository.findByIdOrThrow(id);
         String encodedPassword = member.getPassword();
         matchPassword(password, encodedPassword);
         member.setDeactivate();
