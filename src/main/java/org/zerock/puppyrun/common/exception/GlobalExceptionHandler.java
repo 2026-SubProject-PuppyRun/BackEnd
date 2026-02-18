@@ -3,7 +3,6 @@ package org.zerock.puppyrun.common.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,6 +22,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         log.warn("Business Exception: {}", e.getMessage());
+        log.warn("Cause: ", e);
 
         ErrorResponse errorResponse = ErrorResponse.of(
                 e.getErrorCode().getCode(),
