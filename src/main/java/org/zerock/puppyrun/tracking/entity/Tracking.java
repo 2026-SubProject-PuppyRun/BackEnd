@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.zerock.puppyrun.common.entity.BaseTimeEntity;
-import org.zerock.puppyrun.diary.entity.Diary;
+
 import org.zerock.puppyrun.member.entity.Member;
 
 @Entity
@@ -84,24 +84,6 @@ public class Tracking extends BaseTimeEntity {
         this.path = path;
     }
 
-    public TrackingDTO toDto() {
-        List<TrackingDTO.TrackingPointDTO> trackingPointDTOList = this.path.stream()
-                .map(point -> TrackingDTO.TrackingPointDTO.builder()
-                        .lat(point.getLat())
-                        .lng(point.getLng())
-                        .time(point.getTime())
-                        .build())
-                .toList();
-
-        return TrackingDTO.builder()
-                .id(this.id)
-                .memberId(this.member.getId()) // Member 엔티티에 @Getter가 있어야 합니다.
-                .startedAt(this.startedAt)
-                .endedAt(this.endedAt)
-                .distance(this.distance)
-                .path(trackingPointDTOList)
-                .build();
-    }
 
     public boolean isOwner(UUID memberId) {
         return this.member.getId().equals(memberId);
