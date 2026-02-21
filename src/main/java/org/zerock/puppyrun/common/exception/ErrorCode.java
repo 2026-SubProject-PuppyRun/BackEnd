@@ -10,8 +10,12 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
     // 일반적인 에러
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "SERVER_001", "서버 내부 오류가 발생했습니다."),
-    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "SERVER_002", "잘못된 요청입니다."),
-    DATA_INTEGRITY_VIOLATION(HttpStatus.INTERNAL_SERVER_ERROR, "SERVER_003", "데이터 정합성에 문제가 발생했습니다."),
+    DATA_INTEGRITY_VIOLATION(HttpStatus.INTERNAL_SERVER_ERROR, "SERVER_002", "데이터 정합성에 문제가 발생했습니다."),
+
+    // 클라이언트 에러
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "CLIENT_001", "잘못된 요청입니다."),
+    RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "CLIENT_002", "요청한 값을 찾을 수 없습니다."),
+
 
     // 인증/인가 관련 에러
     USER_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH_001", "로그인 정보가 유효하지 않습니다."),
