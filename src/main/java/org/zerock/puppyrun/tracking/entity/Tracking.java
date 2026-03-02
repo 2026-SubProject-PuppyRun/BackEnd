@@ -23,8 +23,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.zerock.puppyrun.common.entity.BaseTimeEntity;
-
 import org.zerock.puppyrun.member.entity.Member;
+import org.zerock.puppyrun.tracking.DTO.UpdateTrackingDTO;
 
 @Entity
 @Getter
@@ -58,7 +58,6 @@ public class Tracking extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer distance;        // 산책 거리
 
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Visibility visibility;
@@ -84,9 +83,23 @@ public class Tracking extends BaseTimeEntity {
         this.path = path;
     }
 
+    public void update(UpdateTrackingDTO updateTrackingDTO) {
+        this.startedAt = updateTrackingDTO.startedAt();
+        this.endedAt = updateTrackingDTO.endedAt();
+        this.distance = updateTrackingDTO.distance();
+        this.visibility = updateTrackingDTO.visibility();
 
-    public boolean isOwner(UUID memberId) {
-        return this.member.getId().equals(memberId);
+        // 시간 변경에 따른 duration 재계산
+        this.duration = (int) Duration.between(startedAt, endedAt).getSeconds();
+
     }
 
+    public void changeVisibility(Visibility visibility) {
+        this.visibility = visibility;
+    }
+
+
+    public boolean isNotOwner(UUID memberId) {
+        return !this.member.getId().equals(memberId);
+    }
 }
