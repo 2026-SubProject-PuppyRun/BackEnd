@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
-import org.zerock.puppyrun.tracking.controller.request.ResistedTrackingRequest;
+import org.zerock.puppyrun.tracking.controller.request.RegisterTrackingRequest;
 import org.zerock.puppyrun.tracking.controller.response.MainTrackingResponse;
 import org.zerock.puppyrun.tracking.controller.response.TrackingDetailResponse;
 import org.zerock.puppyrun.tracking.service.TrackingService;
@@ -25,7 +25,7 @@ public class TrackingController {
 
     // 산책 저장
     @PostMapping("")
-    public ResponseEntity<String> saveTracking(@Valid @RequestBody ResistedTrackingRequest request,
+    public ResponseEntity<String> saveTracking(@Valid @RequestBody RegisterTrackingRequest request,
                                                @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
         trackingService.saveTracking(userPrincipal.id(), request);
