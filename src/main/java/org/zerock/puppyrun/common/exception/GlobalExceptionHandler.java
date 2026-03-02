@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -66,6 +67,33 @@ public class GlobalExceptionHandler {
                 .status(errorCode.getHttpStatus())
                 .body(errorResponse);
 
+    }
+
+
+    /**
+     * JSON 파싱 실패 Request Body의 JSON 형식이 잘못되었거나, 필드 타입이 맞지 않을 때(예: Integer 필드에 "abc" 입력) 발생합니다.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException e,
+            HttpServletRequest request) {
+
+        log.warn("JSON Parsing Error: {}", e.getMessage());
+
+        ErrorCode errorCode = ErrorCode.INVALID_REQUEST;
+
+        String errorMessage = "요청 JSON 형식이 올바르지 않습니다. 오타나 데이터 타입을 확인해주세요.";
+
+        ErrorResponse errorResponse = ErrorResponse.of(
+                errorCode.getCode(),
+                errorCode.getDescription(),
+                errorMessage,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(errorResponse);
     }
 
 
