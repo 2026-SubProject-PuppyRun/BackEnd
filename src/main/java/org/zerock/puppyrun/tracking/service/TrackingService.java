@@ -10,7 +10,7 @@ import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.common.exception.UserForbiddenException;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.repository.MemberRepository;
-import org.zerock.puppyrun.tracking.controller.request.ResistedTrackingRequest;
+import org.zerock.puppyrun.tracking.controller.request.RegisterTrackingRequest;
 import org.zerock.puppyrun.tracking.controller.response.MainTrackingResponse;
 import org.zerock.puppyrun.tracking.controller.response.TrackingDetailResponse;
 import org.zerock.puppyrun.tracking.entity.Tracking;
@@ -43,7 +43,7 @@ public class TrackingService {
      * 산책 저장
      */
     @Transactional
-    public void saveTracking(UUID memberId, ResistedTrackingRequest request) {
+    public void saveTracking(UUID memberId, RegisterTrackingRequest request) {
         Member member = memberRepository.findByIdOrThrow(memberId);
 
         List<TrackingPath> path = request.path().stream()

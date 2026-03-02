@@ -1,6 +1,5 @@
 package org.zerock.puppyrun.tracking.controller.request;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -9,7 +8,7 @@ import java.util.List;
 import lombok.Builder;
 
 @Builder
-public record ResistedTrackingRequest(
+public record RegisterTrackingRequest(
         @NotNull(message = "산책 시작 시간은 필수입니다.")
         LocalDateTime startedAt, // 산책 시작 시간
 
