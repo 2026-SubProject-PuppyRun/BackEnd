@@ -94,6 +94,11 @@ public class Tracking extends BaseTimeEntity {
 
     }
 
+    public void changeVisibility(Visibility visibility) {
+        this.visibility = visibility;
+    }
+
+
     public boolean isNotOwner(UUID memberId) {
         return !this.member.getId().equals(memberId);
     }
