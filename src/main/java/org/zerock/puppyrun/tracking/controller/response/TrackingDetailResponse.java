@@ -8,13 +8,14 @@ import org.zerock.puppyrun.tracking.entity.Tracking;
 
 @Builder
 public record TrackingDetailResponse(
-        UUID id,                 // 산책 고유 아이디
-        LocalDateTime startedAt, // 산책 시작 시간
-        LocalDateTime endedAt,   // 산책 종료 시간
-        Integer duration,        // 산책 진행 시간
-        String visibility,       // 공개 여부
-        Integer distance,        // 이동 거리
-        List<TrackingPoint> path // 이동 경로 리스트
+        UUID id,                     // 산책 고유 아이디
+        UUID diaryId,                // 일기 고유 아이디
+        LocalDateTime startedAt,     // 산책 시작 시간
+        LocalDateTime endedAt,       // 산책 종료 시간
+        Integer duration,            // 산책 진행 시간
+        String visibility,           // 공개 여부
+        Integer distance,            // 이동 거리
+        List<TrackingPoint> path     // 이동 경로 리스트
 ) {
 
     @Builder
@@ -25,13 +26,14 @@ public record TrackingDetailResponse(
     ) {
     }
 
-    public static TrackingDetailResponse from(Tracking tracking) {
+    public static TrackingDetailResponse of(Tracking tracking, UUID diaryId) {
         List<TrackingPoint> pathPoints = tracking.getPath().stream()
                 .map(p -> new TrackingPoint(p.getLat(), p.getLng(), p.getTime()))
                 .toList();
 
         return TrackingDetailResponse.builder()
                 .id(tracking.getId())
+                .diaryId(diaryId)
                 .startedAt(tracking.getStartedAt())
                 .endedAt(tracking.getEndedAt())
                 .duration(tracking.getDuration())
