@@ -45,6 +45,7 @@ public class WeatherService {
 
         // 리스트에서 해당 시간대의 날씨 찾기
         return weatherDTOList.stream()
+                .limit(2)
                 .filter(dto -> dto.date().equals(targetDate) && dto.time().equals(targetTime))
                 .findFirst()
                 .orElseThrow(() -> {

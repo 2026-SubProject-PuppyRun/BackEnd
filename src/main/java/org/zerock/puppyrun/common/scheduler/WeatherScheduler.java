@@ -28,13 +28,16 @@ public class WeatherScheduler {
     private final WeatherMapper weatherMapper;
     private final CacheManager cacheManager;
 
+    int ONE_SECOND = 1000;
+    
     @Scheduled(cron = "0 0 * * * *")
     public void scheduledWeatherUpdate() {
+
         log.info("날씨 데이터 정기 업데이트 시작");
         DateTimeDTO dateTimeDTO = weatherApiClient.createCurrentDateTimeDto();
 
         Flux.fromArray(RegionType.values())
-                .delayElements(Duration.ofMillis(500)) // 요청 간 0.5초 딜레이
+                .delayElements(Duration.ofMillis(ONE_SECOND)) // 요청 간 0.5초 딜레이
                 .flatMap(region -> {
                     WeatherApiPara para = new WeatherApiPara(
                             dateTimeDTO.baseDate(),

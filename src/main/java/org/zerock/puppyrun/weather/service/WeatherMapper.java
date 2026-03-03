@@ -15,9 +15,10 @@ import org.zerock.puppyrun.weather.DTO.WeatherDTO;
 @Slf4j
 public class WeatherMapper {
 
-    private final String TEMP = "T1H";
-    private final String SKY = "SKY";
-    private final String PTY = "PTY";
+    final String TEMP = "T1H";
+    final String SKY = "SKY";
+    final String PTY = "PTY";
+    final int FORECAST_LIMIT = 6; // 예보 데이터 제한 개수
 
     public List<WeatherDTO> toWeatherDTOList(WeatherApiResponse response) {
         // 응답 객체 자체의 Null 체크
@@ -38,7 +39,7 @@ public class WeatherMapper {
 
         return groupedByTime.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .limit(2)
+                .limit(FORECAST_LIMIT)
                 .map(entry -> createWeatherDTO(entry.getValue()))
                 .collect(Collectors.toList());
     }
