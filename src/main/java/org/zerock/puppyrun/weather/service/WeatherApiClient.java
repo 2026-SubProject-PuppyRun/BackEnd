@@ -28,11 +28,11 @@ public class WeatherApiClient {
     @Value("${data-kr.forecest-url}")
     private String FCST_URL;
 
-    private final String FCST_URI = "/getUltraSrtFcst";
-    private final int PAGE_NO = 1;
-    private final int NUM_OF_ROWS = 100;
-    private final String DATA_TYPE = "JSON";
-    private final String TIME_ZONE = "Asia/Seoul";
+    final String FCST_URI = "/getUltraSrtFcst";
+    final int PAGE_NO = 1;
+    final int NUM_OF_ROWS = 100;
+    final String DATA_TYPE = "JSON";
+    final String TIME_ZONE = "Asia/Seoul";
 
     /**
      * WebClient를 활용하여 리액티브 타입(Mono)으로 응답을 반환하도록 구현
