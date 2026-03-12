@@ -1,4 +1,7 @@
 spring:
+  profiles:
+    active: local # 기본적으로 local 실행 (배포 시 prod로 변경)
+
   application:
     name: PuppyRun
 
@@ -16,11 +19,7 @@ spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
 
-# JWT 설정 (토큰 만료 시간을 초 단위로 설정)
-jwt:
-  secret: ${JWT_SECRET}
-  access-token-expiration: ${JWT_ACCESS_TOKEN_VALIDITY:900000}    # 15분 (900밀리초)
-  refresh-token-expiration: ${JWT_REFRESH_TOKEN_VALIDITY:1209600000} # 14일 (1209600밀리초)
+
 
 
 discord:

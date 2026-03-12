@@ -1,0 +1,8 @@
+app:
+  base-url:
+
+# JWT 설정 (토큰 만료 시간을 초 단위로 설정)
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_VALIDITY:900000}    # 15분 (900밀리초)
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_VALIDITY:1209600000} # 14일 (1209600밀리초)
