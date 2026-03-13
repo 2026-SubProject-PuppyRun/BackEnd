@@ -21,6 +21,9 @@ spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
 
+app:
+  base-url: http://localhost:8080
+  
 jwt:
   secret: this-is-a-very-long-dummy-secret-key-for-test-only-do-not-use-real-key
   access-token-expiration: 900000
