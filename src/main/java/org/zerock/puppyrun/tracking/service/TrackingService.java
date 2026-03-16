@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.common.exception.UserForbiddenException;
 import org.zerock.puppyrun.diary.entity.Diary;
@@ -50,7 +51,7 @@ public class TrackingService {
      * 산책 저장
      */
     @Transactional
-    public void saveTracking(UUID memberId, RegisterTrackingRequest request) {
+    public void saveTracking(UUID memberId, RegisterTrackingRequest request, List<MultipartFile> images) {
         Member member = memberRepository.findByIdOrThrow(memberId);
 
         // 경로 데이터 변환
@@ -68,6 +69,7 @@ public class TrackingService {
                 .startedLng(startPoint.getLng())
                 .visibility(Visibility.from(request.visibility()))
                 .distance(request.distance())
+//                .images(images.stream().map(MultipartFile::getOriginalFilename).toList()) todo: s3 저장 후 url 생성
                 .path(path)
                 .build();
 

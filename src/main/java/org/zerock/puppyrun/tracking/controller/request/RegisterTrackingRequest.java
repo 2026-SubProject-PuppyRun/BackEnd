@@ -1,6 +1,7 @@
 package org.zerock.puppyrun.tracking.controller.request;
 
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
@@ -23,7 +24,10 @@ public record RegisterTrackingRequest(
         Integer distance,        // 이동 거리
 
         @NotEmpty(message = "이동 경로가 비어있습니다.")
-        List<TrackingPoint> path // 이동 경로 리스트
+        List<TrackingPoint> path, // 이동 경로 리스트
+
+        @NotBlank(message = "평균 속도는 필수입니다.")
+        String averagePace         // 평균 속도
 ) {
     @Builder
     public record TrackingPoint(

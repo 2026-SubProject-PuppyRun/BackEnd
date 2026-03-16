@@ -15,6 +15,8 @@ public record TrackingDetailResponse(
         Integer duration,            // 산책 진행 시간
         String visibility,           // 공개 여부
         Integer distance,            // 이동 거리
+        List<String> images,          // 이미지 리스트
+        String averagePace,              // 평균 속도
         List<TrackingPoint> path     // 이동 경로 리스트
 ) {
 

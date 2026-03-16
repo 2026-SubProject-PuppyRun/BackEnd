@@ -1,10 +1,12 @@
 package org.zerock.puppyrun.diary.service;
 
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.common.exception.UserForbiddenException;
@@ -30,7 +32,7 @@ public class DiaryService {
 
     // 일기 작성
     @Transactional
-    public DiaryResponse registerDiary(UUID memberId, RegisterDiaryRequest request) {
+    public DiaryResponse registerDiary(UUID memberId, RegisterDiaryRequest request, List<MultipartFile> images) {
 
         if (diaryRepository.existsByTrackingId(request.trackingId())) {
             throw new InvalidValueException("이미 해당 산책 기록에 대한 일기가 존재합니다.");
@@ -38,6 +40,8 @@ public class DiaryService {
 
         Tracking tracking = trackingRepository.findById(request.trackingId())
                 .orElseThrow(() -> new ResourceNotFoundException("존재하지 않는 산책 기록입니다"));
+
+        List<String> imagesUrl = List.of(); // Todo: s3 추가 예정
 
         SkyType skyType = SkyType.fromCode(request.weather().sky());  // 날씨 코드 변환
         PrecipitationType precipitationType = PrecipitationType.fromCode(request.weather().pty()); // 날씨 코드 변환
@@ -52,7 +56,7 @@ public class DiaryService {
                 .writingTime(request.writingTime())
                 .member(memberRepository.findByIdOrThrow(memberId))
                 .tracking(tracking)
-                .images(request.images())
+                .images(imagesUrl)
                 .build();
 
         Diary savedDiary = diaryRepository.save(diary);
@@ -69,10 +73,12 @@ public class DiaryService {
         PrecipitationType precipitationType = PrecipitationType.fromCode(request.weather().pty()); // 날씨 코드 변환
         String temp = request.weather().temp();
 
+        List<String> imagesUrl = List.of(); // Todo: s3 추가 예정
+
         UpdateDiaryDTO updateDiaryDTO = UpdateDiaryDTO.builder()
                 .title(request.title())
                 .content(request.content())
-                .images(request.images())
+                .images(imagesUrl)
                 .writingTime(request.writingTime())
                 .pty(precipitationType)
                 .sky(skyType)
