@@ -1,7 +1,7 @@
 package org.zerock.puppyrun.pet.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -29,7 +29,7 @@ public class Pet extends BaseTimeEntity {
     private String name;
 
     @Column(name = "birth_year", nullable = false)
-    private LocalDateTime birthYear; // 출생년도
+    private LocalDate birthYear; // 출생년도
 
     @Enumerated(EnumType.STRING)
     @Column(name = "badge")
@@ -56,7 +56,7 @@ public class Pet extends BaseTimeEntity {
     private String gender;
 
     @Builder
-    public Pet(Member member, String name, LocalDateTime birthYear, Breed breed, String color, Double weight,
+    public Pet(Member member, String name, LocalDate birthYear, Breed breed, String color, Double weight,
                boolean isNeutered, String gender) {
         this.member = member;
         this.name = name;
@@ -78,6 +78,7 @@ public class Pet extends BaseTimeEntity {
         this.name = dto.name();
         this.color = dto.color();
         this.weight = dto.weight();
+        this.birthYear = dto.birthYear();
         this.isNeutered = dto.isNeutered();
         this.gender = dto.gender();
     }

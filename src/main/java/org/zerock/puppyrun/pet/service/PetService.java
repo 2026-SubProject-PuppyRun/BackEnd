@@ -94,6 +94,7 @@ public class PetService {
                 .name(request.name())
                 .weight(request.weight())
                 .isNeutered(request.isNeutered())
+                .birthYear(request.birthYear())
                 .gender(request.gender())
                 .build();
         pet.updatePet(dto);

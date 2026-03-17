@@ -1,11 +1,10 @@
 package org.zerock.puppyrun.pet.controller.response;
 
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
-import org.zerock.puppyrun.pet.entity.Breed;
 import org.zerock.puppyrun.pet.entity.Pet;
 
 public record PetListResponse(
@@ -26,7 +25,7 @@ public record PetListResponse(
     public record PetSummary(
             UUID PetId,
             String name,
-            LocalDateTime birthYear,
+            LocalDate birthYear,
             Double weight,
             String color,
             String profileImageUrl,
