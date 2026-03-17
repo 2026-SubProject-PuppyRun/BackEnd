@@ -14,6 +14,10 @@ public record PetUpdateResponse(
 
         String color,
 
+        Boolean isNeutered,
+
+        String gender,
+
         String profileImageUrl
 ) {
     public static PetUpdateResponse of(Pet pet) {
@@ -22,6 +26,8 @@ public record PetUpdateResponse(
                 .color(pet.getColor())
                 .name(pet.getName())
                 .weight(pet.getWeight())
+                .isNeutered(pet.getIsNeutered())
+                .gender(pet.getGender())
                 .profileImageUrl(pet.getProfileImageUrl())
                 .build();
     }

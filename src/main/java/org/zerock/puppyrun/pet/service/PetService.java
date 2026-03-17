@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.common.exception.UserForbiddenException;
@@ -69,6 +70,8 @@ public class PetService {
                 .breed(breed)
                 .color(request.color())
                 .weight(request.weight())
+                .isNeutered(request.isNeutered())
+                .gender(request.gender())
                 .build();
         petRepository.save(newPet);
         return PetDetailResponse.of(newPet, 0);
@@ -83,12 +86,15 @@ public class PetService {
      * @return 수정된 펫의 정보 응답 DTO
      */
     @Transactional
-    public PetUpdateResponse updatePet(UserPrincipal userPrincipal, UUID petId, UpdatePetRequest request) {
+    public PetUpdateResponse updatePet(UserPrincipal userPrincipal, UUID petId, UpdatePetRequest request,
+                                       MultipartFile image) {
         Pet pet = findPetWithOwnershipCheck(userPrincipal.id(), petId);
         UpdatePetDTO dto = UpdatePetDTO.builder()
                 .color(request.color())
                 .name(request.name())
                 .weight(request.weight())
+                .isNeutered(request.isNeutered())
+                .gender(request.gender())
                 .build();
         pet.updatePet(dto);
         petRepository.save(pet);

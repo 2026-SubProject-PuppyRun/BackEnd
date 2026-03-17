@@ -19,6 +19,8 @@ public record PetDetailResponse(
         String color,
         String breedCode,
         String profileImageUrl,
+        Boolean isNeutered,
+        String gender,
         BadgeInfo badgeInfo
 ) {
 
@@ -34,6 +36,8 @@ public record PetDetailResponse(
                 .color(pet.getColor())
                 .profileImageUrl(pet.getProfileImageUrl())
                 .breedCode(pet.getBreed().getCode())
+                .isNeutered(pet.getIsNeutered())
+                .gender(pet.getGender())
                 .badgeInfo(BadgeInfo.from(pet.getBadge(), walkedDistance))
                 .build();
     }

@@ -48,14 +48,24 @@ public class Pet extends BaseTimeEntity {
     @Column(name = "weight")
     private Double weight;
 
+    @Column(name = "is_neutered", nullable = false)
+    private Boolean isNeutered;
+
+    // length = 1로 설정하여 (M/F)만 들어가도록 제한
+    @Column(name = "gender", nullable = false, length = 1)
+    private String gender;
+
     @Builder
-    public Pet(Member member, String name, LocalDateTime birthYear, Breed breed, String color, Double weight) {
+    public Pet(Member member, String name, LocalDateTime birthYear, Breed breed, String color, Double weight,
+               boolean isNeutered, String gender) {
         this.member = member;
         this.name = name;
         this.breed = breed;
         this.birthYear = birthYear;
         this.color = (color == null || color.isBlank()) ? breed.getBasicColorHex() : color;
         this.weight = (weight == null || weight <= 0) ? breed.getAvgWeightMin() : weight;
+        this.isNeutered = isNeutered;
+        this.gender = gender;
         this.profileImageUrl = null;
         this.badge = PetBadge.BEGINNER;
     }
@@ -68,6 +78,8 @@ public class Pet extends BaseTimeEntity {
         this.name = dto.name();
         this.color = dto.color();
         this.weight = dto.weight();
+        this.isNeutered = dto.isNeutered();
+        this.gender = dto.gender();
     }
 
 

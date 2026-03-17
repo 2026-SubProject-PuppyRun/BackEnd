@@ -7,6 +7,8 @@ import org.zerock.puppyrun.pet.entity.Breed;
 public record UpdatePetDTO(
         String name,
         String color,
-        Double weight
+        Double weight,
+        boolean isNeutered,
+        String gender
 ) {
 }

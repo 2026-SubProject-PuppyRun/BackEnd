@@ -30,7 +30,7 @@ public record PetListResponse(
             Double weight,
             String color,
             String profileImageUrl,
-            String breedInfo,
+            String breedCode,
             String badgeCode
     ) {
         public static PetSummary from(Pet pet) {
@@ -41,7 +41,7 @@ public record PetListResponse(
                     .weight(pet.getWeight())
                     .color(pet.getColor())
                     .profileImageUrl(pet.getProfileImageUrl())
-                    .breedInfo(pet.getBreed().getCode())
+                    .breedCode(pet.getBreed().getCode())
                     .badgeCode(pet.getBadge().getCode())
                     .build();
         }

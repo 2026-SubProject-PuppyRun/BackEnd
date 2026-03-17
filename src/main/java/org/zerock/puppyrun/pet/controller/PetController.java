@@ -13,7 +13,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.pet.controller.request.RegisterPetRequest;
 import org.zerock.puppyrun.pet.controller.request.UpdatePetRequest;
@@ -72,9 +74,10 @@ public class PetController {
     public ResponseEntity<PetUpdateResponse> updatePet(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable UUID petId,
-            @RequestBody @Valid UpdatePetRequest request
+            @RequestPart("request") @Valid UpdatePetRequest request,
+            @RequestPart("image") MultipartFile image
     ) {
-        PetUpdateResponse response = petService.updatePet(userPrincipal, petId, request);
+        PetUpdateResponse response = petService.updatePet(userPrincipal, petId, request, image);
         return ResponseEntity.ok(response);
     }
 
