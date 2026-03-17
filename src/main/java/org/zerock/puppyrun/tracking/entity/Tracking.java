@@ -100,7 +100,6 @@ public class Tracking extends BaseTimeEntity {
     public void update(UpdateTrackingDTO updateTrackingDTO) {
         this.startedAt = updateTrackingDTO.startedAt();
         this.endedAt = updateTrackingDTO.endedAt();
-        this.distance = updateTrackingDTO.distance();
         this.visibility = updateTrackingDTO.visibility();
 
         // 시간 변경에 따른 duration 재계산

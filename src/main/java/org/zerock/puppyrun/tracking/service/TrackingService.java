@@ -84,7 +84,6 @@ public class TrackingService {
         Tracking tracking = findTrackingWithOwnershipCheck(memberId, trackingId);
 
         UpdateTrackingDTO updateTrackingDTO = UpdateTrackingDTO.builder()
-                .distance(request.distance())
                 .endedAt(request.endedAt())
                 .startedAt(request.startedAt())
                 .visibility(request.visibility())

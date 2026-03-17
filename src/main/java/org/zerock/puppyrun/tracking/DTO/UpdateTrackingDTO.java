@@ -8,7 +8,6 @@ import org.zerock.puppyrun.tracking.entity.Visibility;
 public record UpdateTrackingDTO(
         LocalDateTime startedAt,
         LocalDateTime endedAt,
-        Integer distance,
         Visibility visibility
 ) {
 }
