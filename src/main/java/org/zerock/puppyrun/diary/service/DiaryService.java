@@ -12,6 +12,7 @@ import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.common.exception.UserForbiddenException;
 import org.zerock.puppyrun.diary.DTO.UpdateDiaryDTO;
 import org.zerock.puppyrun.diary.controller.request.RegisterDiaryRequest;
+import org.zerock.puppyrun.diary.controller.request.UpdateDiaryRequest;
 import org.zerock.puppyrun.diary.controller.response.DiaryResponse;
 import org.zerock.puppyrun.diary.entity.Diary;
 import org.zerock.puppyrun.diary.repository.DiaryRepository;
@@ -66,20 +67,16 @@ public class DiaryService {
 
     // 일기 수정
     @Transactional
-    public DiaryResponse updateDiary(UUID memberId, UUID diaryId, RegisterDiaryRequest request) {
+    public DiaryResponse updateDiary(UUID memberId, UUID diaryId, UpdateDiaryRequest request) {
         Diary diary = findDiaryWithOwnershipCheck(diaryId, memberId);
 
         SkyType skyType = SkyType.fromCode(request.weather().sky());  // 날씨 코드 변환
         PrecipitationType precipitationType = PrecipitationType.fromCode(request.weather().pty()); // 날씨 코드 변환
         String temp = request.weather().temp();
 
-        List<String> imagesUrl = List.of(); // Todo: s3 추가 예정
-
         UpdateDiaryDTO updateDiaryDTO = UpdateDiaryDTO.builder()
                 .title(request.title())
                 .content(request.content())
-                .images(imagesUrl)
-                .writingTime(request.writingTime())
                 .pty(precipitationType)
                 .sky(skyType)
                 .temp(temp)

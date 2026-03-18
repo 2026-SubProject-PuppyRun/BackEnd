@@ -9,9 +9,6 @@ import java.util.List;
 import java.util.UUID;
 
 public record UpdateDiaryRequest(
-        @NotNull(message = "일기 작성 시간대 정보는 필수입니다.")
-        LocalDateTime writingTime,
-
         @NotBlank(message = "일기 제목은 필수입니다.")
         @Size(max = 100, message = "제목은 100자를 초과할 수 없습니다.")
         String title,
@@ -21,10 +18,8 @@ public record UpdateDiaryRequest(
 
         @Valid
         @NotNull(message = "날씨 정보는 필수입니다.")
-        RegisterDiaryRequest.Weather weather,
+        RegisterDiaryRequest.Weather weather
 
-        // 이미지는 빈 리스트가 올 수 있으므로 별도의 @NotEmpty 검증을 하지 않음
-        List<String> images
 ) {
     public record Weather(
             @NotBlank(message = "기온 정보는 필수입니다.")

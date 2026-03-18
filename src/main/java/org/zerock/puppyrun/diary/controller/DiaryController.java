@@ -4,7 +4,6 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.diary.controller.request.RegisterDiaryRequest;
+import org.zerock.puppyrun.diary.controller.request.UpdateDiaryRequest;
 import org.zerock.puppyrun.diary.controller.response.DiaryResponse;
 import org.zerock.puppyrun.diary.service.DiaryService;
 
@@ -51,7 +51,7 @@ public class DiaryController {
     public ResponseEntity<DiaryResponse> updateDiary(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable UUID diaryId,
-            @RequestBody @Valid RegisterDiaryRequest request
+            @RequestBody @Valid UpdateDiaryRequest request
     ) {
         UUID memberId = userPrincipal.id(); // 인증된 사용자 ID 가져오기
 
