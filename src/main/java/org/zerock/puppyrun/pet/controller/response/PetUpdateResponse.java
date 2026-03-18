@@ -1,6 +1,6 @@
 package org.zerock.puppyrun.pet.controller.response;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import lombok.Builder;
 import org.zerock.puppyrun.pet.entity.Pet;
 
@@ -8,11 +8,15 @@ import org.zerock.puppyrun.pet.entity.Pet;
 public record PetUpdateResponse(
         String name,
 
-        LocalDateTime birthYear,
+        LocalDate birthYear,
 
         Double weight,
 
         String color,
+
+        Boolean isNeutered,
+
+        String gender,
 
         String profileImageUrl
 ) {
@@ -22,6 +26,8 @@ public record PetUpdateResponse(
                 .color(pet.getColor())
                 .name(pet.getName())
                 .weight(pet.getWeight())
+                .isNeutered(pet.getIsNeutered())
+                .gender(pet.getGender())
                 .profileImageUrl(pet.getProfileImageUrl())
                 .build();
     }

@@ -1,9 +1,11 @@
 package org.zerock.puppyrun.pet.controller.request;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 public record UpdatePetRequest(
         @NotBlank(message = "강아지 이름은 필수입니다.")
@@ -11,15 +13,20 @@ public record UpdatePetRequest(
         String name,
 
         @NotNull(message = "출생일은 필수입니다.")
-        LocalDateTime birthYear,
+        LocalDate birthYear,
 
         @NotNull(message = "몸무게는 필수입니다.")
+        @Min(value = 1, message = "몸무게는 1kg 이상이어야 합니다.")
         Double weight,
 
-        @NotBlank(message = "색상 코드는 필수입니다.")
-        String color,
+        @NotNull(message = "중성화 여부는 필수입니다.")
+        Boolean isNeutered,
 
-        @NotBlank(message = "프로필 이미지 URL은 필수입니다.")
-        String profileImageUrl
+        @NotBlank(message = "성별은 필수입니다.")
+        @Pattern(regexp = "^[MF]$", message = "성별은 'M' 또는 'F'만 입력 가능합니다.")
+        String gender,
+
+        @NotBlank(message = "색상 코드는 필수입니다.")
+        String color
 ) {
 }

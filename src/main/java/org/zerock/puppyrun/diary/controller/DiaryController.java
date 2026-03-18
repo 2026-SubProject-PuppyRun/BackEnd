@@ -1,9 +1,9 @@
 package org.zerock.puppyrun.diary.controller;
 
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,9 +13,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.diary.controller.request.RegisterDiaryRequest;
+import org.zerock.puppyrun.diary.controller.request.UpdateDiaryRequest;
 import org.zerock.puppyrun.diary.controller.response.DiaryResponse;
 import org.zerock.puppyrun.diary.service.DiaryService;
 
@@ -31,11 +34,12 @@ public class DiaryController {
     @PostMapping
     public ResponseEntity<DiaryResponse> registerDiary(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @RequestBody @Valid RegisterDiaryRequest request
+            @RequestPart("request") @Valid RegisterDiaryRequest request,
+            @RequestPart("images") List<MultipartFile> images
     ) {
         UUID memberId = userPrincipal.id(); // 인증된 사용자 ID 가져오기
 
-        DiaryResponse response = diaryService.registerDiary(memberId, request);
+        DiaryResponse response = diaryService.registerDiary(memberId, request, images);
 
         return ResponseEntity.ok(response);
     }
@@ -47,7 +51,7 @@ public class DiaryController {
     public ResponseEntity<DiaryResponse> updateDiary(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable UUID diaryId,
-            @RequestBody @Valid RegisterDiaryRequest request
+            @RequestBody @Valid UpdateDiaryRequest request
     ) {
         UUID memberId = userPrincipal.id(); // 인증된 사용자 ID 가져오기
 

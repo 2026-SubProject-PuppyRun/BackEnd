@@ -20,6 +20,7 @@ import org.zerock.puppyrun.pet.controller.request.UpdatePetRequest;
 import org.zerock.puppyrun.pet.controller.response.PetDetailResponse;
 import org.zerock.puppyrun.pet.controller.response.PetListResponse;
 import org.zerock.puppyrun.pet.controller.response.PetUpdateResponse;
+import org.zerock.puppyrun.pet.controller.response.PetWeightLogResponse;
 import org.zerock.puppyrun.pet.service.PetService;
 
 @RestController
@@ -89,4 +90,17 @@ public class PetController {
         petService.deletePet(userPrincipal, petId);
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * 펫 몸무게 기록 조회
+     */
+    @GetMapping("/{petId}/weight-logs")
+    public ResponseEntity<PetWeightLogResponse> getPetWeightLogs(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable UUID petId
+    ) {
+        PetWeightLogResponse response = petService.getPetWeightLog(userPrincipal, petId);
+        return ResponseEntity.ok(response);
+    }
+
 }

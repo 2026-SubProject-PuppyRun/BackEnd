@@ -1,9 +1,8 @@
 package org.zerock.puppyrun.pet.controller.response;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 import lombok.Builder;
-import org.zerock.puppyrun.pet.entity.Breed;
 import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.entity.PetBadge;
 
@@ -14,11 +13,13 @@ import org.zerock.puppyrun.pet.entity.PetBadge;
 public record PetDetailResponse(
         UUID PetId,
         String name,
-        LocalDateTime birthYear,
+        LocalDate birthYear,
         Double weight,
         String color,
         String breedCode,
         String profileImageUrl,
+        Boolean isNeutered,
+        String gender,
         BadgeInfo badgeInfo
 ) {
 
@@ -34,6 +35,8 @@ public record PetDetailResponse(
                 .color(pet.getColor())
                 .profileImageUrl(pet.getProfileImageUrl())
                 .breedCode(pet.getBreed().getCode())
+                .isNeutered(pet.getIsNeutered())
+                .gender(pet.getGender())
                 .badgeInfo(BadgeInfo.from(pet.getBadge(), walkedDistance))
                 .build();
     }

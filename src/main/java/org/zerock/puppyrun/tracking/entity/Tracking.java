@@ -1,7 +1,9 @@
 package org.zerock.puppyrun.tracking.entity;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -58,9 +60,18 @@ public class Tracking extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer distance;        // 산책 거리
 
+    @Column(nullable = false)
+    private String averagePace;      // 평균 속도
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Visibility visibility;
+
+    // 이미지 리스트 매핑
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "tracking_images", joinColumns = @JoinColumn(name = "tracking_id"))
+    @Column(name = "image_url")
+    private List<String> images;
 
     @Convert(converter = TrackingPathConverter.class)
     @Column(name = "path", columnDefinition = "LONGTEXT")
@@ -71,22 +82,24 @@ public class Tracking extends BaseTimeEntity {
 
     @Builder
     public Tracking(Member member, LocalDateTime startedAt, LocalDateTime endedAt, Integer distance,
-                    Double startedLat, Double startedLng, Visibility visibility, List<TrackingPath> path) {
+                    Double startedLat, Double startedLng, Visibility visibility, List<TrackingPath> path,
+                    String averagePace, List<String> images) {
         this.member = member;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.startedLat = startedLat;
         this.startedLng = startedLng;
+        this.averagePace = averagePace;
         this.duration = (int) Duration.between(startedAt, endedAt).getSeconds();
         this.distance = distance;
         this.visibility = visibility;
+        this.images = images != null ? images : List.of(); // TODO: 추후 S3 만들어지면 저장할 것
         this.path = path;
     }
 
     public void update(UpdateTrackingDTO updateTrackingDTO) {
         this.startedAt = updateTrackingDTO.startedAt();
         this.endedAt = updateTrackingDTO.endedAt();
-        this.distance = updateTrackingDTO.distance();
         this.visibility = updateTrackingDTO.visibility();
 
         // 시간 변경에 따른 duration 재계산

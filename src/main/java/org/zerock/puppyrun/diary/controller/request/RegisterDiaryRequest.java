@@ -26,10 +26,7 @@ public record RegisterDiaryRequest(
 
         @Valid
         @NotNull(message = "날씨 정보는 필수입니다.")
-        Weather weather,
-
-        // 이미지는 빈 리스트가 올 수 있으므로 별도의 @NotEmpty 검증을 하지 않음
-        List<String> images
+        Weather weather
 ) {
     public record Weather(
             @NotBlank(message = "기온 정보는 필수입니다.")
