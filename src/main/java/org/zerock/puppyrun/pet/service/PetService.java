@@ -21,6 +21,8 @@ import org.zerock.puppyrun.pet.controller.response.PetUpdateResponse;
 import org.zerock.puppyrun.pet.entity.Breed;
 import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.repository.PetRepository;
+import org.zerock.puppyrun.statistics.service.PetStatistics;
+import org.zerock.puppyrun.statistics.service.TrackingStatistics;
 
 @Service
 @Slf4j
@@ -29,7 +31,10 @@ import org.zerock.puppyrun.pet.repository.PetRepository;
 public class PetService {
     private final PetRepository petRepository;
     private final MemberRepository memberRepository;
+
     private final PetStatistics petStatistics;
+    private final TrackingStatistics TrackingStatistics;
+
 
     /**
      * 펫 ID로 펫을 조회하고, 요청한 사용자가 소유자인지 검증합니다.
@@ -126,7 +131,7 @@ public class PetService {
      */
     public PetDetailResponse getPet(UserPrincipal userPrincipal, UUID petId) {
         Pet pet = findPetWithOwnershipCheck(userPrincipal.id(), petId);
-        int walkedDistance = petStatistics.getTotalWalkedDistance(petId); // 누적 산책거리 조회
+        int walkedDistance = TrackingStatistics.getTotalWalkedDistance(petId); // 누적 산책거리 조회
         return PetDetailResponse.of(pet, walkedDistance);
     }
 
