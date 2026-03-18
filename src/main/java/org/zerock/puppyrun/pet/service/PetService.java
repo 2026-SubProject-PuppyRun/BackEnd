@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.common.exception.UserForbiddenException;
@@ -18,8 +17,10 @@ import org.zerock.puppyrun.pet.controller.request.UpdatePetRequest;
 import org.zerock.puppyrun.pet.controller.response.PetDetailResponse;
 import org.zerock.puppyrun.pet.controller.response.PetListResponse;
 import org.zerock.puppyrun.pet.controller.response.PetUpdateResponse;
+import org.zerock.puppyrun.pet.controller.response.PetWeightLogResponse;
 import org.zerock.puppyrun.pet.entity.Breed;
 import org.zerock.puppyrun.pet.entity.Pet;
+import org.zerock.puppyrun.pet.entity.PetWeightLog;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.statistics.service.PetStatistics;
 import org.zerock.puppyrun.statistics.service.TrackingStatistics;
@@ -79,6 +80,8 @@ public class PetService {
                 .gender(request.gender())
                 .build();
         petRepository.save(newPet);
+        petStatistics.savePetWeightLog(newPet, request.weight());
+
         return PetDetailResponse.of(newPet, 0);
     }
 
@@ -91,9 +94,9 @@ public class PetService {
      * @return 수정된 펫의 정보 응답 DTO
      */
     @Transactional
-    public PetUpdateResponse updatePet(UserPrincipal userPrincipal, UUID petId, UpdatePetRequest request,
-                                       MultipartFile image) {
+    public PetUpdateResponse updatePet(UserPrincipal userPrincipal, UUID petId, UpdatePetRequest request) {
         Pet pet = findPetWithOwnershipCheck(userPrincipal.id(), petId);
+
         UpdatePetDTO dto = UpdatePetDTO.builder()
                 .color(request.color())
                 .name(request.name())
@@ -105,7 +108,8 @@ public class PetService {
         pet.updatePet(dto);
         petRepository.save(pet);
 
-        petStatistics.savePetWeightLog(petId, request.weight());
+        // 현재 몸무게와 비교 후 저장
+        petStatistics.savePetWeightLog(pet, request.weight());
 
         return PetUpdateResponse.of(pet);
     }
@@ -144,5 +148,14 @@ public class PetService {
     public PetListResponse getPetList(UserPrincipal userPrincipal) {
         List<Pet> petList = petRepository.findAllByMemberId(userPrincipal.id());
         return PetListResponse.of(petList);
+    }
+
+    /**
+     * 사용자가 소유한 펫의 몸무게 로그를 조회합니다.
+     */
+    public PetWeightLogResponse getPetWeightLog(UserPrincipal userPrincipal, UUID petId) {
+        Pet pet = findPetWithOwnershipCheck(userPrincipal.id(), petId);
+        List<PetWeightLog> petWeightLog = petStatistics.getPetWeightLog(pet.getId());
+        return PetWeightLogResponse.of(pet, petWeightLog);
     }
 }

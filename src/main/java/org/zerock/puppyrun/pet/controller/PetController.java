@@ -13,15 +13,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.pet.controller.request.RegisterPetRequest;
 import org.zerock.puppyrun.pet.controller.request.UpdatePetRequest;
 import org.zerock.puppyrun.pet.controller.response.PetDetailResponse;
 import org.zerock.puppyrun.pet.controller.response.PetListResponse;
 import org.zerock.puppyrun.pet.controller.response.PetUpdateResponse;
+import org.zerock.puppyrun.pet.controller.response.PetWeightLogResponse;
 import org.zerock.puppyrun.pet.service.PetService;
 
 @RestController
@@ -74,10 +73,9 @@ public class PetController {
     public ResponseEntity<PetUpdateResponse> updatePet(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable UUID petId,
-            @RequestPart("request") @Valid UpdatePetRequest request,
-            @RequestPart("image") MultipartFile image
+            @RequestBody @Valid UpdatePetRequest request
     ) {
-        PetUpdateResponse response = petService.updatePet(userPrincipal, petId, request, image);
+        PetUpdateResponse response = petService.updatePet(userPrincipal, petId, request);
         return ResponseEntity.ok(response);
     }
 
@@ -92,4 +90,17 @@ public class PetController {
         petService.deletePet(userPrincipal, petId);
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * 펫 몸무게 기록 조회
+     */
+    @GetMapping("/{petId}/weight-logs")
+    public ResponseEntity<PetWeightLogResponse> getPetWeightLogs(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable UUID petId
+    ) {
+        PetWeightLogResponse response = petService.getPetWeightLog(userPrincipal, petId);
+        return ResponseEntity.ok(response);
+    }
+
 }
