@@ -53,7 +53,7 @@ public class PetStatistics {
      * @param petId 조회할 펫의 ID
      */
     public List<PetWeightLog> getPetWeightLog(UUID petId) {
-        return petWeightLogRepository.findAllByPetIdOrderByCreatedAtDesc(petId);
+        return petWeightLogRepository.findAllByPetIdOrderByCreatedAt(petId);
     }
 
     /**

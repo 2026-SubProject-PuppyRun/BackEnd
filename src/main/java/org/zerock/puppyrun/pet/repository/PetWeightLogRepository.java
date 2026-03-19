@@ -11,7 +11,7 @@ import org.zerock.puppyrun.pet.entity.PetWeightLog;
 public interface PetWeightLogRepository extends JpaRepository<PetWeightLog, UUID> {
 
     // 전체 조회
-    List<PetWeightLog> findAllByPetIdOrderByCreatedAtDesc(UUID petId);
+    List<PetWeightLog> findAllByPetIdOrderByCreatedAt(UUID petId);
 
     // 최신 데이터 1건만 조회
     Optional<PetWeightLog> findFirstByPetIdOrderByCreatedAtDesc(UUID petId);
