@@ -7,7 +7,8 @@ import org.springframework.stereotype.Repository;
 import org.zerock.puppyrun.tracking.entity.Tracking;
 
 @Repository
-public interface TrackingRepository extends JpaRepository<Tracking, UUID> {
+public interface TrackingRepository extends JpaRepository<Tracking, UUID>, TrackingRepoCustom {
 
     List<Tracking> findAllByMemberId(UUID memberId);
+
 }
