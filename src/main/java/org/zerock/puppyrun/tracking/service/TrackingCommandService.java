@@ -11,11 +11,13 @@ import org.zerock.puppyrun.diary.entity.Diary;
 import org.zerock.puppyrun.diary.repository.DiaryRepository;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.repository.MemberRepository;
+import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.tracking.controller.request.ChangeVisibilityRequest;
 import org.zerock.puppyrun.tracking.controller.request.RegisterTrackingRequest;
 import org.zerock.puppyrun.tracking.controller.request.UpdateTrackingRequest;
 import org.zerock.puppyrun.tracking.DTO.UpdateTrackingDTO;
 import org.zerock.puppyrun.tracking.controller.response.TrackingDetailResponse;
+import org.zerock.puppyrun.tracking.entity.PetTracking;
 import org.zerock.puppyrun.tracking.entity.Tracking;
 import org.zerock.puppyrun.tracking.entity.TrackingPath;
 import org.zerock.puppyrun.tracking.entity.Visibility;
@@ -30,7 +32,9 @@ public class TrackingCommandService {
     private final DiaryRepository diaryRepository;
     private final TrackingRepository trackingRepository;
     private final MemberRepository memberRepository;
+
     private final PetTrackingRepository petTrackingRepository;
+    private final PetRepository petRepository;
 
     /**
      * 산책 저장
@@ -57,9 +61,10 @@ public class TrackingCommandService {
                 .path(path)
                 .build();
 
-        // 펫-산책 정보 저장
-
         Tracking savedTracking = trackingRepository.save(tracking);
+
+        // 펫-산책 정보 저장
+        savePetTrackings(request.petIdList(), memberId, savedTracking);
 
     }
 
@@ -105,5 +110,21 @@ public class TrackingCommandService {
         diaryRepository.findByTrackingId(trackingId)
                 .ifPresent(Diary::unsetTracking);
         trackingRepository.delete(tracking);
+    }
+
+    /**
+     * 산책한 펫 리스트의 소유권을 검증하고 연관관계(PetTracking)를 일괄 저장합니다.
+     */
+    public void savePetTrackings(List<UUID> petIds, UUID memberId, Tracking tracking) {
+        if (petIds == null || petIds.isEmpty()) {
+            log.info("산책에 참여한 펫이 없습니다. 혼자 산책한 기록으로 유지됩니다. TrackingID: {}", tracking.getId());
+            return;
+        }
+        List<PetTracking> petTrackingList = petIds.stream()
+                .map(petId -> petRepository.findByIdAndVerifyOwnership(petId, memberId)) // 펫 조회 및 검증
+                .map(pet -> new PetTracking(pet, tracking))                              // 연관관계 객체 생성
+                .toList();
+
+        petTrackingRepository.saveAll(petTrackingList); // 일괄 저장
     }
 }
