@@ -25,7 +25,6 @@ import org.zerock.puppyrun.statistics.service.PetStatistics;
 public class PetCommandService {
     private final PetRepository petRepository;
     private final MemberRepository memberRepository;
-    private final PetVerification petVerification;
     private final PetStatistics petStatistics;
 
     /**
@@ -64,7 +63,7 @@ public class PetCommandService {
      * @return 수정된 펫의 정보 응답 DTO
      */
     public PetUpdateResponse updatePet(UserPrincipal userPrincipal, UUID petId, UpdatePetRequest request) {
-        Pet pet = petVerification.ownershipCheck(userPrincipal.id(), petId);
+        Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
 
         UpdatePetDTO dto = UpdatePetDTO.builder()
                 .color(request.color())
@@ -90,7 +89,7 @@ public class PetCommandService {
      * @param petId         삭제할 펫의 ID
      */
     public void deletePet(UserPrincipal userPrincipal, UUID petId) {
-        Pet pet = petVerification.ownershipCheck(userPrincipal.id(), petId);
+        Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
         petRepository.deleteById(petId);
     }
 }
