@@ -17,7 +17,6 @@ import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 public class TrackingQueryService {
     private final TrackingRepository trackingRepository;
     private final DiaryRepository diaryRepository;
-    private final TrackingVerification trackingVerification;
 
     /**
      * 산책 리스트 조회
@@ -31,7 +30,7 @@ public class TrackingQueryService {
      * 산책 상세 조회
      */
     public TrackingDetailResponse getTrackingResponse(UUID memberId, UUID trackingId) {
-        Tracking tracking = trackingVerification.ownershipCheck(memberId, trackingId);
+        Tracking tracking = trackingRepository.findByIdAndVerifyOwnership(trackingId, memberId);
 
         UUID diaryId = diaryRepository.findIdByTrackingId(trackingId).orElse(null);
 

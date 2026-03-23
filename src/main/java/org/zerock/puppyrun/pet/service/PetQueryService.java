@@ -22,7 +22,6 @@ import org.zerock.puppyrun.statistics.service.TrackingStatistics;
 @Transactional(readOnly = true)
 public class PetQueryService {
     private final PetRepository petRepository;
-    private final PetVerification petVerification;
     private final PetStatistics petStatistics;
     private final TrackingStatistics TrackingStatistics;
 
@@ -34,8 +33,8 @@ public class PetQueryService {
      * @return 펫 상세 정보 응답 DTO (기본 정보 + 통계 정보 포함)
      */
     public PetDetailResponse getPet(UserPrincipal userPrincipal, UUID petId) {
-        Pet pet = petVerification.ownershipCheck(userPrincipal.id(), petId);
-        int walkedDistance = TrackingStatistics.getTotalWalkedDistance(pet); // 누적 산책거리 조회
+        Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
+        int walkedDistance = TrackingStatistics.getTotalWalkedDistance(petId); // 누적 산책거리 조회
         return PetDetailResponse.of(pet, walkedDistance);
     }
 
@@ -54,7 +53,7 @@ public class PetQueryService {
      * 사용자가 소유한 펫의 몸무게 로그를 조회합니다.
      */
     public PetWeightLogResponse getPetWeightLog(UserPrincipal userPrincipal, UUID petId) {
-        Pet pet = petVerification.ownershipCheck(userPrincipal.id(), petId);
+        Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
         List<PetWeightLog> petWeightLog = petStatistics.getPetWeightLog(pet.getId());
         return PetWeightLogResponse.of(pet, petWeightLog);
     }

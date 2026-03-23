@@ -11,6 +11,7 @@ import org.zerock.puppyrun.diary.entity.Diary;
 import org.zerock.puppyrun.diary.repository.DiaryRepository;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.repository.MemberRepository;
+import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.tracking.controller.request.ChangeVisibilityRequest;
 import org.zerock.puppyrun.tracking.controller.request.RegisterTrackingRequest;
 import org.zerock.puppyrun.tracking.controller.request.UpdateTrackingRequest;
@@ -29,7 +30,8 @@ public class TrackingCommandService {
     private final DiaryRepository diaryRepository;
     private final TrackingRepository trackingRepository;
     private final MemberRepository memberRepository;
-    private final TrackingVerification trackingVerification;
+
+    private final PetRepository petRepository;
 
     /**
      * 산책 저장
@@ -52,6 +54,7 @@ public class TrackingCommandService {
                 .startedLng(startPoint.getLng())
                 .visibility(Visibility.from(request.visibility()))
                 .distance(request.distance())
+                .averagePace(request.averagePace())
 //                .images(images.stream().map(MultipartFile::getOriginalFilename).toList()) todo: s3 저장 후 url 생성
                 .path(path)
                 .build();
@@ -64,7 +67,7 @@ public class TrackingCommandService {
      * 산책 정보 수정
      */
     public TrackingDetailResponse updateTracking(UUID memberId, UUID trackingId, UpdateTrackingRequest request) {
-        Tracking tracking = trackingVerification.ownershipCheck(memberId, trackingId);
+        Tracking tracking = trackingRepository.findByIdAndVerifyOwnership(trackingId, memberId);
 
         UpdateTrackingDTO updateTrackingDTO = UpdateTrackingDTO.builder()
                 .endedAt(request.endedAt())
@@ -85,7 +88,8 @@ public class TrackingCommandService {
      * 산책 공개 여부 변경 (Lightweight Update)
      */
     public void changeTrackingVisibility(UUID memberId, UUID trackingId, ChangeVisibilityRequest request) {
-        Tracking tracking = trackingVerification.ownershipCheck(memberId, trackingId);
+        Tracking tracking = trackingRepository.findByIdAndVerifyOwnership(trackingId, memberId);
+
         Visibility visibility = Visibility.from(request.visibility());
         // 공개 여부 변경
         tracking.changeVisibility(visibility);
@@ -95,7 +99,7 @@ public class TrackingCommandService {
      * 산책 기록 삭제
      */
     public void deleteTracking(UUID memberId, UUID trackingId) {
-        Tracking tracking = trackingVerification.ownershipCheck(memberId, trackingId);
+        Tracking tracking = trackingRepository.findByIdAndVerifyOwnership(trackingId, memberId);
 
         // 연관된 일기가 있다면 tracking_id를 null로 변경
         diaryRepository.findByTrackingId(trackingId)
