@@ -41,6 +41,7 @@ public record TrackingDetailResponse(
                 .duration(tracking.getDuration())
                 .visibility(tracking.getVisibility().name())
                 .distance(tracking.getDistance())
+                .averagePace(tracking.getAveragePace())
                 .path(pathPoints)
                 .build();
     }

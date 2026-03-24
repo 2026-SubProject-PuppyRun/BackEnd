@@ -57,6 +57,7 @@ public class TrackingCommandService {
                 .startedLng(startPoint.getLng())
                 .visibility(Visibility.from(request.visibility()))
                 .distance(request.distance())
+                .averagePace(request.averagePace())
 //                .images(images.stream().map(MultipartFile::getOriginalFilename).toList()) todo: s3 저장 후 url 생성
                 .path(path)
                 .build();
