@@ -14,7 +14,6 @@ import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.entity.PetWeightLog;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.statistics.service.PetStatistics;
-import org.zerock.puppyrun.statistics.service.TrackingStatistics;
 
 @Service
 @Slf4j
@@ -23,7 +22,6 @@ import org.zerock.puppyrun.statistics.service.TrackingStatistics;
 public class PetQueryService {
     private final PetRepository petRepository;
     private final PetStatistics petStatistics;
-    private final TrackingStatistics TrackingStatistics;
 
     /**
      * 펫의 상세 정보를 조회합니다. 펫 통계 서비스에서 누적 산책 거리를 조회하여 함께 반환합니다.
@@ -34,7 +32,7 @@ public class PetQueryService {
      */
     public PetDetailResponse getPet(UserPrincipal userPrincipal, UUID petId) {
         Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
-        int walkedDistance = TrackingStatistics.getTotalWalkedDistance(petId); // 누적 산책거리 조회
+        int walkedDistance = petStatistics.getTotalWalkedDistance(pet); // 누적 산책거리 조회
         return PetDetailResponse.of(pet, walkedDistance);
     }
 

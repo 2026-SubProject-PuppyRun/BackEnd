@@ -6,18 +6,21 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.entity.PetWeightLog;
 import org.zerock.puppyrun.pet.repository.PetWeightLogRepository;
+import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
+import org.zerock.puppyrun.tracking.repository.PetTrackingRepository;
 
-@Service
+@Component
 @RequiredArgsConstructor
 @Slf4j
 @Transactional(readOnly = true)
 public class PetStatistics {
     private final PetWeightLogRepository petWeightLogRepository;
+    private final PetTrackingRepository petTrackingRepository;
 
     /**
      * 특정 펫의 몸무게를 저장 합니다
@@ -70,5 +73,37 @@ public class PetStatistics {
         petWeightLogRepository.save(petWeightLog);
         log.info("새로운 몸무게 로그를 생성합니다. PetID: {}", pet.getId());
     }
+
+    /**
+     * 특정 펫의 누적 산책 거리(미터)를 조회합니다.
+     *
+     * @param pet 펫 엔티티
+     */
+    public int getTotalWalkedDistance(Pet pet) {
+        return petTrackingRepository.sumTotalDistanceByPetId(pet.getId());
+    }
+
+    /**
+     * 특정 펫의 누적 산책 시간을 조회합니다.
+     *
+     * @param pet 펫 엔티티
+     */
+    public int getTotalWalkedDuration(Pet pet) {
+        return petTrackingRepository.sumTotalDurationByPetId(pet.getId());
+    }
+
+    /**
+     * 펫의 요약된 통계를 조회합니다.
+     *
+     * @param pet 펫 엔티티
+     * @return PetTrackingSummary
+     */
+    public List<TotalPetTracking> getWeeklyPetTrackingSummary(List<Pet> pet, LocalDate targetDay) {
+        LocalDate startDate = targetDay.minusDays(6);
+        List<UUID> petId = pet.stream().map(Pet::getId).toList();
+
+        return petTrackingRepository.getTrackingSummaryByPetId(petId, startDate, targetDay);
+    }
+
 
 }
