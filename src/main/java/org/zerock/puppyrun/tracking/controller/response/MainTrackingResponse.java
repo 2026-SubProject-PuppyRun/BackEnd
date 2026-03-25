@@ -33,6 +33,7 @@ public record MainTrackingResponse(
             Integer duration,            // 산책 진행 시간
             String visibility,           // 공개 여부
             Integer distance,            // 이동 거리
+            String averagePace,          // 평균 속도
             List<TrackingPoint> path     // 이동 경로 리스트
     ) {
         /**
@@ -46,6 +47,7 @@ public record MainTrackingResponse(
                     .duration(tracking.getDuration())
                     .visibility(tracking.getVisibility().name())
                     .distance(tracking.getDistance())
+                    .averagePace(tracking.getAveragePace())
                     .path(TrackingPoint.listOf(tracking.getPath()))
                     .build();
         }
