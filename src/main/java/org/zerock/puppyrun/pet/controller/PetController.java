@@ -21,14 +21,16 @@ import org.zerock.puppyrun.pet.controller.response.PetDetailResponse;
 import org.zerock.puppyrun.pet.controller.response.PetListResponse;
 import org.zerock.puppyrun.pet.controller.response.PetUpdateResponse;
 import org.zerock.puppyrun.pet.controller.response.PetWeightLogResponse;
-import org.zerock.puppyrun.pet.service.PetService;
+import org.zerock.puppyrun.pet.service.PetCommandService;
+import org.zerock.puppyrun.pet.service.PetQueryService;
 
 @RestController
 @RequestMapping("/api/pets")
 @RequiredArgsConstructor
 public class PetController {
 
-    private final PetService petService;
+    private final PetCommandService petCommandService;
+    private final PetQueryService petQueryService;
 
     /**
      * 펫 등록
@@ -39,7 +41,7 @@ public class PetController {
             @RequestBody @Valid RegisterPetRequest request
     ) {
         // Service에서 UserPrincipal을 직접 받도록 정의되어 있음
-        PetDetailResponse response = petService.registerPet(userPrincipal, request);
+        PetDetailResponse response = petCommandService.registerPet(userPrincipal, request);
         return ResponseEntity.ok(response);
     }
 
@@ -50,7 +52,7 @@ public class PetController {
     public ResponseEntity<PetListResponse> getPetList(
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
-        PetListResponse response = petService.getPetList(userPrincipal);
+        PetListResponse response = petQueryService.getPetList(userPrincipal);
         return ResponseEntity.ok(response);
     }
 
@@ -62,7 +64,7 @@ public class PetController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable UUID petId
     ) {
-        PetDetailResponse response = petService.getPet(userPrincipal, petId);
+        PetDetailResponse response = petQueryService.getPet(userPrincipal, petId);
         return ResponseEntity.ok(response);
     }
 
@@ -75,7 +77,7 @@ public class PetController {
             @PathVariable UUID petId,
             @RequestBody @Valid UpdatePetRequest request
     ) {
-        PetUpdateResponse response = petService.updatePet(userPrincipal, petId, request);
+        PetUpdateResponse response = petCommandService.updatePet(userPrincipal, petId, request);
         return ResponseEntity.ok(response);
     }
 
@@ -87,7 +89,7 @@ public class PetController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable UUID petId
     ) {
-        petService.deletePet(userPrincipal, petId);
+        petCommandService.deletePet(userPrincipal, petId);
         return ResponseEntity.ok().build();
     }
 
@@ -99,7 +101,7 @@ public class PetController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable UUID petId
     ) {
-        PetWeightLogResponse response = petService.getPetWeightLog(userPrincipal, petId);
+        PetWeightLogResponse response = petQueryService.getPetWeightLog(userPrincipal, petId);
         return ResponseEntity.ok(response);
     }
 

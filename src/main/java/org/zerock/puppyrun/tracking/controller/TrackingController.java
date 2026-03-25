@@ -23,13 +23,16 @@ import org.zerock.puppyrun.tracking.controller.response.MainTrackingResponse;
 import org.zerock.puppyrun.tracking.controller.response.TrackingDetailResponse;
 import org.zerock.puppyrun.tracking.controller.request.ChangeVisibilityRequest;
 import org.zerock.puppyrun.tracking.controller.request.UpdateTrackingRequest;
-import org.zerock.puppyrun.tracking.service.TrackingService;
+import org.zerock.puppyrun.tracking.service.TrackingCommandService;
+import org.zerock.puppyrun.tracking.service.TrackingQueryService;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/tracking")
 public class TrackingController {
-    private final TrackingService trackingService;
+    private final TrackingCommandService trackingCommandService;
+    private final TrackingQueryService trackingQueryService;
+
 
     // 산책 저장
     @PostMapping("")
@@ -38,7 +41,7 @@ public class TrackingController {
             @RequestPart("images") List<MultipartFile> images,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
-        trackingService.saveTracking(userPrincipal.id(), request, images);
+        trackingCommandService.saveTracking(userPrincipal.id(), request, images);
 
         return ResponseEntity.ok("산책 저장 완료");
     }
@@ -47,7 +50,7 @@ public class TrackingController {
     @GetMapping("")
     public ResponseEntity<MainTrackingResponse> getTrackingList(
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
-        MainTrackingResponse response = trackingService.getTrackingListResponse(userPrincipal.id());
+        MainTrackingResponse response = trackingQueryService.getTrackingListResponse(userPrincipal.id());
         return ResponseEntity.ok(response);
     }
 
@@ -57,7 +60,7 @@ public class TrackingController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable UUID trackingId) {
 
-        TrackingDetailResponse response = trackingService.getTrackingResponse(userPrincipal.id(), trackingId);
+        TrackingDetailResponse response = trackingQueryService.getTrackingResponse(userPrincipal.id(), trackingId);
 
         return ResponseEntity.ok(response);
     }
@@ -69,7 +72,8 @@ public class TrackingController {
             @PathVariable UUID trackingId,
             @RequestBody UpdateTrackingRequest request) {
 
-        TrackingDetailResponse response = trackingService.updateTracking(userPrincipal.id(), trackingId, request);
+        TrackingDetailResponse response = trackingCommandService.updateTracking(userPrincipal.id(), trackingId,
+                request);
 
         return ResponseEntity.ok(response);
     }
@@ -81,7 +85,7 @@ public class TrackingController {
             @PathVariable UUID trackingId,
             @RequestBody ChangeVisibilityRequest request) { // {"visibility": "PUBLIC"} 형태의 JSON 요청 처리
 
-        trackingService.changeTrackingVisibility(userPrincipal.id(), trackingId, request);
+        trackingCommandService.changeTrackingVisibility(userPrincipal.id(), trackingId, request);
 
         return ResponseEntity.ok().build();
     }
@@ -92,7 +96,7 @@ public class TrackingController {
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @PathVariable UUID trackingId) {
 
-        trackingService.deleteTracking(userPrincipal.id(), trackingId);
+        trackingCommandService.deleteTracking(userPrincipal.id(), trackingId);
 
         return ResponseEntity.ok().build();
     }

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import lombok.Builder;
 
 @Builder
@@ -27,7 +28,10 @@ public record RegisterTrackingRequest(
         List<TrackingPoint> path, // 이동 경로 리스트
 
         @NotBlank(message = "평균 속도는 필수입니다.")
-        String averagePace         // 평균 속도
+        String averagePace,         // 평균 속도
+
+        @NotNull(message = "산책한 펫 ID 리스트는 필수입니다.")
+        List<UUID> petIdList      // 산책한 펫 ID 리스트
 ) {
     @Builder
     public record TrackingPoint(
