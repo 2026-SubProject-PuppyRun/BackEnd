@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: test
   application:
     name: PuppyRun
 
@@ -23,7 +25,7 @@ spring:
 
 app:
   base-url: http://localhost:8080
-  
+
 jwt:
   secret: this-is-a-very-long-dummy-secret-key-for-test-only-do-not-use-real-key
   access-token-expiration: 900000
@@ -35,3 +37,9 @@ discord:
 data-kr:
   api-key: api-key
   forecest-url: http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0
+
+logging:
+  level:
+    root: INFO
+    com.puppyrun: DEBUG
+    org.hibernate: WARN

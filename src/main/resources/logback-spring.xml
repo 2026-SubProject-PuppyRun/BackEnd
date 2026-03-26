@@ -30,42 +30,48 @@
 
     <!-- 디스코드 웹 후크 연결 -->
     <springProperty name="DISCORD_URL" source="discord.webhooks-url"/>
-    <appender name="DISCORD" class="com.github.napstr.logback.DiscordAppender">
-        <webhookUri>${DISCORD_URL}</webhookUri>
-        <layout class="ch.qos.logback.classic.PatternLayout">
-            <pattern>
-                🚨 **[Server Error Report]**
-                > **Time:** `%d{yyyy-MM-dd HH:mm:ss}`
-                > **Logger:** `%logger{36}`
-                > **Level:** `%-5level`
+    <springProfile name="prod">
+        <appender name="DISCORD" class="com.github.napstr.logback.DiscordAppender">
+            <webhookUri>${DISCORD_URL}</webhookUri>
+            <layout class="ch.qos.logback.classic.PatternLayout">
+                <pattern>
+                    🚨 **[Server Error Report]**
+                    > **Time:** `%d{yyyy-MM-dd HH:mm:ss}`
+                    > **Logger:** `%logger{36}`
+                    > **Level:** `%-5level`
 
-                **📌 Error Message:**
-                ```text
-                %msg
-                ```
+                    **📌 Error Message:**
+                    ```text
+                    %msg
+                    ```
 
-                **🔍 Stack Trace:**
-                ```java
-                %ex{5}
-                ```
-                ---
-            </pattern>
-        </layout>
-        <color>#FF0000</color>
-    </appender>
+                    **🔍 Stack Trace:**
+                    ```java
+                    %ex{5}
+                    ```
+                    ---
+                </pattern>
+            </layout>
+            <color>#FF0000</color>
+        </appender>
+    </springProfile>
 
     <!-- 디스코드 비동기 처리 (ERROR 레벨만 전송) -->
-    <appender name="ASYNC_DISCORD" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="DISCORD"/>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>ERROR</level>
-        </filter>
-    </appender>
+    <springProfile name="prod">
+        <appender name="ASYNC_DISCORD" class="ch.qos.logback.classic.AsyncAppender">
+            <appender-ref ref="DISCORD"/>
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>ERROR</level>
+            </filter>
+        </appender>
+    </springProfile>
 
     <!-- Root 로거 설정 -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/> <!-- 위에서 정의한 CONSOLE 앱펜더 참조 -->
         <appender-ref ref="FILE"/>
-        <appender-ref ref="ASYNC_DISCORD"/>
+        <springProfile name="prod">
+            <appender-ref ref="ASYNC_DISCORD"/>
+        </springProfile>
     </root>
 </configuration>
