@@ -54,10 +54,7 @@
             </layout>
             <color>#FF0000</color>
         </appender>
-    </springProfile>
-
-    <!-- 디스코드 비동기 처리 (ERROR 레벨만 전송) -->
-    <springProfile name="prod">
+        <!-- 디스코드 비동기 처리 (ERROR 레벨만 전송) -->
         <appender name="ASYNC_DISCORD" class="ch.qos.logback.classic.AsyncAppender">
             <appender-ref ref="DISCORD"/>
             <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
@@ -66,12 +63,19 @@
         </appender>
     </springProfile>
 
-    <!-- Root 로거 설정 -->
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/> <!-- 위에서 정의한 CONSOLE 앱펜더 참조 -->
-        <appender-ref ref="FILE"/>
-        <springProfile name="prod">
+    <springProfile name="prod">
+        <root level="ERROR">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
             <appender-ref ref="ASYNC_DISCORD"/>
-        </springProfile>
-    </root>
+        </root>
+    </springProfile>
+
+    <springProfile name="!prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
+
 </configuration>
