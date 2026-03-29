@@ -1,18 +1,17 @@
 package org.zerock.puppyrun.statistics.controller.Response;
 
 import java.time.LocalDate;
-import java.time.Month;
-import java.util.Collections;
 import java.util.List;
 import lombok.Builder;
 import org.zerock.puppyrun.statistics.DTO.MonthlyActivity;
+import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 
 
 @Builder
 public record MonthlyActivityResponse(
         Period period,
         List<MonthlySummary> monthlySummary, // 월 전체 산책 요약
-        List<ActivityChart> activityChart // 해당 월의 일일 산책 요약
+        List<ContributionChart> contributionChart // 지난 15주의 산책 요약
 ) {
     private static final double METERS_TO_KM = 1000.0;
     private static final int SECONDS_TO_MINUTES = 60;
@@ -55,24 +54,24 @@ public record MonthlyActivityResponse(
 
 
     @Builder
-    public record ActivityChart(
+    public record ContributionChart(
             LocalDate label,
             Double distanceKm,
             Integer durationMin,
             Integer trackingCount
     ) {
-        private static ActivityChart from(MonthlyActivity.ActivityChart ac) {
-            return ActivityChart.builder()
+        private static ContributionChart from(DailyTrackingSummary ac) {
+            return ContributionChart.builder()
                     .label(ac.date())
-                    .distanceKm(Math.round(ac.totalDistance() / METERS_TO_KM * 10) / 10.0)
-                    .durationMin(ac.totalDuration() / SECONDS_TO_MINUTES)
+                    .distanceKm(Math.round(ac.distance() / METERS_TO_KM * 10) / 10.0)
+                    .durationMin(ac.duration() / SECONDS_TO_MINUTES)
                     .trackingCount(ac.trackingCount())
                     .build();
         }
 
-        public static List<ActivityChart> listOf(List<MonthlyActivity.ActivityChart> charts) {
+        public static List<ContributionChart> listOf(List<DailyTrackingSummary> charts) {
             return charts.stream()
-                    .map(ActivityChart::from)
+                    .map(ContributionChart::from)
                     .toList();
         }
     }
@@ -80,19 +79,13 @@ public record MonthlyActivityResponse(
     /**
      * 통계 데이터를 조합하여 변환하는 팩토리 메서드
      */
-    public static MonthlyActivityResponse of(LocalDate targetDate, List<MonthlyActivity> activity) {
+    public static MonthlyActivityResponse of(LocalDate targetDate, List<MonthlyActivity> activity,
+                                             List<DailyTrackingSummary> fifteenContribution) {
         String year = String.valueOf(targetDate.getYear());
-        Month month = targetDate.getMonth();
-        List<MonthlyActivity.ActivityChart> activityChart = activity.stream()
-                .filter(ac -> month.equals(ac.month()))
-                .findFirst()
-                .map(MonthlyActivity::activityChart)
-                .orElseGet(Collections::emptyList);
-
         return MonthlyActivityResponse.builder()
                 .period(Period.from(year))
                 .monthlySummary(MonthlySummary.listOf(activity))
-                .activityChart(ActivityChart.listOf(activityChart))
+                .contributionChart(ContributionChart.listOf(fifteenContribution))
                 .build();
     }
 }

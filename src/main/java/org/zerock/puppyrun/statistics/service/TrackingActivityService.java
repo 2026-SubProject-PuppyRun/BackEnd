@@ -15,9 +15,11 @@ import org.zerock.puppyrun.statistics.DTO.MonthlyActivity;
 import org.zerock.puppyrun.statistics.controller.Response.DailyActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyContributionResponse;
+import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
 import org.zerock.puppyrun.statistics.DTO.WeeklyActivityChart;
 import org.zerock.puppyrun.statistics.controller.Response.WeeklyActivityResponse;
+import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +29,8 @@ public class TrackingActivityService {
     private final PetRepository petRepository;
     private final TrackingStatistics trackingStatistics;
     private final PetStatistics petStatistics;
+    private final TrackingRepository trackingRepository;
+
 
     public DailyActivityResponse getDailyTracking(UserPrincipal principal, LocalDate targetDay) {
         List<DailyPetTracking> dailyPetTracking = trackingStatistics.getDayActivity(principal.id(), targetDay);
@@ -52,7 +56,10 @@ public class TrackingActivityService {
         List<MonthlyActivity> dailyTrackingSummaryList = trackingStatistics.getMonthlyRecord(principal.id(),
                 targetDay);
 
-        return MonthlyActivityResponse.of(targetDay, dailyTrackingSummaryList);
+        List<DailyTrackingSummary> fifteenContribution = trackingRepository
+                .getTrackingSummaryDateAsc(principal.id(), targetDay.minusWeeks(15), targetDay);
+
+        return MonthlyActivityResponse.of(targetDay, dailyTrackingSummaryList, fifteenContribution);
     }
 
     public MonthlyContributionResponse getMonthlyContributions(UserPrincipal principal, LocalDate targetDay) {
