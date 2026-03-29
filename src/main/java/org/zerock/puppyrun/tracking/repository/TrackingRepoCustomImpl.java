@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
-import org.zerock.puppyrun.tracking.DTO.MonthlyTrackingSummary;
 import org.zerock.puppyrun.tracking.entity.Tracking;
 
 
@@ -69,79 +68,13 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
                 .map(currentDate -> {
                     Tuple tuple = dataMap.get(currentDate);
 
+                    Integer count = tuple != null ? tuple.get(trackingCountPath).intValue() : 0;
                     Integer distance = tuple != null ? tuple.get(distanceSumPath) : 0;
                     Integer duration = tuple != null ? tuple.get(durationSumPath) : 0;
 
                     return DailyTrackingSummary.builder()
                             .date(currentDate)
-                            .distance(distance)
-                            .duration(duration)
-                            .build();
-                })
-                .toList();
-    }
-
-
-    @Override
-    public List<MonthlyTrackingSummary> getMonthlyTracking(UUID memberId, LocalDate targetDay) {
-        // 조회 기간 설정
-        // 시작일: 타겟 연도의 1월 1일
-        LocalDate startDate = LocalDate.of(targetDay.getYear(), 1, 1);
-
-        // 종료일: 타겟 연/월의 마지막 날의 다음날 00:00 (예: 타겟이 3월이면 4월 1일 전까지)
-        LocalDate endDate = targetDay.withDayOfMonth(targetDay.lengthOfMonth()).plusDays(1);
-
-        // 월별 그룹화를 위해 DB의 DateTime을 'YYYY-MM-01' 형태의 LocalDate로 변환 (MySQL DATE_FORMAT 사용)
-        DateTemplate<java.sql.Date> monthPath = Expressions.dateTemplate(
-                java.sql.Date.class,
-                "CAST(DATE_FORMAT({0}, '%Y-%m-01') AS date)",
-                tracking.startedAt
-        );
-
-        var distanceSumPath = tracking.distance.sum().coalesce(0);
-        var durationSumPath = tracking.duration.sum().coalesce(0);
-
-        // QueryDSL로 월별 데이터 조회
-        List<Tuple> results = queryFactory
-                .select(
-                        monthPath,
-                        distanceSumPath,
-                        durationSumPath
-                )
-                .from(tracking)
-                .where(
-                        tracking.member.id.eq(memberId),
-                        tracking.startedAt.goe(startDate.atStartOfDay()),
-                        tracking.startedAt.lt(endDate.atStartOfDay())
-                )
-                .groupBy(monthPath)
-                .fetch();
-
-        // Map으로 변환
-        Map<LocalDate, Tuple> dataMap = results.stream()
-                .collect(Collectors.toMap(
-                        tuple -> {
-                            java.sql.Date sqlDate = tuple.get(monthPath);
-                            return sqlDate != null ? sqlDate.toLocalDate() : null;
-                        },
-                        tuple -> tuple
-                ));
-
-        // 1월부터 타겟 월(예: 3월)까지 돌면서 빈 달은 0으로 채워서 반환
-        int targetMonth = targetDay.getMonthValue();
-        int targetYear = targetDay.getYear();
-
-        return IntStream.rangeClosed(1, targetMonth)
-                .mapToObj(month -> {
-                    // 각 달의 1일을 기준으로 매핑 (예: 2026-01-01, 2026-02-01 ...)
-                    LocalDate currentMonthDate = LocalDate.of(targetYear, month, 1);
-                    Tuple tuple = dataMap.get(currentMonthDate);
-
-                    Integer distance = tuple != null ? tuple.get(distanceSumPath) : 0;
-                    Integer duration = tuple != null ? tuple.get(durationSumPath) : 0;
-
-                    return MonthlyTrackingSummary.builder()
-                            .date(currentMonthDate)
+                            .trackingCount(count)
                             .distance(distance)
                             .duration(duration)
                             .build();

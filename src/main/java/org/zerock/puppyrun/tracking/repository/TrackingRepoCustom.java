@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.UUID;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
-import org.zerock.puppyrun.tracking.DTO.MonthlyTrackingSummary;
 
 public interface TrackingRepoCustom {
 
@@ -14,10 +13,6 @@ public interface TrackingRepoCustom {
      */
     List<DailyTrackingSummary> getDayTracking(UUID memberId, LocalDate startDate, LocalDate endDate);
 
-    /**
-     * 멤버의 월간 산책 통계 (해당 연도 1월부터 타겟 데이의 월까지)
-     */
-    List<MonthlyTrackingSummary> getMonthlyTracking(UUID memberId, LocalDate targetDay);
 
     List<DailyTracking> getDailyActivities(UUID memberId, LocalDate targetDate);
 }
