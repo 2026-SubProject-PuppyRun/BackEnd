@@ -7,6 +7,7 @@ import lombok.Builder;
 @Builder
 public record DailyTrackingSummary(
         LocalDate date,
+        Integer trackingCount,
         Integer distance,
         Integer duration
 ) {

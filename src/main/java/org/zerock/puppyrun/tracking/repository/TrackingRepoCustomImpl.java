@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
@@ -26,7 +25,7 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<DailyTrackingSummary> getDayTracking(UUID memberId, LocalDate startDate, LocalDate endDate) {
+    public List<DailyTrackingSummary> getTrackingSummaryDateAsc(UUID memberId, LocalDate startDate, LocalDate endDate) {
         // DB의 날짜시간(LocalDateTime) 데이터를 날짜(LocalDate)로 캐스팅하기 위한 템플릿
         DateTemplate<java.sql.Date> datePath = Expressions.dateTemplate(
                 java.sql.Date.class,
@@ -36,11 +35,13 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
 
         var distanceSumPath = tracking.distance.sum().coalesce(0);
         var durationSumPath = tracking.duration.sum().coalesce(0);
+        var trackingCountPath = tracking.id.count();
 
         // Tracking에서 memberId로 필터링 (startDate 00:00:00 ~ endDate 다음날 00:00:00 미만)
         List<Tuple> results = queryFactory
                 .select(
                         datePath,
+                        trackingCountPath,
                         distanceSumPath,
                         durationSumPath
                 )
@@ -51,6 +52,7 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
                         tracking.startedAt.lt(endDate.plusDays(1).atStartOfDay())
                 )
                 .groupBy(datePath)
+                .orderBy(datePath.asc())
                 .fetch();
 
         // 조회가 편하도록 Map으로 변환
