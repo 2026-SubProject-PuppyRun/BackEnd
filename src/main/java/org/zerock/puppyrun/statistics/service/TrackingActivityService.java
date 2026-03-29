@@ -11,7 +11,10 @@ import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.statistics.DTO.DailyPetTracking;
+import org.zerock.puppyrun.statistics.DTO.MonthlyActivity;
 import org.zerock.puppyrun.statistics.controller.Response.DailyActivityResponse;
+import org.zerock.puppyrun.statistics.controller.Response.MonthlyActivityResponse;
+import org.zerock.puppyrun.statistics.controller.Response.MonthlyContributionResponse;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
 import org.zerock.puppyrun.statistics.DTO.WeeklyActivityChart;
 import org.zerock.puppyrun.statistics.controller.Response.WeeklyActivityResponse;
@@ -45,6 +48,17 @@ public class TrackingActivityService {
         return WeeklyActivityResponse.of(activityChart, totalPetTracking);
     }
 
-    public void getMonthlyTracking(UserPrincipal principal, LocalDate targetDay) {
+    public MonthlyActivityResponse getMonthlyTracking(UserPrincipal principal, LocalDate targetDay) {
+        List<MonthlyActivity> dailyTrackingSummaryList = trackingStatistics.getMonthlyRecord(principal.id(),
+                targetDay);
+
+        return MonthlyActivityResponse.of(targetDay, dailyTrackingSummaryList);
     }
+
+    public MonthlyContributionResponse getMonthlyContributions(UserPrincipal principal, LocalDate targetDay) {
+        MonthlyActivity activity = trackingStatistics.getMonthlyContribution(principal.id(), targetDay);
+        return MonthlyContributionResponse.of(targetDay, activity);
+    }
+
+
 }
