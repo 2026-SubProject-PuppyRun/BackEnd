@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.statistics.controller.Response.DailyActivityResponse;
+import org.zerock.puppyrun.statistics.controller.Response.MonthlyActivityResponse;
+import org.zerock.puppyrun.statistics.controller.Response.MonthlyContributionResponse;
 import org.zerock.puppyrun.statistics.controller.Response.WeeklyActivityResponse;
 import org.zerock.puppyrun.statistics.service.TrackingActivityService;
 
@@ -38,11 +40,20 @@ public class ActivitySummaryController {
     }
 
     @GetMapping("/monthly")
-    public ResponseEntity<?> getMonthlyTracking(
+    public ResponseEntity<MonthlyActivityResponse> getMonthlyTracking(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestParam("date") LocalDate targetDay) {
-        // todo: 잔디 심기, 월간 산책 통계 구현 예정
-        return ResponseEntity.ok().build();
+        MonthlyActivityResponse response = trackingActivityService.getMonthlyTracking(principal, targetDay);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/monthly/contributions")
+    public ResponseEntity<MonthlyContributionResponse> getMonthlyActivity(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam("date") LocalDate targetDay) {
+        MonthlyContributionResponse response = trackingActivityService.getMonthlyContributions(principal, targetDay);
+        return ResponseEntity.ok(response);
+
     }
 
 }
