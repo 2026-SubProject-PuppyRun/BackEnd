@@ -11,10 +11,15 @@ import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.statistics.DTO.DailyPetTracking;
+import org.zerock.puppyrun.statistics.DTO.MonthlyActivity;
 import org.zerock.puppyrun.statistics.controller.Response.DailyActivityResponse;
+import org.zerock.puppyrun.statistics.controller.Response.MonthlyActivityResponse;
+import org.zerock.puppyrun.statistics.controller.Response.MonthlyContributionResponse;
+import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
 import org.zerock.puppyrun.statistics.DTO.WeeklyActivityChart;
 import org.zerock.puppyrun.statistics.controller.Response.WeeklyActivityResponse;
+import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +29,8 @@ public class TrackingActivityService {
     private final PetRepository petRepository;
     private final TrackingStatistics trackingStatistics;
     private final PetStatistics petStatistics;
+    private final TrackingRepository trackingRepository;
+
 
     public DailyActivityResponse getDailyTracking(UserPrincipal principal, LocalDate targetDay) {
         List<DailyPetTracking> dailyPetTracking = trackingStatistics.getDayActivity(principal.id(), targetDay);
@@ -45,6 +52,20 @@ public class TrackingActivityService {
         return WeeklyActivityResponse.of(activityChart, totalPetTracking);
     }
 
-    public void getMonthlyTracking(UserPrincipal principal, LocalDate targetDay) {
+    public MonthlyActivityResponse getMonthlyTracking(UserPrincipal principal, LocalDate targetDay) {
+        List<MonthlyActivity> dailyTrackingSummaryList = trackingStatistics.getMonthlyRecord(principal.id(),
+                targetDay);
+
+        List<DailyTrackingSummary> fifteenContribution = trackingRepository
+                .getTrackingSummaryDateAsc(principal.id(), targetDay.minusWeeks(15), targetDay);
+
+        return MonthlyActivityResponse.of(targetDay, dailyTrackingSummaryList, fifteenContribution);
     }
+
+    public MonthlyContributionResponse getMonthlyContributions(UserPrincipal principal, LocalDate targetDay) {
+        MonthlyActivity activity = trackingStatistics.getMonthlyContribution(principal.id(), targetDay);
+        return MonthlyContributionResponse.of(targetDay, activity);
+    }
+
+
 }
