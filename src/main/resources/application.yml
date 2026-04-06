@@ -33,3 +33,6 @@ discord:
 data-kr:
   api-key: ${DATA_API_KEY}
   forecest-url: ${DATA_FORECEST_URL}
+
+firebase:
+  account-path: ${FCM_ACCOUNT_PATH}

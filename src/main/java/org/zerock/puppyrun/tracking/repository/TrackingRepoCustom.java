@@ -3,6 +3,7 @@ package org.zerock.puppyrun.tracking.repository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 
@@ -15,4 +16,6 @@ public interface TrackingRepoCustom {
 
 
     List<DailyTracking> getDailyActivities(UUID memberId, LocalDate targetDate);
+
+    List<DailyMemberStat> findMemberIdsByDate(List<UUID> memberIds, LocalDate startDate, LocalDate endDate);
 }
