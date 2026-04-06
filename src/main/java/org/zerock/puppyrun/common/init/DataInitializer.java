@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.common.auth.jwt.JwtTokenProvider;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.repository.MemberRepository;
+import org.zerock.puppyrun.notification.entity.NotificationSettings;
+import org.zerock.puppyrun.notification.repository.NotificationRepository;
 
 @Component
 @RequiredArgsConstructor
@@ -20,6 +22,7 @@ public class DataInitializer implements CommandLineRunner {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final NotificationRepository notificationRepository;
 
     private static final String ADMIN_EMAIL = "admin@puppyrun.com";
     private static final String ADMIN_PASSWORD = "admin1234";
@@ -36,6 +39,10 @@ public class DataInitializer implements CommandLineRunner {
 
         // 확보된 관리자 계정으로 토큰을 발급하고 로그를 출력합니다.
         String accessToken = jwtTokenProvider.generateAccessToken(admin.toDto());
+
+        // 관리자 계정 알림 설정
+        createNotificationSettings(admin);
+
         log.info("관리자 계정({})으로 토큰을 발급했습니다.", admin.getEmail());
         log.info("Admin Access Token: {}", accessToken);
 
@@ -51,5 +58,20 @@ public class DataInitializer implements CommandLineRunner {
                 .build();
         admin.setAdmin();
         return memberRepository.save(admin);
+    }
+
+    private void createNotificationSettings(Member member) {
+        log.info("관리자 계정의 알림 설정을 생성합니다.");
+        if (notificationRepository.findByMemberId(member.getId()).isPresent()) {
+            log.info("이미 알림 설정이 존재합니다. 생성을 건너뜁니다.");
+            return;
+        }
+
+        NotificationSettings settings = NotificationSettings.builder()
+                .member(member)
+                .isPushAgreed(true)
+                .fcmToken("")
+                .build();
+        notificationRepository.save(settings);
     }
 }
