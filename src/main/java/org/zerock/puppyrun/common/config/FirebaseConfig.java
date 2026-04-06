@@ -8,12 +8,14 @@ import java.io.InputStream;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.zerock.puppyrun.common.exception.BusinessException;
 import org.zerock.puppyrun.common.exception.ErrorCode;
 
 @Slf4j
 @Configuration
+@Profile("!test")
 public class FirebaseConfig {
 
     @Value("${firebase.account-path}")
