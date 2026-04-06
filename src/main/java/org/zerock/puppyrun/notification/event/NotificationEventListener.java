@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.zerock.puppyrun.common.exception.BusinessException;
+import org.zerock.puppyrun.common.exception.ErrorCode;
 import org.zerock.puppyrun.notification.service.DTO.PushTask;
 
 @Slf4j
@@ -80,6 +82,15 @@ public class NotificationEventListener {
      */
     @Async("notificationTaskExecutor")
     public void sendTopicMessage(PushTask pushTask) {
+        if (pushTask == null) {
+            log.info("푸시 알림이 비어있습니다.");
+            return;
+        }
+
+        if (pushTask.topic() == null) {
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "토픽 정보가 비어있습니다.");
+        }
+
         log.info("토픽 [{}] 대상 푸시 알림 비동기 발송을 시작합니다.", pushTask.topic());
 
         // 여러 개의 토큰 리스트 대신, 단 한 번의 호출로 구글 서버에 토픽 발송을 위임
