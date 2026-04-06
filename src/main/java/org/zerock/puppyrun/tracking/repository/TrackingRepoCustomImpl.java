@@ -1,6 +1,7 @@
 package org.zerock.puppyrun.tracking.repository;
 
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.DateTemplate;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -11,6 +12,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 import org.zerock.puppyrun.tracking.entity.Tracking;
@@ -117,4 +119,24 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
         }).toList();
 
     }
+
+    @Override
+    public List<DailyMemberStat> findMemberIdsByDate(List<UUID> memberIds, LocalDate startDate, LocalDate endDate) {
+        return queryFactory
+                .select(Projections.constructor(DailyMemberStat.class,
+                        tracking.member.id,
+                        tracking.id.count().intValue(),
+                        tracking.distance.sum().coalesce(0),
+                        tracking.duration.sum().coalesce(0)
+                ))
+                .from(tracking)
+                .where(
+                        tracking.startedAt.goe(startDate.atStartOfDay()),
+                        tracking.startedAt.lt(endDate.plusDays(1).atStartOfDay()),
+                        tracking.member.id.in(memberIds)
+                )
+                .groupBy(tracking.member.id)
+                .fetch();
+    }
+
 }
