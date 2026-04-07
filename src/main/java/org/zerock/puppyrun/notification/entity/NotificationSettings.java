@@ -12,9 +12,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,15 +34,15 @@ public class NotificationSettings extends BaseTimeEntity {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
+    @JoinColumn(name = "member_id", nullable = false, unique = true)
     private Member member;
 
     // 푸시 알림을 보낼 기기의 고유 주소
-    @Column(name = "fcm_token")
+    @Column(name = "fcm_token", nullable = false)
     private String fcmToken;
 
     // 알림 수신 동의 여부 (푸시 알림은 법적으로 동의가 필수)
-    @Column(name = "is_push_agreed")
+    @Column(name = "is_push_agreed", nullable = false)
     private boolean isPushAgreed;
 
 
@@ -51,8 +53,8 @@ public class NotificationSettings extends BaseTimeEntity {
             joinColumns = @JoinColumn(name = "settings_id")
     )
     @Enumerated(EnumType.STRING)
-    @Column(name = "notification_type")
-    private Set<NotificationType> optOutTypes = new HashSet<>();
+    @Column(name = "notification_type", length = 50)
+    private Set<NotificationType> optOutTypes;
 
 
     @Builder
@@ -60,10 +62,11 @@ public class NotificationSettings extends BaseTimeEntity {
         this.member = member;
         this.fcmToken = fcmToken;
         this.isPushAgreed = isPushAgreed; // 할당
+        this.optOutTypes = new HashSet<>();
     }
 
 
-    public void Update(String fcmToken, boolean isPushAgreed) {
+    public void update(String fcmToken, boolean isPushAgreed) {
         this.fcmToken = fcmToken;
         this.isPushAgreed = isPushAgreed; // 할당
     }
@@ -76,6 +79,12 @@ public class NotificationSettings extends BaseTimeEntity {
     // 알림 다시 켜기(ON - 차단 목록에서 제거)
     public void enableType(NotificationType type) {
         this.optOutTypes.remove(type);
+    }
+
+    public Set<NotificationType> getAllowedTypes() {
+        return Arrays.stream(NotificationType.values())
+                .filter(type -> !optOutTypes.contains(type))
+                .collect(Collectors.toUnmodifiableSet());
     }
 
 }

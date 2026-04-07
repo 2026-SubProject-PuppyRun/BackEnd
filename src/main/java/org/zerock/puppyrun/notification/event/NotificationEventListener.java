@@ -8,11 +8,13 @@ import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.SendResponse;
+import com.google.firebase.messaging.TopicManagementResponse;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
+import java.util.concurrent.Executor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.zerock.puppyrun.common.exception.BusinessException;
 import org.zerock.puppyrun.common.exception.ErrorCode;
@@ -20,17 +22,21 @@ import org.zerock.puppyrun.notification.service.DTO.PushTask;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class NotificationEventListener {
     // 구글이 허용하는 한 번의 최대 전송량
     private static final int MAX_FCM_BATCH_SIZE = 500;
+
+    private final Executor executor;
+
+    public NotificationEventListener(@Qualifier("notificationTaskExecutor") Executor executor) {
+        this.executor = executor;
+    }
 
     /**
      * FCM 메시지를 비동기적으로 일괄 발송합니다. 이 메서드는 호출 즉시 반환되며, 실제 전송은 백그라운드 스레드에서 처리됩니다.
      *
      * @param pushTasks 내용과 토큰이 각각 세팅된 Message 리스트
      */
-    @Async("notificationTaskExecutor") // 이 메서드 자체를 별도의 스레드에서 실행하도록 지정
     public void sendMessagesInBulk(List<PushTask> pushTasks) {
         if (pushTasks == null || pushTasks.isEmpty()) {
             log.info("푸시 알림이 비어있습니다.");
@@ -69,7 +75,7 @@ public class NotificationEventListener {
                 public void onFailure(Throwable t) {
                     log.error("알림 묶음 전송 중 오류 발생", t);
                 }
-            });
+            }, executor);
 
 
         }
@@ -80,7 +86,6 @@ public class NotificationEventListener {
      *
      * @param pushTask 발송할 메시지
      */
-    @Async("notificationTaskExecutor")
     public void sendTopicMessage(PushTask pushTask) {
         if (pushTask == null) {
             log.info("푸시 알림이 비어있습니다.");
@@ -110,7 +115,43 @@ public class NotificationEventListener {
             public void onFailure(Throwable t) {
                 log.error("토픽 [{}] 알림 전송 중 오류 발생", pushTask.topic(), t);
             }
-        });
+        }, executor);
+    }
+
+
+    /**
+     * 특정 FCM 토큰을 특정 토픽에 구독 또는 구독 취소합니다.
+     *
+     * @param fcmToken    대상 FCM 토큰
+     * @param typeCode    대상 토픽 이름 (예: SYS_001)
+     * @param isSubscribe 구독 여부 (true: 구독, false: 구독 취소)
+     */
+    public void manageTopicSubscription(String fcmToken, String typeCode, boolean isSubscribe) {
+        ApiFuture<TopicManagementResponse> future;
+
+        if (isSubscribe) {
+            future = FirebaseMessaging.getInstance().subscribeToTopicAsync(
+                    Collections.singletonList(fcmToken), typeCode
+            );
+            log.info("FCM 토픽[{}] 구독 요청 완료 (토큰: {})", typeCode, fcmToken);
+        } else {
+            future = FirebaseMessaging.getInstance().unsubscribeFromTopicAsync(
+                    Collections.singletonList(fcmToken), typeCode
+            );
+            log.info("FCM 토픽[{}] 구독 취소 요청 완료 (토큰: {})", typeCode, fcmToken);
+        }
+
+        ApiFutures.addCallback(future, new ApiFutureCallback<TopicManagementResponse>() {
+            @Override
+            public void onSuccess(TopicManagementResponse result) {
+                log.info("FCM 토픽[{}] 처리 완료", typeCode);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                log.error("FCM 토픽[{}] 처리 실패: {}", typeCode, t.getMessage());
+            }
+        }, executor);
     }
 
 
