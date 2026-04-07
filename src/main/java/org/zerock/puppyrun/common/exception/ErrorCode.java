@@ -15,7 +15,7 @@ public enum ErrorCode {
     // 클라이언트 에러
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "CLIENT_001", "잘못된 요청입니다."),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "CLIENT_002", "요청한 값을 찾을 수 없습니다."),
-
+    EXISTS_RESOURCE(HttpStatus.CONFLICT, "CLIENT_003", "이미 존재하는 값입니다."),
 
     // 인증/인가 관련 에러
     USER_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH_001", "로그인 정보가 유효하지 않습니다."),
