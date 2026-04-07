@@ -34,6 +34,9 @@ public enum ErrorCode {
     // 날씨 에러
     INVALID_WEATHER(HttpStatus.INTERNAL_SERVER_ERROR, "WEATHER_001", "잘못된 날씨입니다."),
 
+    // 알림 설정 에러
+    NOT_EXISTS_FCM_TOKEN(HttpStatus.NOT_FOUND, "NOTI_001", "FCM 토큰이 존재하지 않습니다."),
+
     // 유저 에러
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_001", "유저를 찾을 수 없습니다."),
     EXISTS_USER(HttpStatus.CONFLICT, "USER_002", "이미 존재하는 유저입니다.");
