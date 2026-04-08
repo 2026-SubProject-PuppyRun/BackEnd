@@ -1,12 +1,6 @@
 package org.zerock.puppyrun.notification.service;
 
-import com.google.api.core.ApiFuture;
-import com.google.api.core.ApiFutureCallback;
-import com.google.api.core.ApiFutures;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.TopicManagementResponse;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -123,6 +117,13 @@ public class NotificationCommandService {
                 .isPushAgreed(request.isPushAgreed())
                 .build();
         notificationRepository.save(settings);
+
+        // 동의할 경우 모든 알림 on
+        if (request.isPushAgreed()) {
+            Arrays.stream(NotificationType.values())
+                    .forEach(type -> manageTopicSubscription(settings, type, true));
+        }
+
     }
 
     public void updateToken(UserPrincipal userPrincipal, FcmTokenUpdateRequest request) {
