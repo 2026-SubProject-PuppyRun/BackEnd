@@ -43,7 +43,7 @@ public class NotificationProcessor {
             }
 
             // 메세지를 다르게 만드는 분기
-            List<PushTask> pushTasks = sender.setPushTasks(type, memberSettings);
+            List<PushTask> pushTasks = sender.setPushTasks(memberSettings);
 
             // 검색된 멤버 알림 처리
             notificationEventListener.sendMessagesInBulk(pushTasks);

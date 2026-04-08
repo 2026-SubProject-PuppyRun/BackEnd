@@ -1,6 +1,6 @@
 package org.zerock.puppyrun.notification.repository;
 
-import com.querydsl.core.types.Projections;
+import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,12 +22,13 @@ public class NotificationRepoCustomImpl implements NotificationRepoCustom {
     @Override
     public List<EnabledNotifications> findNextMembers(LocalDateTime lastCreatedAt, Pageable pageable,
                                                       NotificationType type) {
-        return queryFactory
-                .select(Projections.constructor(EnabledNotifications.class, // 추후 설정이 늘어날 수 있어 DTO로 받음
+
+        List<Tuple> result = queryFactory
+                .select(
                         notificationSettings.member.id,
                         notificationSettings.fcmToken,
                         member.createdAt
-                ))
+                )
                 .from(notificationSettings)
                 .join(notificationSettings.member, member) // JOIN
                 .where(
@@ -42,5 +43,15 @@ public class NotificationRepoCustomImpl implements NotificationRepoCustom {
                 .orderBy(member.createdAt.asc())
                 .limit(pageable.getPageSize()) // Pageable에서 지정한 크기 만큼만 조회
                 .fetch();
+
+        return result.stream().map(tuple ->
+                EnabledNotifications.builder()  // 추후 설정이 늘어날 수 있어 DTO로 생성
+                        .memberId(tuple.get(member.id))
+                        .fcmToken(tuple.get(notificationSettings.fcmToken))
+                        .createdAt(tuple.get(member.createdAt))
+                        .type(type)
+                        .build()
+        ).toList();
+
     }
 }
