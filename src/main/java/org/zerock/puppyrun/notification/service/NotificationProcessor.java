@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.notification.entity.NotificationType;
 import org.zerock.puppyrun.notification.service.DTO.PushTask;
-import org.zerock.puppyrun.notification.event.NotificationEventListener;
+import org.zerock.puppyrun.notification.client.NotificationEventClient;
 import org.zerock.puppyrun.notification.repository.DTO.EnabledNotifications;
 import org.zerock.puppyrun.notification.repository.NotificationRepository;
 
@@ -22,7 +22,7 @@ import org.zerock.puppyrun.notification.repository.NotificationRepository;
 public class NotificationProcessor {
     // 의존성 주입
     private final NotificationRepository notificationRepository;
-    private final NotificationEventListener notificationEventListener;
+    private final NotificationEventClient notificationEventClient;
 
     private static final int CHUNK_SIZE = 1000;
 
@@ -48,7 +48,7 @@ public class NotificationProcessor {
             List<PushTask> pushTasks = sender.setPushTasks(memberSettings);
 
             // 검색된 멤버 알림 처리
-            notificationEventListener.sendMessagesInBulk(pushTasks);
+            notificationEventClient.sendMessagesInBulk(pushTasks);
 
             // 맨 마지막 사람의 가입일자를 다음 기준점(Cursor)으로 업데이트
             lastCreatedAt = memberSettings.getLast().createdAt();
@@ -68,7 +68,7 @@ public class NotificationProcessor {
                 .topic(type.getCode())
                 .build();
 
-        notificationEventListener.sendTopicMessage(pushTask);
+        notificationEventClient.sendTopicMessage(pushTask);
 
     }
 }

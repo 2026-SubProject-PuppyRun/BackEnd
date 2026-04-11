@@ -1,4 +1,4 @@
-package org.zerock.puppyrun.notification.event;
+package org.zerock.puppyrun.notification.client;
 
 
 import com.google.api.core.ApiFuture;
@@ -25,15 +25,15 @@ import org.zerock.puppyrun.notification.repository.NotificationRepository;
 
 @Slf4j
 @Service
-public class NotificationEventListener {
+public class NotificationEventClient {
     // 구글이 허용하는 한 번의 최대 전송량
     private static final int MAX_FCM_BATCH_SIZE = 500;
 
     private final Executor executor;
     private final NotificationRepository notificationRepository;
 
-    public NotificationEventListener(@Qualifier("notificationTaskExecutor") Executor executor,
-                                     NotificationRepository notificationRepository) {
+    public NotificationEventClient(@Qualifier("notificationTaskExecutor") Executor executor,
+                                   NotificationRepository notificationRepository) {
         this.executor = executor;
         this.notificationRepository = notificationRepository;
     }

@@ -12,13 +12,13 @@ import org.zerock.puppyrun.common.exception.ExistsResourceException;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.exception.UserNotFoundException;
 import org.zerock.puppyrun.member.repository.MemberRepository;
+import org.zerock.puppyrun.notification.client.NotificationEventClient;
 import org.zerock.puppyrun.notification.controller.request.FcmTokenUpdateRequest;
 import org.zerock.puppyrun.notification.controller.request.NotificationAgreeRequest;
 import org.zerock.puppyrun.notification.controller.request.NotificationGlobalToggleRequest;
 import org.zerock.puppyrun.notification.controller.request.NotificationToggleRequest;
 import org.zerock.puppyrun.notification.entity.NotificationSettings;
 import org.zerock.puppyrun.notification.entity.NotificationType;
-import org.zerock.puppyrun.notification.event.NotificationEventListener;
 import org.zerock.puppyrun.notification.execption.FCMNotFoundException;
 import org.zerock.puppyrun.notification.repository.NotificationRepository;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
@@ -30,7 +30,7 @@ import org.zerock.puppyrun.common.exception.InvalidValueException;
 public class NotificationCommandService {
     private final NotificationRepository notificationRepository;
     private final MemberRepository memberRepository;
-    private final NotificationEventListener notificationEventListener;
+    private final NotificationEventClient notificationEventClient;
 
     /**
      * 특정 알림 타입의 수신 여부를 개별적으로 켜거나 끕니다. 알림 상태 변경 시, 해당 알림에 매핑된 FCM 토픽 구독 상태도 함께 동기화됩니다.
@@ -111,7 +111,7 @@ public class NotificationCommandService {
             throw new ExistsResourceException("이미 알림 설정이 존재합니다.");
         }
         // 토큰 유효성 검사 진행
-        notificationEventListener.validateFcmToken(request.fcmToken());
+        notificationEventClient.validateFcmToken(request.fcmToken());
 
         Member member = memberRepository.findByIdOrThrow(userPrincipal.id());
 
@@ -135,7 +135,7 @@ public class NotificationCommandService {
                 .orElseThrow(() -> new UserNotFoundException("해당 유저의 알림 설정을 찾을 수 없습니다."));
 
         // 토큰 유효성 검사 진행
-        notificationEventListener.validateFcmToken(request.fcmToken());
+        notificationEventClient.validateFcmToken(request.fcmToken());
         String currentToken = settings.getFcmToken();
         String newToken = request.fcmToken();
         // 값이 같고 이미 활성화 상태라면 아무것도 하지 않음
@@ -182,6 +182,6 @@ public class NotificationCommandService {
      * @param isSubscribe 구독 여부 (true: 구독 요청, false: 구독 취소 요청)
      */
     private void manageTopicSubscription(String fcmToken, NotificationType type, boolean isSubscribe) {
-        notificationEventListener.manageTopicSubscription(fcmToken, type.getCode(), isSubscribe);
+        notificationEventClient.manageTopicSubscription(fcmToken, type.getCode(), isSubscribe);
     }
 }
