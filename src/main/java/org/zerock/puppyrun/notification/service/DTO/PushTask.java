@@ -1,6 +1,7 @@
 package org.zerock.puppyrun.notification.service.DTO;
 
 import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.AndroidNotification;
 import com.google.firebase.messaging.ApnsConfig;
 import com.google.firebase.messaging.Aps;
 import com.google.firebase.messaging.Message;
@@ -56,10 +57,15 @@ public record PushTask(
                         .setBody(body)
                         .build())
                 .putData("type", type.name())
+                .putData("title", title)
+                .putData("body", body)
 
                 // (Android) 설정
                 .setAndroidConfig(AndroidConfig.builder()
                         .setPriority(androidPriority)
+//                        .setNotification(AndroidNotification.builder()
+//                                .setChannelId("puppyrun")
+//                                .build())
                         .build())
 
                 // (iOS - APNs) 설정
