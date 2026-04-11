@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.notification.entity.NotificationType;
 import org.zerock.puppyrun.notification.service.DTO.PushTask;
 import org.zerock.puppyrun.notification.event.NotificationEventListener;
@@ -17,6 +18,7 @@ import org.zerock.puppyrun.notification.repository.NotificationRepository;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class NotificationProcessor {
     // 의존성 주입
     private final NotificationRepository notificationRepository;
