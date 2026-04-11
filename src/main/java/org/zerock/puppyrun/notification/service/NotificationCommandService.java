@@ -1,12 +1,6 @@
 package org.zerock.puppyrun.notification.service;
 
-import com.google.api.core.ApiFuture;
-import com.google.api.core.ApiFutureCallback;
-import com.google.api.core.ApiFutures;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.TopicManagementResponse;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,12 +12,13 @@ import org.zerock.puppyrun.common.exception.ExistsResourceException;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.exception.UserNotFoundException;
 import org.zerock.puppyrun.member.repository.MemberRepository;
+import org.zerock.puppyrun.notification.client.NotificationEventClient;
 import org.zerock.puppyrun.notification.controller.request.FcmTokenUpdateRequest;
 import org.zerock.puppyrun.notification.controller.request.NotificationAgreeRequest;
+import org.zerock.puppyrun.notification.controller.request.NotificationGlobalToggleRequest;
 import org.zerock.puppyrun.notification.controller.request.NotificationToggleRequest;
 import org.zerock.puppyrun.notification.entity.NotificationSettings;
 import org.zerock.puppyrun.notification.entity.NotificationType;
-import org.zerock.puppyrun.notification.event.NotificationEventListener;
 import org.zerock.puppyrun.notification.execption.FCMNotFoundException;
 import org.zerock.puppyrun.notification.repository.NotificationRepository;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
@@ -35,7 +30,7 @@ import org.zerock.puppyrun.common.exception.InvalidValueException;
 public class NotificationCommandService {
     private final NotificationRepository notificationRepository;
     private final MemberRepository memberRepository;
-    private final NotificationEventListener notificationEventListener;
+    private final NotificationEventClient notificationEventClient;
 
     /**
      * 특정 알림 타입의 수신 여부를 개별적으로 켜거나 끕니다. 알림 상태 변경 시, 해당 알림에 매핑된 FCM 토픽 구독 상태도 함께 동기화됩니다.
@@ -61,17 +56,17 @@ public class NotificationCommandService {
             throw new InvalidValueException("잘못된 알림 코드입니다: " + typeCode);
         }
 
-        // 현재 유저가 개별적으로 허용해둔 알림 타입들만 추출
+        // 현재 유저가 개별적으로 미허용 해둔 알림 타입들만 추출
         Set<NotificationType> optOuts = setting.getOptOutTypes();
 
         if (isEnable && optOuts.contains(type)) {
             // 알림 켜기
             setting.enableType(type);
-            manageTopicSubscription(setting, type, true);
+            manageTopicSubscription(setting.getFcmToken(), type, true);
         } else if (!isEnable && !optOuts.contains(type)) {
             // 알림 끄기
             setting.disableType(type);
-            manageTopicSubscription(setting, type, false);
+            manageTopicSubscription(setting.getFcmToken(), type, false);
         } else {
             log.info("알림 상태가 바꾸려는 상태와 동일합니다.");
         }
@@ -83,7 +78,7 @@ public class NotificationCommandService {
      * @param userPrincipal 현재 인증된 사용자의 정보
      * @param request       전체 알림 수신 동의 활성화 여부 (true: 전체 허용, false: 전체 차단)
      */
-    public void toggleGlobal(UserPrincipal userPrincipal, NotificationAgreeRequest request) {
+    public void toggleGlobal(UserPrincipal userPrincipal, NotificationGlobalToggleRequest request) {
         NotificationSettings setting = findSetting(userPrincipal);
         boolean isEnable = request.isPushAgreed();
 
@@ -94,14 +89,14 @@ public class NotificationCommandService {
         }
 
         // DB 상태 업데이트
-        setting.update(request.fcmToken(), isEnable);
+        setting.updatePushAgreed(isEnable);
 
         // 현재 유저가 개별적으로 허용해둔 알림 타입들만 추출
         Set<NotificationType> allowedTypes = setting.getAllowedTypes();
 
         // 토픽 구독 상태 동기화
         allowedTypes.forEach(type ->
-                manageTopicSubscription(setting, type, isEnable));
+                manageTopicSubscription(setting.getFcmToken(), type, isEnable));
 
     }
 
@@ -115,6 +110,9 @@ public class NotificationCommandService {
         if (notificationRepository.findByMemberId(userPrincipal.id()).isPresent()) {
             throw new ExistsResourceException("이미 알림 설정이 존재합니다.");
         }
+        // 토큰 유효성 검사 진행
+        notificationEventClient.validateFcmToken(request.fcmToken());
+
         Member member = memberRepository.findByIdOrThrow(userPrincipal.id());
 
         NotificationSettings settings = NotificationSettings.builder()
@@ -123,13 +121,38 @@ public class NotificationCommandService {
                 .isPushAgreed(request.isPushAgreed())
                 .build();
         notificationRepository.save(settings);
+
+        // 동의할 경우 모든 알림 on
+        if (request.isPushAgreed()) {
+            Arrays.stream(NotificationType.values())
+                    .forEach(type -> manageTopicSubscription(request.fcmToken(), type, true));
+        }
+
     }
 
     public void updateToken(UserPrincipal userPrincipal, FcmTokenUpdateRequest request) {
         NotificationSettings settings = notificationRepository.findByMemberId(userPrincipal.id())
                 .orElseThrow(() -> new UserNotFoundException("해당 유저의 알림 설정을 찾을 수 없습니다."));
 
-        settings.update(request.fcmToken(), settings.isPushAgreed());
+        // 토큰 유효성 검사 진행
+        notificationEventClient.validateFcmToken(request.fcmToken());
+        String currentToken = settings.getFcmToken();
+        String newToken = request.fcmToken();
+        // 값이 같고 이미 활성화 상태라면 아무것도 하지 않음
+        if (newToken.equals(currentToken) && settings.isActive()) {
+            log.info("기존과 동일한 토큰이며 활성 상태이므로 갱신을 생략합니다. (memberId: {})", userPrincipal.id());
+            return;
+        }
+        // 기존 토큰과 다르거나, 현재 비활성화(발송 실패 등) 상태일 때만 업데이트 수행
+        log.info("FCM 토큰을 갱신하고 활성화 상태로 변경합니다. (memberId: {})", userPrincipal.id());
+        settings.updateToken(newToken);
+        Set<NotificationType> allowedTypes = settings.getAllowedTypes();
+        // 기존 토큰 토픽 제거
+        allowedTypes.forEach(type -> manageTopicSubscription(currentToken, type, false));
+        // 토픽 재구독 처리
+        if (settings.isPushAgreed()) {
+            allowedTypes.forEach(type -> manageTopicSubscription(newToken, type, true));
+        }
     }
 
     /**
@@ -154,11 +177,11 @@ public class NotificationCommandService {
     /**
      * 구글 Firebase 서버에 특정 토픽의 구독 또는 구독 취소를 비동기적으로 요청합니다.
      *
-     * @param setting     사용자의 알림 설정 엔티티 (FCM 토큰 추출 용도)
+     * @param fcmToken    사용자의 알림 FCM 토큰
      * @param type        구독 또는 취소할 대상 알림 타입
      * @param isSubscribe 구독 여부 (true: 구독 요청, false: 구독 취소 요청)
      */
-    private void manageTopicSubscription(NotificationSettings setting, NotificationType type, boolean isSubscribe) {
-        notificationEventListener.manageTopicSubscription(setting.getFcmToken(), type.getCode(), isSubscribe);
+    private void manageTopicSubscription(String fcmToken, NotificationType type, boolean isSubscribe) {
+        notificationEventClient.manageTopicSubscription(fcmToken, type.getCode(), isSubscribe);
     }
 }

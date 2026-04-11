@@ -1,6 +1,7 @@
 package org.zerock.puppyrun.notification.repository;
 
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,25 +23,28 @@ public class NotificationRepoCustomImpl implements NotificationRepoCustom {
     @Override
     public List<EnabledNotifications> findNextMembers(LocalDateTime lastCreatedAt, Pageable pageable,
                                                       NotificationType type) {
+
         return queryFactory
-                .select(Projections.constructor(EnabledNotifications.class, // 추후 설정이 늘어날 수 있어 DTO로 받음
+                .select(Projections.constructor(EnabledNotifications.class,
                         notificationSettings.member.id,
+                        Expressions.constant(type),
                         notificationSettings.fcmToken,
                         member.createdAt
                 ))
                 .from(notificationSettings)
-                .join(notificationSettings.member, member) // JOIN
+                .join(notificationSettings.member, member)
                 .where(
                         member.status.eq(Status.ACTIVE),
                         notificationSettings.isPushAgreed.eq(true),
-
+                        notificationSettings.isActive.eq(true),
                         notificationSettings.optOutTypes.contains(type).not(),
 
                         // 처음 조회할 때는 lastCreatedAt이 null일 수 있으므로 동적 쿼리 처리
                         lastCreatedAt != null ? member.createdAt.gt(lastCreatedAt) : null
                 )
                 .orderBy(member.createdAt.asc())
-                .limit(pageable.getPageSize()) // Pageable에서 지정한 크기 만큼만 조회
+                .limit(pageable.getPageSize())
                 .fetch();
+
     }
 }

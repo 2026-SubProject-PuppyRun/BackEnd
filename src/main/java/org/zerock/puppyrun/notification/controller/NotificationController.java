@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.notification.controller.request.FcmTokenUpdateRequest;
 import org.zerock.puppyrun.notification.controller.request.NotificationAgreeRequest;
+import org.zerock.puppyrun.notification.controller.request.NotificationGlobalToggleRequest;
 import org.zerock.puppyrun.notification.controller.request.NotificationToggleRequest;
 import org.zerock.puppyrun.notification.controller.response.NotificationOptionsResponse;
 import org.zerock.puppyrun.notification.service.NotificationCommandService;
@@ -34,7 +35,7 @@ public class NotificationController {
     @PatchMapping("/options/global")
     public ResponseEntity<Void> toggleGlobal(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @Valid @RequestBody NotificationAgreeRequest request
+            @Valid @RequestBody NotificationGlobalToggleRequest request
     ) {
         notificationCommandService.toggleGlobal(userPrincipal, request);
         return ResponseEntity.ok().build();

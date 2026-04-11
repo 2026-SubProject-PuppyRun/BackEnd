@@ -1,4 +1,4 @@
-package org.zerock.puppyrun.notification.event;
+package org.zerock.puppyrun.notification.client;
 
 
 import com.google.api.core.ApiFuture;
@@ -6,6 +6,7 @@ import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.SendResponse;
 import com.google.firebase.messaging.TopicManagementResponse;
@@ -18,18 +19,23 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.zerock.puppyrun.common.exception.BusinessException;
 import org.zerock.puppyrun.common.exception.ErrorCode;
+import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.notification.service.DTO.PushTask;
+import org.zerock.puppyrun.notification.repository.NotificationRepository;
 
 @Slf4j
 @Service
-public class NotificationEventListener {
+public class NotificationEventClient {
     // 구글이 허용하는 한 번의 최대 전송량
     private static final int MAX_FCM_BATCH_SIZE = 500;
 
     private final Executor executor;
+    private final NotificationRepository notificationRepository;
 
-    public NotificationEventListener(@Qualifier("notificationTaskExecutor") Executor executor) {
+    public NotificationEventClient(@Qualifier("notificationTaskExecutor") Executor executor,
+                                   NotificationRepository notificationRepository) {
         this.executor = executor;
+        this.notificationRepository = notificationRepository;
     }
 
     /**
@@ -156,6 +162,31 @@ public class NotificationEventListener {
 
 
     /**
+     * FCM 토큰 유효성 검증
+     *
+     * @param fcmToken 대상 FCM 토큰
+     */
+    public void validateFcmToken(String fcmToken) {
+        try {
+            Message message = Message.builder()
+                    .setToken(fcmToken)
+                    .build();
+
+            // true로 설정하면 사용자에게 실제 알림이 가지 않고 유효성만 검사 진행
+            FirebaseMessaging.getInstance().send(message, true);
+            log.info("FCM 토큰 유효성 검증 통과");
+
+        } catch (FirebaseMessagingException e) {
+            log.warn("유효하지 않거나 만료된 FCM 토큰입니다. 이유: {}", e.getMessage());
+            throw new InvalidValueException("유효하지 않은 FCM 토큰입니다.");
+        } catch (IllegalArgumentException e) {
+            log.warn("잘못된 형식의 FCM 토큰입니다. 이유: {}", e.getMessage());
+            throw new InvalidValueException("잘못된 형식의 FCM 토큰입니다.");
+        }
+    }
+
+
+    /**
      * 실패한 토큰들을 걸러내고 DB에서 비활성화 처리하는 후처리 메서드
      */
     private void handleFailedTokens(List<PushTask> sentPushTasks, BatchResponse batchResponse) {
@@ -166,7 +197,7 @@ public class NotificationEventListener {
             if (!responses.get(i).isSuccessful()) {
                 // 어떤 토큰이 실패했는지 찾아냄 (보낸 리스트와 응답 리스트의 순서가 일치)
                 String failedToken = sentPushTasks.get(i).fcmToken();
-                log.warn("발송 실패한 토큰 발견. 삭제 대상: {}, 원인: {}", failedToken,
+                log.warn("발송 실패한 토큰 발견. 비활성화 대상: {}, 원인: {}", failedToken,
                         responses.get(i).getException().getMessage());
                 deadTokens.add(failedToken);
 
@@ -174,8 +205,13 @@ public class NotificationEventListener {
         }
 
         if (!deadTokens.isEmpty()) {
-            log.info("{}개의 만료된 토큰을 데이터베이스에서 비활성화 처리해야 합니다.", deadTokens.size());
-            // TODO: deadTokens 리스트를 MemberRepository로 넘겨서 DB의 fcm_token을 NULL로 업데이트하는 로직을 구현 예정
+            log.info("{}개의 만료된 토큰을 데이터베이스에서 비활성화 처리합니다.", deadTokens.size());
+            try {
+                notificationRepository.deactivateTokensByFcmToken(deadTokens);
+                log.info("토큰 비활성화 완료");
+            } catch (Exception e) {
+                log.error("토큰 비활성화 처리 중 오류 발생", e);
+            }
         }
     }
 

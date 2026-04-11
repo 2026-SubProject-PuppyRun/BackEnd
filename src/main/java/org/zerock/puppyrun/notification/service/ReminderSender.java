@@ -23,7 +23,7 @@ public class ReminderSender implements Sender {
     private final TrackingRepository trackingRepository;
 
     @Override
-    public List<PushTask> setPushTasks(NotificationType type, List<EnabledNotifications> memberSettings) {
+    public List<PushTask> setPushTasks(List<EnabledNotifications> memberSettings) {
         // 오늘 날짜
         LocalDate today = LocalDate.now();
 
@@ -37,7 +37,7 @@ public class ReminderSender implements Sender {
         return memberSettings.stream()
                 .map(member -> {
                     DailyMemberStat stat = statMap.get(member.memberId());
-                    return setTask(type, member.fcmToken(), stat);
+                    return setTask(member.type(), member.fcmToken(), stat);
                 })
                 .toList();
     }

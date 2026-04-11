@@ -45,6 +45,9 @@ public class NotificationSettings extends BaseTimeEntity {
     @Column(name = "is_push_agreed", nullable = false)
     private boolean isPushAgreed;
 
+    // 토큰의 활성 상태 (전송 실패 시 비활성화됨)
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive;
 
     // 유저가 수신 거부(OFF)한 알림 타입만 모아두는 리스트
     @ElementCollection(fetch = FetchType.LAZY)
@@ -62,13 +65,18 @@ public class NotificationSettings extends BaseTimeEntity {
         this.member = member;
         this.fcmToken = fcmToken;
         this.isPushAgreed = isPushAgreed; // 할당
+        this.isActive = isPushAgreed; // 수신 동의 시 자동으로 활성화
         this.optOutTypes = new HashSet<>();
     }
 
 
-    public void update(String fcmToken, boolean isPushAgreed) {
+    public void updateToken(String fcmToken) {
         this.fcmToken = fcmToken;
-        this.isPushAgreed = isPushAgreed; // 할당
+        this.isActive = true; // 재등록 시 활성화
+    }
+
+    public void updatePushAgreed(boolean isPushAgreed) {
+        this.isPushAgreed = isPushAgreed;
     }
 
     // 알림 차단(OFF)
