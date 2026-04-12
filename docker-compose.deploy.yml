@@ -1,0 +1,40 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: puppyrun-mysql
+    restart: "no"
+    environment:
+      MYSQL_DATABASE: mydatabase
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: verysecret
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    image: 745103236110.dkr.ecr.ap-northeast-2.amazonaws.com/puppyrun-backend:latest   
+    container_name: puppyrun-backend
+    restart: "no" 
+    depends_on:
+      - mysql
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      JWT_SECRET: abcdefghijklmnopqrstuvwxyz123456
+      discord_webhooks_url: dummy
+      DISCORD_URL: dummy
+      LOG_PATH: /tmp
+      LOG_FILE_NAME: puppyrun
+      DATA_API_KEY: dummy
+      DATA_FORECEST_URL: dummy
+      FCM_ACCOUNT_PATH: firebase-service-account.json
+      
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mydatabase?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: myuser
+      SPRING_DATASOURCE_PASSWORD: secret
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+volumes:
+  mysql_data:
