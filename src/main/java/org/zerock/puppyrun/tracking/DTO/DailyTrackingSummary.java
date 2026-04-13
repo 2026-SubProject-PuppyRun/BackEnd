@@ -9,6 +9,7 @@ public record DailyTrackingSummary(
         LocalDate date,
         Integer trackingCount,
         Integer distance,
-        Integer duration
+        Integer duration,
+        Integer restDuration
 ) {
 }
