@@ -3,6 +3,8 @@ package org.zerock.puppyrun.pet.repository;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.common.exception.UserForbiddenException;
@@ -30,4 +32,6 @@ public interface PetRepository extends JpaRepository<Pet, UUID> {
 
     List<Pet> findAllByMemberId(UUID memberId);
 
+    @Query("SELECT p.id FROM Pet p WHERE p.member.id = :memberId")
+    List<UUID> findPetIdsByMemberId(@Param("memberId") UUID memberId);
 }
