@@ -37,26 +37,17 @@ public class TrackingStatistics {
     /**
      * 주간 산책 차트 데이터를 조회합니다. (최근 7일)
      *
-     * @param memberId   member Id
-     * @param targetDate 요청할 date
+     * @param memberId  member Id
+     * @param startDate 요청할 시작 date
+     * @param endDate   요청할 끝날 date
      * @return WeeklyActivityChart
      */
-    public WeeklyActivityChart getWeeklyChart(UUID memberId, LocalDate targetDate) {
-        LocalDate startDate = targetDate.minusDays(6);
+    public WeeklyActivityChart getWeeklyChart(UUID memberId, LocalDate startDate, LocalDate endDate) {
 
         List<DailyTrackingSummary> summaryList = trackingRepository.getTrackingSummaryDateAsc(memberId, startDate,
-                targetDate);
+                endDate);
 
-        List<ActivityChart> activityChartList = summaryList.stream()
-                .map(summary -> ActivityChart.builder()
-                        .date(summary.date())
-                        .label(summary.date().getDayOfWeek().name())
-                        .distance(summary.distance())
-                        .duration(summary.duration())
-                        .build())
-                .toList();
-
-        return new WeeklyActivityChart(startDate, targetDate, activityChartList);
+        return WeeklyActivityChart.of(startDate, endDate, summaryList);
     }
 
     /**
