@@ -38,6 +38,7 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
         var distanceSumPath = tracking.distance.sum().coalesce(0);
         var durationSumPath = tracking.duration.sum().coalesce(0);
         var trackingCountPath = tracking.id.count();
+        var restDurationSumPath = tracking.restDuration.sum().coalesce(0);
 
         // Tracking에서 memberId로 필터링 (startDate 00:00:00 ~ endDate 다음날 00:00:00 미만)
         List<Tuple> results = queryFactory
@@ -45,7 +46,8 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
                         datePath,
                         trackingCountPath,
                         distanceSumPath,
-                        durationSumPath
+                        durationSumPath,
+                        restDurationSumPath
                 )
                 .from(tracking)
                 .where(
@@ -75,12 +77,14 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
                     Integer count = tuple != null ? tuple.get(trackingCountPath).intValue() : 0;
                     Integer distance = tuple != null ? tuple.get(distanceSumPath) : 0;
                     Integer duration = tuple != null ? tuple.get(durationSumPath) : 0;
+                    Integer restDuration = tuple != null ? tuple.get(restDurationSumPath) : 0;
 
                     return DailyTrackingSummary.builder()
                             .date(currentDate)
                             .trackingCount(count)
                             .distance(distance)
                             .duration(duration)
+                            .restDuration(restDuration)
                             .build();
                 })
                 .toList();
