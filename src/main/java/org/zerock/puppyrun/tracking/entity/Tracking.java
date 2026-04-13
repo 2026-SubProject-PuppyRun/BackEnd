@@ -63,6 +63,9 @@ public class Tracking extends BaseTimeEntity {
     @Column(nullable = false)
     private String averagePace;      // 평균 속도
 
+    @Column(nullable = false)
+    private Integer restDuration;    // 쉬는 시간
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Visibility visibility;
@@ -83,7 +86,7 @@ public class Tracking extends BaseTimeEntity {
     @Builder
     public Tracking(Member member, LocalDateTime startedAt, LocalDateTime endedAt, Integer distance,
                     Double startedLat, Double startedLng, Visibility visibility, List<TrackingPath> path,
-                    String averagePace, List<String> images) {
+                    String averagePace, List<String> images, Integer restDuration) {
         this.member = member;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
@@ -93,6 +96,7 @@ public class Tracking extends BaseTimeEntity {
         this.duration = (int) Duration.between(startedAt, endedAt).getSeconds();
         this.distance = distance;
         this.visibility = visibility;
+        this.restDuration = restDuration;
         this.images = images != null ? images : List.of(); // TODO: 추후 S3 만들어지면 저장할 것
         this.path = path;
     }
