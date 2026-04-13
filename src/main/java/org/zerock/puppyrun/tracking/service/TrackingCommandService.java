@@ -14,6 +14,7 @@ import org.zerock.puppyrun.member.repository.MemberRepository;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.tracking.controller.request.ChangeVisibilityRequest;
 import org.zerock.puppyrun.tracking.controller.request.RegisterTrackingRequest;
+import org.zerock.puppyrun.tracking.controller.request.RegisterTrackingRequest.restPeriods;
 import org.zerock.puppyrun.tracking.controller.request.UpdateTrackingRequest;
 import org.zerock.puppyrun.tracking.DTO.UpdateTrackingDTO;
 import org.zerock.puppyrun.tracking.controller.response.TrackingDetailResponse;
@@ -46,6 +47,8 @@ public class TrackingCommandService {
 
         TrackingPath startPoint = path.getFirst();
 
+        Integer restDuration = request.restPeriods().stream().mapToInt(restPeriods::durationSecond).sum();
+
         Tracking tracking = Tracking.builder()
                 .member(member)
                 .startedAt(request.startedAt())
@@ -55,6 +58,7 @@ public class TrackingCommandService {
                 .visibility(Visibility.from(request.visibility()))
                 .distance(request.distance())
                 .averagePace(request.averagePace())
+                .restDuration(restDuration)
 //                .images(images.stream().map(MultipartFile::getOriginalFilename).toList()) todo: s3 저장 후 url 생성
                 .path(path)
                 .build();
