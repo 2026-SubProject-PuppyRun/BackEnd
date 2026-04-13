@@ -31,7 +31,10 @@ public record RegisterTrackingRequest(
         String averagePace,         // 평균 속도
 
         @NotNull(message = "산책한 펫 ID 리스트는 필수입니다.")
-        List<UUID> petIdList      // 산책한 펫 ID 리스트
+        List<UUID> petIdList,      // 산책한 펫 ID 리스트
+
+        @NotNull(message = "쉬는 시간은 필수입니다.")
+        List<restPeriods> restPeriods
 ) {
     @Builder
     public record TrackingPoint(
@@ -43,6 +46,18 @@ public record RegisterTrackingRequest(
 
             @NotNull(message = "경과 시간은 필수입니다.")
             Integer time  // 경과 시간
+    ) {
+    }
+
+    public record restPeriods(
+            @NotNull(message = "쉬는 시작 시간은 필수입니다.")
+            LocalDateTime startTime,
+
+            @NotNull(message = "쉬는 종료 시간은 필수입니다.")
+            LocalDateTime endTime,
+
+            @NotNull(message = "쉬는 시간은 필수입니다.")
+            Integer durationSecond
     ) {
     }
 }
