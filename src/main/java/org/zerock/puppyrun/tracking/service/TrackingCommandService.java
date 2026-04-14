@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.zerock.puppyrun.tracking.util.PaceConverter;
 import org.zerock.puppyrun.diary.entity.Diary;
 import org.zerock.puppyrun.diary.repository.DiaryRepository;
 import org.zerock.puppyrun.member.entity.Member;
@@ -57,7 +58,7 @@ public class TrackingCommandService {
                 .startedLng(startPoint.getLng())
                 .visibility(Visibility.from(request.visibility()))
                 .distance(request.distance())
-                .averagePace(request.averagePace())
+                .averagePace(PaceConverter.toDouble(request.averagePace()))
                 .restDuration(restDuration)
 //                .images(images.stream().map(MultipartFile::getOriginalFilename).toList()) todo: s3 저장 후 url 생성
                 .path(path)

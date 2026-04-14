@@ -60,8 +60,8 @@ public class Tracking extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer distance;        // 산책 거리
 
-    @Column(nullable = false)
-    private String averagePace;      // 평균 속도
+    @Column(name = "average_pace")
+    private Double averagePace;      // 평균 속도
 
     @Column(nullable = false)
     private Integer restDuration;    // 쉬는 시간
@@ -86,7 +86,7 @@ public class Tracking extends BaseTimeEntity {
     @Builder
     public Tracking(Member member, LocalDateTime startedAt, LocalDateTime endedAt, Integer distance,
                     Double startedLat, Double startedLng, Visibility visibility, List<TrackingPath> path,
-                    String averagePace, List<String> images, Integer restDuration) {
+                    Double averagePace, List<String> images, Integer restDuration) {
         this.member = member;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
