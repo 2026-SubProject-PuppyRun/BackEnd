@@ -14,7 +14,7 @@ public record DailyPetTracking(
         LocalDateTime endedAt,      // 산책 종료 시간
         Integer distance,           // 산책 거리 (km)
         Integer durationMin,        // 산책 시간 (분)
-        String averagePace,         // 산책 페이스
+        Double averagePace,         // 산책 페이스
 
         DiaryDetail diary,          // 일기 작성 여부 (UI 뱃지용)
         List<String> trackingImages, // 산책 중 찍은 사진 리스트 (썸네일용)

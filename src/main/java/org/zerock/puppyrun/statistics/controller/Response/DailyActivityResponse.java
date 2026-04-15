@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
 import org.zerock.puppyrun.statistics.DTO.DailyPetTracking;
+import org.zerock.puppyrun.tracking.util.PaceConverter;
 
 @Builder
 public record DailyActivityResponse(
@@ -65,7 +66,6 @@ public record DailyActivityResponse(
             Double distanceKm,          // 산책 거리 (km)
             Integer durationMin,        // 산책 시간 (분)
             String averagePace,         // 산책 페이스
-
             DiaryDetail diary,          // 일기 작성 여부 (UI 뱃지용)
             List<String> trackingImages, // 산책 중 찍은 사진 리스트 (썸네일용)
             List<ParticipatingPet> participatingPets // 참여한 펫 목록
@@ -77,7 +77,7 @@ public record DailyActivityResponse(
                     .endedAt(dpt.endedAt())
                     .distanceKm((double) dpt.distance()) // Integer -> Double 변환
                     .durationMin(dpt.durationMin())
-                    .averagePace(dpt.averagePace())
+                    .averagePace(PaceConverter.toString(dpt.averagePace()))
                     .diary(DiaryDetail.from(dpt.diary()))
                     .trackingImages(dpt.trackingImages())
                     .participatingPets(dpt.participatingPets().stream()

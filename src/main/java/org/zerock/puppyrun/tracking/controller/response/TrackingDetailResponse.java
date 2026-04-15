@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
+import org.zerock.puppyrun.tracking.util.PaceConverter;
 import org.zerock.puppyrun.tracking.entity.Tracking;
 
 @Builder
@@ -41,7 +42,7 @@ public record TrackingDetailResponse(
                 .duration(tracking.getDuration())
                 .visibility(tracking.getVisibility().name())
                 .distance(tracking.getDistance())
-                .averagePace(tracking.getAveragePace())
+                .averagePace(PaceConverter.toString(tracking.getAveragePace()))
                 .path(pathPoints)
                 .build();
     }

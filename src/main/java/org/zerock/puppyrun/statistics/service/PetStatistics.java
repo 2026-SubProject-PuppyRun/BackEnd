@@ -95,12 +95,11 @@ public class PetStatistics {
     /**
      * 펫의 요약된 통계를 조회합니다.
      *
-     * @param pet 펫 엔티티
+     * @param petId 펫 엔티티 id list
      * @return PetTrackingSummary
      */
-    public List<TotalPetTracking> getWeeklyPetTrackingSummary(List<Pet> pet, LocalDate targetDay) {
+    public List<TotalPetTracking> getWeeklyPetTrackingSummary(List<UUID> petId, LocalDate targetDay) {
         LocalDate startDate = targetDay.minusDays(6);
-        List<UUID> petId = pet.stream().map(Pet::getId).toList();
 
         return petTrackingRepository.getTrackingSummaryByPetId(petId, startDate, targetDay);
     }
