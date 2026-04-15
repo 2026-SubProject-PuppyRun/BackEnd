@@ -44,27 +44,31 @@ public class TrackingActivityService {
             throw new ResourceNotFoundException("펫이 존재하지 않습니다.");
         }
 
-        // 2주 전 날짜
-        LocalDate startDate = targetDay.minusDays(13);
+        // 1주 전 날짜
+        LocalDate oneWeekAgo = targetDay.minusDays(6);
 
-        // 이주일동안 산책한 통계
+        // 일주일동안 산책한 통계
         CompletableFuture<WeeklyActivityChart> chartFuture = CompletableFuture.supplyAsync(
-                () -> trackingStatistics.getWeeklyChart(principal.id(), startDate, targetDay)
+                () -> trackingStatistics.getWeeklyChart(principal.id(), oneWeekAgo, targetDay)
         );
 
         // 일주일동안 산책한 펫 통계
-        CompletableFuture<List<TotalPetTracking>> petStatsFuture = CompletableFuture.supplyAsync(
+        CompletableFuture<List<TotalPetTracking>> thisWeekPetStatsFuture = CompletableFuture.supplyAsync(
                 () -> petStatistics.getWeeklyPetTrackingSummary(petList, targetDay)
         );
 
-        // 두 작업이 모두 끝날 때까지 대기 후 결과 병합
-        return CompletableFuture.allOf(chartFuture, petStatsFuture)
-                .thenApply(v -> {
-                    WeeklyActivityChart activityChart = chartFuture.join();
-                    List<TotalPetTracking> totalPetTracking = petStatsFuture.join();
-                    return WeeklyActivityResponse.of(activityChart, totalPetTracking, targetDay);
-                })
-                .join(); // 최종 결과 DTO를 반환하며 종료
+        // 일주일전 동안 산책한 펫 통계
+        CompletableFuture<List<TotalPetTracking>> lastWeekPetStatsFuture = CompletableFuture.supplyAsync(
+                () -> petStatistics.getWeeklyPetTrackingSummary(petList, oneWeekAgo)
+        );
+
+        // 비동기 작업이 모두 끝날 때까지 대기 후 결과 병합
+        CompletableFuture.allOf(chartFuture, thisWeekPetStatsFuture, lastWeekPetStatsFuture).join();
+        WeeklyActivityChart activityChart = chartFuture.join();
+        List<TotalPetTracking> thisWeekPetTracking = thisWeekPetStatsFuture.join();
+        List<TotalPetTracking> lastWeekPetTracking = lastWeekPetStatsFuture.join();
+
+        return WeeklyActivityResponse.of(activityChart, thisWeekPetTracking, lastWeekPetTracking, targetDay);
     }
 
 
