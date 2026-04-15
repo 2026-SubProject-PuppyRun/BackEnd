@@ -113,16 +113,17 @@ class TrackingActivityServiceTest {
         Pet mockPet = mock(Pet.class);
         UUID petId = UUID.randomUUID();
         List<Pet> petList = List.of(mockPet);
+        List<UUID> petIdList = List.of(petId);
 
         when(petRepository.findAllByMemberId(memberId)).thenReturn(petList);
 
         // 차트 데이터 세팅 (원시 데이터: 3000m, 3600초)
         WeeklyActivityChart dummyChart = createDummyWeeklyActivityChart();
-        when(trackingStatistics.getWeeklyChart(memberId, targetDay)).thenReturn(dummyChart);
+        when(trackingStatistics.getWeeklyChart(memberId, targetDay.minusDays(6), targetDay)).thenReturn(dummyChart);
 
         // 펫 통계 데이터 세팅 (원시 데이터: 3000m, 3600초)
         TotalPetTracking dummySummary = createDummyTotalPetTracking(petId);
-        when(petStatistics.getWeeklyPetTrackingSummary(petList, targetDay)).thenReturn(List.of(dummySummary));
+        when(petStatistics.getWeeklyPetTrackingSummary(petIdList, targetDay)).thenReturn(List.of(dummySummary));
 
         // when
         WeeklyActivityResponse response = trackingActivityService.getWeeklyTracking(principal, targetDay);
@@ -156,7 +157,7 @@ class TrackingActivityServiceTest {
         assertEquals("펫이 존재하지 않습니다.", exception.getMessage());
 
         // 예외 발생 시 하위 서비스 로직들은 호출되지 않아야 함
-        verify(trackingStatistics, never()).getWeeklyChart(any(), any());
+        verify(trackingStatistics, never()).getWeeklyChart(any(), any(), any());
         verify(petStatistics, never()).getWeeklyPetTrackingSummary(any(), any());
     }
 
@@ -183,7 +184,7 @@ class TrackingActivityServiceTest {
                 targetDay.atStartOfDay().plusHours(11),
                 3,       // distance (km)
                 60,      // durationMin
-                "20'00\"",
+                12000.0,
                 diaryDetail,
                 List.of("image1.jpg"),
                 List.of(petDetail)
@@ -208,13 +209,17 @@ class TrackingActivityServiceTest {
     private TotalPetTracking createDummyTotalPetTracking(UUID petId) {
         return new TotalPetTracking(
                 petId,
+                targetDay.minusDays(6),
+                targetDay,
                 "보리",
                 "http://image.url",
                 "#FFFFFF",
                 PetBadge.BEGINNER,
                 3000, // totalDistance (m)
                 3600, // totalDuration (초)
-                1L    // totalCount
+                1L,    // totalCount
+                12000.0,
+                0
         );
     }
 }
