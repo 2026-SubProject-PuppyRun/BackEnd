@@ -14,7 +14,7 @@ public record WeeklyActivityResponse(
         Summary summary,
         List<ActivityChart> activityChart,
         FamilyReport familyReport,
-        RadarChart radarChart
+        List<DogRadar> dogRadars // 강아지별 방사형 데이터 리스트로 변경
 ) {
     private static final double METERS_TO_KM = 1000.0;
     private static final int SECONDS_TO_MINUTES = 60;
@@ -53,8 +53,13 @@ public record WeeklyActivityResponse(
         }
     }
 
+    // 개별 강아지의 방사형 차트 데이터를 담는 객체
     @Builder
-    public record RadarChart(
+    public record DogRadar(
+            UUID dogId,
+            String dogName,
+            String profileImageUrl,
+            String themeColor,
             List<RadarDataPoint> dataPoints
     ) {
         @Builder
@@ -67,30 +72,33 @@ public record WeeklyActivityResponse(
         ) {
         }
 
-        public static RadarChart of(List<WeeklyActivityChart.ActivityChart> charts, LocalDate targetDate) {
-            // 이번 주 / 저번 주 데이터 분리
-            LocalDate thisWeekStart = targetDate.minusDays(6);
-            List<WeeklyActivityChart.ActivityChart> thisWeekCharts = charts.stream()
-                    .filter(c -> !c.date().isBefore(thisWeekStart) && !c.date().isAfter(targetDate))
-                    .toList();
+        public static List<DogRadar> of(List<TotalPetTracking> thisWeekSummaries,
+                                        List<TotalPetTracking> lastWeekSummaries) {
+            return thisWeekSummaries.stream().map(thisWeek -> {
+                TotalPetTracking lastWeek = lastWeekSummaries.stream()
+                        .filter(lw -> lw.petId().equals(thisWeek.petId()))
+                        .findFirst()
+                        .orElse(null);
 
-            LocalDate lastWeekStart = targetDate.minusDays(13);
-            LocalDate lastWeekEnd = targetDate.minusDays(7);
-            List<WeeklyActivityChart.ActivityChart> lastWeekCharts = charts.stream()
-                    .filter(c -> !c.date().isBefore(lastWeekStart) && !c.date().isAfter(lastWeekEnd))
-                    .toList();
+                List<RadarDataPoint> points = Arrays.stream(RadarMetric.values())
+                        .map(metric -> RadarDataPoint.builder()
+                                .metricCode(metric.name())
+                                .label(metric.getLabel())
+                                .thisWeekValue(metric.getCalculator().applyAsDouble(thisWeek))
+                                .lastWeekValue(metric.getCalculator().applyAsDouble(lastWeek))
+                                .maxScore(metric.getMaxScore())
+                                .build()
+                        ).toList();
 
-            List<RadarDataPoint> dataPoints = Arrays.stream(RadarMetric.values())
-                    .map(metric -> RadarDataPoint.builder()
-                            .metricCode(metric.name())
-                            .label(metric.getLabel())
-                            .thisWeekValue(metric.getCalculator().applyAsDouble(thisWeekCharts))
-                            .lastWeekValue(metric.getCalculator().applyAsDouble(lastWeekCharts))
-                            .maxScore(metric.getMaxScore())
-                            .build())
-                    .toList();
+                return DogRadar.builder()
+                        .dogId(thisWeek.petId())
+                        .dogName(thisWeek.name()) // TotalPetTracking의 강아지 이름 필드
+                        .themeColor(thisWeek.themeColor())
+                        .profileImageUrl(thisWeek.profileImageUrl())
+                        .dataPoints(points)
+                        .build();
+            }).toList();
 
-            return new RadarChart(dataPoints);
         }
     }
 
@@ -124,17 +132,17 @@ public record WeeklyActivityResponse(
             Integer totalDogs,
             List<DogStat> dogStats
     ) {
-        public static FamilyReport of(List<TotalPetTracking> summaries) {
-            double allDogsTotalDistance = summaries.stream()
+        public static FamilyReport of(List<TotalPetTracking> thisWeekSummaries) {
+            double allDogsTotalDistance = thisWeekSummaries.stream()
                     .mapToDouble(TotalPetTracking::totalDistance)
                     .sum();
 
-            List<DogStat> dogStats = summaries.stream()
+            List<DogStat> dogStats = thisWeekSummaries.stream()
                     .map(ps -> DogStat.of(ps, allDogsTotalDistance))
                     .toList();
 
             return FamilyReport.builder()
-                    .totalDogs(summaries.size())
+                    .totalDogs(thisWeekSummaries.size())
                     .dogStats(dogStats)
                     .build();
         }
@@ -174,7 +182,8 @@ public record WeeklyActivityResponse(
 
     public static WeeklyActivityResponse of(
             WeeklyActivityChart chart,
-            List<TotalPetTracking> summaries,
+            List<TotalPetTracking> thisWeekSummaries,
+            List<TotalPetTracking> lastWeekSummaries,
             LocalDate targetDate
     ) {
         List<ActivityChart> activityCharts = ActivityChart.listOf(chart.activityChart(), targetDate);
@@ -182,9 +191,9 @@ public record WeeklyActivityResponse(
         return WeeklyActivityResponse.builder()
                 .period(Period.from(chart))
                 .summary(Summary.of(activityCharts))
-                .radarChart(RadarChart.of(chart.activityChart(), targetDate))
+                .dogRadars(DogRadar.of(thisWeekSummaries, lastWeekSummaries))
                 .activityChart(activityCharts)
-                .familyReport(FamilyReport.of(summaries))
+                .familyReport(FamilyReport.of(thisWeekSummaries))
                 .build();
     }
 }
