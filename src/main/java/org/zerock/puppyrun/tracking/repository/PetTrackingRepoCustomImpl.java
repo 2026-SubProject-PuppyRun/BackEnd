@@ -1,6 +1,7 @@
 package org.zerock.puppyrun.tracking.repository;
 
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDate;
 import java.util.List;
@@ -48,13 +49,17 @@ public class PetTrackingRepoCustomImpl implements PetTrackingRepoCustom {
         return queryFactory
                 .select(Projections.constructor(TotalPetTracking.class,
                         pet.id,
+                        Expressions.constant(startDate),
+                        Expressions.constant(endDate),
                         pet.name,
                         pet.profileImageUrl,
                         pet.color,
                         pet.badge,
                         tracking.distance.sum().coalesce(0),
                         tracking.duration.sum().coalesce(0),
-                        tracking.count()
+                        tracking.count(),
+                        tracking.averagePace.avg().coalesce(0.0),
+                        tracking.restDuration.sum().coalesce(0)
                 ))
                 .from(pet)
                 .leftJoin(petTracking).on(petTracking.pet.eq(pet))
