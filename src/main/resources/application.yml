@@ -28,7 +28,7 @@ spring:
 
 
 discord:
-  webhooks-url: ${discord_webhooks_url}
+  webhooks-url: ${DISCORD_WEBHOOKS_URL}
 
 data-kr:
   api-key: ${DATA_API_KEY}
