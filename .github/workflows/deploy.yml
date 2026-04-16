@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Checkout
@@ -51,13 +52,23 @@ jobs:
 
       - name: Deploy via SSM
         run: |
+          DC_BASE64=$(base64 -w 0 docker-compose.deploy.yml)
+          ENV_BASE64=$(echo -n "${{ secrets.ENV_FILE }}" | base64 -w 0)
+          
           aws ssm send-command \
-            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
-            --document-name "AWS-RunShellScript" \
-            --parameters commands='[
-              "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com",
-              "cd /home/ubuntu",
-              "docker compose -f docker-compose.deploy.yml pull backend",
-              "docker compose -f docker-compose.deploy.yml up -d backend"
-            ]' \
-            --region "${{ secrets.AWS_REGION }}"
+          --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+          --document-name "AWS-RunShellScript" \
+          --region "${{ secrets.AWS_REGION }}" \
+          --parameters commands='[
+          "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
+          "export AWS_REGION=${{ secrets.AWS_REGION }}",
+          "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com",
+          "cd /home/ubuntu",
+          "echo '"$DC_BASE64"' | base64 -d > docker-compose.deploy.yml",
+          "echo '"$ENV_BASE64"' | base64 -d > .env",
+          "chmod 600 docker-compose.deploy.yml",
+          "chmod 600 .env",
+          "docker compose -f docker-compose.deploy.yml pull backend",
+          "docker compose -f docker-compose.deploy.yml up -d backend"
+          ]' \
+          --region "${{ secrets.AWS_REGION }}"
