@@ -12,7 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean; // 변경된 import
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
@@ -42,11 +42,11 @@ class WeatherServiceTest {
     private CacheManager cacheManager;
 
     // 외부 API 호출을 흉내 낼 Mock 객체
-    @MockitoBean
+    @MockBean
     private WeatherApiClient weatherApiClient;
 
     // 응답 변환을 흉내 낼 Mock 객체
-    @MockitoBean
+    @MockBean
     private WeatherMapper weatherMapper;
 
     private WeatherDTO mockWeatherDTO;
