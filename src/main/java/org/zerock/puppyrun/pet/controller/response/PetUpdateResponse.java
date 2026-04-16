@@ -2,6 +2,7 @@ package org.zerock.puppyrun.pet.controller.response;
 
 import java.time.LocalDate;
 import lombok.Builder;
+import org.zerock.puppyrun.common.s3.support.S3Url;
 import org.zerock.puppyrun.pet.entity.Pet;
 
 @Builder
@@ -18,6 +19,7 @@ public record PetUpdateResponse(
 
         String gender,
 
+        @S3Url
         String profileImageUrl
 ) {
     public static PetUpdateResponse of(Pet pet) {

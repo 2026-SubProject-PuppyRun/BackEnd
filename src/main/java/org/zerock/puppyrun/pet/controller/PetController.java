@@ -1,7 +1,6 @@
 package org.zerock.puppyrun.pet.controller;
 
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +12,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.pet.controller.request.RegisterPetRequest;
 import org.zerock.puppyrun.pet.controller.request.UpdatePetRequest;
@@ -78,6 +79,31 @@ public class PetController {
             @RequestBody @Valid UpdatePetRequest request
     ) {
         PetUpdateResponse response = petCommandService.updatePet(userPrincipal, petId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 펫 프로필 이미지 수정
+     */
+    @PutMapping("/{petId}/profile")
+    public ResponseEntity<PetUpdateResponse> updatePetProfile(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable UUID petId,
+            @RequestPart MultipartFile profile
+    ) {
+        PetUpdateResponse response = petCommandService.updatePetProfile(userPrincipal, petId, profile);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 펫 프로필 이미지 수정
+     */
+    @PutMapping("/{petId}/profile/default")
+    public ResponseEntity<PetUpdateResponse> setPetDefaultProfile(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable UUID petId
+    ) {
+        PetUpdateResponse response = petCommandService.setDefaultProfile(userPrincipal, petId);
         return ResponseEntity.ok(response);
     }
 
