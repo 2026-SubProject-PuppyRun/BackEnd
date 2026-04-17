@@ -1,21 +1,29 @@
+spring:
+  # = PROD DATABASE SOURCE
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # = PROD JPA/HIBERNATE
+  jpa:
+    hibernate:
+      # 애플리케이션 실행 시 엔티티와 테이블을 비교하여 스키마가 올바른지 검증
+      ddl-auto: validate
+    # 운영 환경에서는 성능을 위해 SQL 로깅을 비활성화합니다.
+    show-sql: false
+    properties:
+      hibernate:
+        # SQL을 보기 좋게 포맷팅하는 기능 비활성화
+        format_sql: false
+
+
 app:
   base-url:
 
 # JWT 설정 (토큰 만료 시간을 초 단위로 설정)
 jwt:
   secret: ${JWT_SECRET}
-  access-token-expiration: ${JWT_ACCESS_TOKEN_VALIDITY:900000}    # 15분 (900밀리초)
-  refresh-token-expiration: ${JWT_REFRESH_TOKEN_VALIDITY:1209600000} # 14일 (1209600밀리초)
-
-spring:
-  cloud:
-    aws:
-      credentials:
-        access-key: ${AWS_ACCESS_KEY_ID}
-        secret-key: ${AWS_SECRET_ACCESS_KEY}
-      region:
-        static: ${AWS_REGION}
-      s3:
-        bucket: ${AWS_S3_BUCKET_NAME}
-      stack:
-        auto: false
+  access-token-expiration: ${JWT_ACCESS_TOKEN_VALIDITY}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_VALIDITY}

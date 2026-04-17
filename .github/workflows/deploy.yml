@@ -4,32 +4,46 @@ on:
   push:
     branches:
       - dev
+  workflow_dispatch:
+    inputs:
+      build_required:
+        description: '코드 변경 시 필수 체크 (단순 .env 수정 시에는 해제하세요)'
+        required: true
+        default: true
+        type: boolean
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 빌드가 필요한 경우에만 JDK 설정 및 JAR 빌드 진행
       - name: Set up JDK 21
+        if: github.event_name == 'push' || github.event.inputs.build_required == true
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
       - name: Grant execute permission
+        if: github.event_name == 'push' || github.event.inputs.build_required == true
         run: chmod +x ./gradlew
 
       - name: Create Firebase service account file
+        if: github.event_name == 'push' || github.event.inputs.build_required == true
         run: |
           mkdir -p src/main/resources
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > src/main/resources/firebase-service-account.json
 
       - name: Build jar
+        if: github.event_name == 'push' || github.event.inputs.build_required == true
         run: ./gradlew clean bootJar
 
+      # AWS 인증은 SSM 명령 전송을 위해 항상 필요
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -37,27 +51,38 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # ECR 로그인은 빌드/푸시가 필요할 때만 실행
       - name: Login to ECR
+        if: github.event_name == 'push' || github.event.inputs.build_required == true
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker image
-        run: docker build -t puppyrun-backend:latest .
+      - name: Build, Tag, and Push Docker image
+        if: github.event_name == 'push' || github.event.inputs.build_required == true
+        run: |
+          docker build -t puppyrun-backend:latest .
+          docker tag puppyrun-backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:latest
 
-      - name: Tag Docker image
-        run: docker tag puppyrun-backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:latest
-
-      - name: Push Docker image
-        run: docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:latest
-
+      # SSM 배포는 항상 실행 (빌드 생략 시에도 .env와 yml 동기화를 위해 필요)
       - name: Deploy via SSM
         run: |
+          DC_BASE64=$(base64 -w 0 docker-compose.deploy.yml)
+          ENV_BASE64=$(echo -n "${{ secrets.ENV_FILE }}" | base64 -w 0)
+          
           aws ssm send-command \
             --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
+            --region "${{ secrets.AWS_REGION }}" \
             --parameters commands='[
+              "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
+              "export AWS_REGION=${{ secrets.AWS_REGION }}",
               "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com",
               "cd /home/ubuntu",
+              "echo '"$DC_BASE64"' | base64 -d > docker-compose.deploy.yml",
+              "echo '"$ENV_BASE64"' | base64 -d > .env",
+              "chmod 600 docker-compose.deploy.yml",
+              "chmod 600 .env",
               "docker compose -f docker-compose.deploy.yml pull backend",
-              "docker compose -f docker-compose.deploy.yml up -d backend"
-            ]' \
-            --region "${{ secrets.AWS_REGION }}"
+              "docker compose -f docker-compose.deploy.yml up -d backend",
+              "docker image prune -f"
+            ]'
