@@ -30,7 +30,9 @@ public record PetListResponse(
             String color,
             String profileImageUrl,
             String breedCode,
-            String badgeCode
+            String badgeCode,
+            String gender,
+            boolean isNeutered
     ) {
         public static PetSummary from(Pet pet) {
             return PetSummary.builder()
@@ -42,6 +44,8 @@ public record PetListResponse(
                     .profileImageUrl(pet.getProfileImageUrl())
                     .breedCode(pet.getBreed().getCode())
                     .badgeCode(pet.getBadge().getCode())
+                    .gender(pet.getGender())
+                    .isNeutered(pet.getIsNeutered())
                     .build();
         }
 

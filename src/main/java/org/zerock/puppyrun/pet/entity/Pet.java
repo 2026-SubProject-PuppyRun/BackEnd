@@ -39,7 +39,7 @@ public class Pet extends BaseTimeEntity {
     @Column(name = "breed")
     private Breed breed;
 
-    @Column(name = "profile_image_url")
+    @Column(name = "profile_image_url", length = 1000)
     private String profileImageUrl;
 
     @Column(name = "color")

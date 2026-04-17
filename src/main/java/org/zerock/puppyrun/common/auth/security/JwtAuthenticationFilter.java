@@ -9,7 +9,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
@@ -24,8 +23,7 @@ import org.zerock.puppyrun.common.auth.jwt.exception.InvalidTokenException;
 import org.zerock.puppyrun.common.auth.jwt.exception.TokenExpirationException;
 import org.zerock.puppyrun.common.exception.ErrorCode;
 import org.zerock.puppyrun.common.exception.ErrorResponse;
-import org.zerock.puppyrun.member.entity.UserRole;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component

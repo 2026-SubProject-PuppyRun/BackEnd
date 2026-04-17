@@ -5,6 +5,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import org.zerock.puppyrun.common.s3.PathContext.PetProfileContext;
+import org.zerock.puppyrun.common.s3.S3Service;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.repository.MemberRepository;
@@ -26,6 +29,8 @@ public class PetCommandService {
     private final PetRepository petRepository;
     private final MemberRepository memberRepository;
     private final PetStatistics petStatistics;
+
+    private final S3Service s3Service;
 
     /**
      * 새로운 펫을 등록합니다.
@@ -79,6 +84,26 @@ public class PetCommandService {
         // 현재 몸무게와 비교 후 저장
         petStatistics.savePetWeightLog(pet, request.weight());
 
+        return PetUpdateResponse.of(pet);
+    }
+
+
+    public PetUpdateResponse updatePetProfile(UserPrincipal userPrincipal, UUID petId, MultipartFile file) {
+        Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
+
+        String profilePath = s3Service.upload(file, new PetProfileContext(petId));
+        pet.updateProfile(profilePath);
+        return PetUpdateResponse.of(pet);
+    }
+
+
+    public PetUpdateResponse setDefaultProfile(UserPrincipal userPrincipal, UUID petId) {
+        Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
+        String profileUrl = pet.getProfileImageUrl();
+        pet.setDefaultProfile();
+
+        // todo: 추후 배치를 통한 고아 객체 제거 예정
+        s3Service.delete(profileUrl);
         return PetUpdateResponse.of(pet);
     }
 

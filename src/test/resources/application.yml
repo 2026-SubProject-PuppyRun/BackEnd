@@ -23,6 +23,18 @@ spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
 
+  cloud:
+    aws:
+      credentials:
+        access-key: AWS_ACCESS_KEY_ID
+        secret-key: AWS_SECRET_ACCESS_KEY
+      region:
+        static: aws-global
+      s3:
+        bucket: AWS_S3_BUCKET_NAME
+      stack:
+        auto: false
+
 app:
   base-url: http://localhost:8080
 
@@ -43,3 +55,5 @@ logging:
     root: INFO
     com.puppyrun: DEBUG
     org.hibernate: WARN
+
+
