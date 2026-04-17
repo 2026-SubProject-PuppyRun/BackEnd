@@ -18,9 +18,17 @@ spring:
         # SQL을 보기 좋게 포맷팅하는 기능 비활성화
         format_sql: false
 
-
-app:
-  base-url:
+  cloud:
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY_ID}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
+      region:
+        static: ${AWS_REGION}
+      s3:
+        bucket: ${AWS_S3_BUCKET_NAME}
+      stack:
+        auto: false
 
 # JWT 설정 (토큰 만료 시간을 초 단위로 설정)
 jwt:
