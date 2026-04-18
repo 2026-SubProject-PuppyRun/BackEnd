@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
+import org.zerock.puppyrun.common.s3.support.S3Url;
 import org.zerock.puppyrun.tracking.util.PaceConverter;
 import org.zerock.puppyrun.tracking.entity.Tracking;
 
@@ -16,6 +17,7 @@ public record TrackingDetailResponse(
         Integer duration,            // 산책 진행 시간
         String visibility,           // 공개 여부
         Integer distance,            // 이동 거리
+        @S3Url
         List<String> images,          // 이미지 리스트
         String averagePace,              // 평균 속도
         List<TrackingPoint> path     // 이동 경로 리스트
@@ -42,6 +44,7 @@ public record TrackingDetailResponse(
                 .duration(tracking.getDuration())
                 .visibility(tracking.getVisibility().name())
                 .distance(tracking.getDistance())
+                .images(tracking.getImages())
                 .averagePace(PaceConverter.toString(tracking.getAveragePace()))
                 .path(pathPoints)
                 .build();
