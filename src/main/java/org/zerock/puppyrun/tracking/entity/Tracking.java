@@ -8,14 +8,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -24,7 +23,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.zerock.puppyrun.common.entity.BaseTimeEntity;
+import org.zerock.puppyrun.common.entity.BaseEntity;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.tracking.DTO.UpdateTrackingDTO;
 
@@ -32,9 +31,8 @@ import org.zerock.puppyrun.tracking.DTO.UpdateTrackingDTO;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "tracking")
-public class Tracking extends BaseTimeEntity {
+public class Tracking extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY) // 다대일 관계, 지연 로딩
@@ -84,9 +82,10 @@ public class Tracking extends BaseTimeEntity {
 
 
     @Builder
-    public Tracking(Member member, LocalDateTime startedAt, LocalDateTime endedAt, Integer distance,
+    public Tracking(UUID id, Member member, LocalDateTime startedAt, LocalDateTime endedAt, Integer distance,
                     Double startedLat, Double startedLng, Visibility visibility, List<TrackingPath> path,
                     Double averagePace, List<String> images, Integer restDuration) {
+        this.id = id != null ? id : UUID.randomUUID();
         this.member = member;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
@@ -97,8 +96,8 @@ public class Tracking extends BaseTimeEntity {
         this.distance = distance;
         this.visibility = visibility;
         this.restDuration = restDuration;
-        this.images = images != null ? images : List.of(); // TODO: 추후 S3 만들어지면 저장할 것
-        this.path = path;
+        this.images = images != null ? new ArrayList<>(images) : new ArrayList<>();
+        this.path = path != null ? new ArrayList<>(path) : new ArrayList<>();
     }
 
     public void update(UpdateTrackingDTO updateTrackingDTO) {
@@ -109,6 +108,10 @@ public class Tracking extends BaseTimeEntity {
         // 시간 변경에 따른 duration 재계산
         this.duration = (int) Duration.between(startedAt, endedAt).getSeconds();
 
+    }
+
+    public void uploadImages(List<String> images) {
+        this.images = images != null ? new ArrayList<>(images) : new ArrayList<>();
     }
 
     public void changeVisibility(Visibility visibility) {

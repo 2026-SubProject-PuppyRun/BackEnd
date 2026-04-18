@@ -7,8 +7,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -23,7 +21,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.zerock.puppyrun.common.entity.BaseTimeEntity;
+import org.zerock.puppyrun.common.entity.BaseEntity;
 import org.zerock.puppyrun.diary.DTO.UpdateDiaryDTO;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.tracking.entity.Tracking;
@@ -34,10 +32,9 @@ import org.zerock.puppyrun.weather.DTO.SkyType;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "diary")
-public class Diary extends BaseTimeEntity {
+public class Diary extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false, length = 100)
@@ -81,8 +78,9 @@ public class Diary extends BaseTimeEntity {
 
 
     @Builder
-    public Diary(String title, String content, Member member, String temp, SkyType sky, PrecipitationType pty,
+    public Diary(UUID id, String title, String content, Member member, String temp, SkyType sky, PrecipitationType pty,
                  LocalDateTime writingTime, Tracking tracking, List<String> images) {
+        this.id = id != null ? id : UUID.randomUUID();
         this.title = title;
         this.content = content;
         this.member = member;

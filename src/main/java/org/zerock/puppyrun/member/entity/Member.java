@@ -4,8 +4,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.UUID;
@@ -13,7 +11,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.zerock.puppyrun.common.entity.BaseTimeEntity;
+import org.zerock.puppyrun.common.entity.BaseEntity;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.member.DTO.MemberDTO;
 
@@ -21,12 +19,11 @@ import org.zerock.puppyrun.member.DTO.MemberDTO;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "member")
-public class Member extends BaseTimeEntity {
+public class Member extends BaseEntity {
     // 기본 프로필 이미지 경로를 상수로 정의
     private static final String DEFAULT_PROFILE_IMAGE = "/images/default/profile.png";
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "nick_name", nullable = false, unique = true, length = 50)
@@ -50,7 +47,8 @@ public class Member extends BaseTimeEntity {
     private Status status;
 
     @Builder
-    public Member(String nickName, String email, String password) {
+    public Member(UUID id, String nickName, String email, String password) {
+        this.id = id != null ? id : UUID.randomUUID();
         this.nickName = nickName;
         this.email = email;
         this.password = password;
