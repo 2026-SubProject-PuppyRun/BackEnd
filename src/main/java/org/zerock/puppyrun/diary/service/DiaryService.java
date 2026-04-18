@@ -1,5 +1,6 @@
 package org.zerock.puppyrun.diary.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -10,12 +11,15 @@ import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.common.exception.UserForbiddenException;
+import org.zerock.puppyrun.common.s3.PathContext.DiaryPhotoContext;
+import org.zerock.puppyrun.common.s3.S3Service;
 import org.zerock.puppyrun.diary.DTO.UpdateDiaryDTO;
 import org.zerock.puppyrun.diary.controller.request.RegisterDiaryRequest;
 import org.zerock.puppyrun.diary.controller.request.UpdateDiaryRequest;
 import org.zerock.puppyrun.diary.controller.response.DiaryResponse;
 import org.zerock.puppyrun.diary.entity.Diary;
 import org.zerock.puppyrun.diary.repository.DiaryRepository;
+import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.repository.MemberRepository;
 import org.zerock.puppyrun.tracking.entity.Tracking;
 import org.zerock.puppyrun.tracking.repository.TrackingRepository;
@@ -31,9 +35,12 @@ public class DiaryService {
     private final DiaryRepository diaryRepository;
     private final MemberRepository memberRepository;
 
+    // 이미지 업로드를 의존성 주입
+    private final S3Service s3Service;
+
     // 일기 작성
     @Transactional
-    public DiaryResponse registerDiary(UUID memberId, RegisterDiaryRequest request, List<MultipartFile> images) {
+    public DiaryResponse registerDiary(UUID memberId, RegisterDiaryRequest request, List<MultipartFile> imageFiles) {
 
         if (diaryRepository.existsByTrackingId(request.trackingId())) {
             throw new InvalidValueException("이미 해당 산책 기록에 대한 일기가 존재합니다.");
@@ -42,20 +49,28 @@ public class DiaryService {
         Tracking tracking = trackingRepository.findById(request.trackingId())
                 .orElseThrow(() -> new ResourceNotFoundException("존재하지 않는 산책 기록입니다"));
 
-        List<String> imagesUrl = List.of(); // Todo: s3 추가 예정
+        Member member = memberRepository.findByIdOrThrow(memberId);
+
+        UUID newDiaryId = UUID.randomUUID();
+        LocalDate today = LocalDate.now();
+
+        List<String> imagesUrl = imageFiles.stream()
+                .map(file -> s3Service.upload(file, new DiaryPhotoContext(newDiaryId, today)))
+                .toList();
 
         SkyType skyType = SkyType.fromCode(request.weather().sky());  // 날씨 코드 변환
         PrecipitationType precipitationType = PrecipitationType.fromCode(request.weather().pty()); // 날씨 코드 변환
         String temp = request.weather().temp();
 
         Diary diary = Diary.builder()
+                .id(newDiaryId)
                 .sky(skyType)
                 .pty(precipitationType)
                 .temp(temp)
                 .title(request.title())
                 .content(request.content())
                 .writingTime(request.writingTime())
-                .member(memberRepository.findByIdOrThrow(memberId))
+                .member(member)
                 .tracking(tracking)
                 .images(imagesUrl)
                 .build();
@@ -90,7 +105,10 @@ public class DiaryService {
     @Transactional
     public void deleteDiary(UUID memberId, UUID diaryId) {
         Diary diary = findDiaryWithOwnershipCheck(diaryId, memberId);
+        List<String> images = List.copyOf(diary.getImages());
         diaryRepository.delete(diary);
+        // 이미지 삭제
+        s3Service.deleteAll(images);
     }
 
     // 일기 조회
