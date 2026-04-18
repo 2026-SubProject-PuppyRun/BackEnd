@@ -2,6 +2,7 @@ package org.zerock.puppyrun.common.s3;
 
 import io.awspring.cloud.s3.ObjectMetadata;
 import io.awspring.cloud.s3.S3Template;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,16 +46,18 @@ public class S3Service {
      * @return S3에 저장된 최종 Key (경로 포함)
      */
     public String upload(MultipartFile file, PathContext path) {
-        validateFile(file);
+        if (file == null || file.isEmpty()) {
+            return null; // 이미지가 null이거나 비어있으면 넘어감 (skip)
+        }
 
-        // 1. 고유한 저장 키 생성 (중복 방지용 UUID 포함)
+        // 고유한 저장 키 생성 (중복 방지용 UUID 포함)
         String key = generateKey(file, path);
 
-        // 2. 실제 S3 업로드 수행
+        // 실제 S3 업로드 수행
         uploadToS3(file, key);
 
-        // 3. 트랜잭션 롤백을 대비한 이벤트 발행
-        // DB 저장 실패 시 S3 찌꺼기 파일을 지우기 위한 보상 트랜잭션 예약입니다.
+        //  트랜잭션 롤백을 대비한 이벤트 발행
+        // DB 저장 실패 시 S3 찌꺼기 파일을 지우기 위한 보상 트랜잭션 예약
         eventPublisher.publishEvent(S3RollbackEvent.of(key));
 
         return key;
@@ -71,15 +74,19 @@ public class S3Service {
         if (files == null || files.isEmpty()) {
             return List.of();
         }
-
-        // 병렬 처리를 통한 업로드 속도 최적화
+        
+        // null이거나 비어있는 파일은 "첨부하지 않은 것"으로 간주하여 필터링 (skip)
         List<CompletableFuture<String>> futures = files.stream()
+                .filter(file -> file != null && !file.isEmpty())
                 .map(file -> CompletableFuture.supplyAsync(() -> {
-                    validateFile(file);
                     String key = generateKey(file, path);
                     return uploadToS3(file, key);
                 }))
                 .toList();
+
+        if (futures.isEmpty()) {
+            return List.of();
+        }
 
         // 모든 업로드가 완료될 때까지 대기
         List<String> urls = futures.stream()
@@ -95,34 +102,43 @@ public class S3Service {
     /**
      * 여러 파일을 S3에서 비동기로 삭제합니다.
      *
-     * @param fileData 삭제할 파일들의 Key 또는 Full URL 리스트
+     * @param files 삭제할 파일들의 Key 또는 Full URL 리스트
      */
     @Async
-    public void deleteAll(List<String> fileData) {
-        fileData.forEach(this::deleteToS3);
+    public void deleteAll(List<String> files) {
+        if (files == null || files.isEmpty()) {
+            return;
+        }
+
+        // null 요소는 제외하고 실제 삭제 수행
+        files.stream()
+                .filter(Objects::nonNull)
+                .forEach(this::deleteToS3);
     }
 
     /**
      * 단일 파일을 S3에서 비동기로 삭제합니다.
      *
-     * @param fileData 삭제할 파일의 Key 또는 Full URL
+     * @param file 삭제할 파일의 Key 또는 Full URL
      */
     @Async
-    public void delete(String fileData) {
-        deleteToS3(fileData);
+    public void delete(String file) {
+        if (file == null) {
+            return; // null이면 넘어감
+        }
+        deleteToS3(file);
     }
 
     /**
      * 실제 S3 삭제 로직을 수행합니다.
      */
-    private void deleteToS3(String fileData) {
-        if (fileData == null || fileData.isBlank()) {
-            log.warn("삭제하려는 S3 파일 경로가 비어있습니다.");
-            return;
+    private void deleteToS3(String file) {
+        if (file == null || file.isBlank()) {
+            throw new DataIntegrityException("삭제할 파일 경로가 비어있습니다.");
         }
 
         // URL이 들어와도, Key가 들어와도 안전하게 Key만 추출
-        String key = extractKey(fileData);
+        String key = extractKey(file);
 
         try {
             s3Template.deleteObject(bucket, key);
@@ -137,6 +153,11 @@ public class S3Service {
      * S3Template을 사용하여 물리적인 파일 전송을 수행합니다.
      */
     private String uploadToS3(MultipartFile file, String key) {
+        // 이 시점에는 이미 위에서 검증되었으나, 마지막 방어선으로 유지
+        if (file == null || file.isEmpty()) {
+            throw new DataIntegrityException("업로드할 파일이 존재하지 않거나 비어있습니다.");
+        }
+
         try (InputStream inputStream = file.getInputStream()) {
             ObjectMetadata metadata = ObjectMetadata.builder()
                     .contentType(file.getContentType())
@@ -182,12 +203,6 @@ public class S3Service {
             return URLDecoder.decode(fileData, StandardCharsets.UTF_8);
         } catch (Exception e) {
             return fileData;
-        }
-    }
-
-    private void validateFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new DataIntegrityException("업로드할 파일이 비어있습니다.");
         }
     }
 }
