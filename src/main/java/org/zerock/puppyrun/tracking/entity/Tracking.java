@@ -21,8 +21,10 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.type.SqlTypes;
 import org.zerock.puppyrun.common.entity.BaseEntity;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.tracking.DTO.UpdateTrackingDTO;
@@ -74,8 +76,8 @@ public class Tracking extends BaseEntity {
     @Column(name = "image_url")
     private List<String> images;
 
-    @Convert(converter = TrackingPathConverter.class)
-    @Column(name = "path", columnDefinition = "LONGTEXT")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "path", columnDefinition = "JSON")
     private List<TrackingPath> path;
 
     // TODO: 산책 루트를 이용하여 유사도 계산후 저장

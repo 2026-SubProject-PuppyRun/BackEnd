@@ -73,8 +73,8 @@ public class TrackingCommandService {
                 .member(member)
                 .startedAt(request.startedAt())
                 .endedAt(request.endedAt())
-                .startedLat(startPoint.getLat())
-                .startedLng(startPoint.getLng())
+                .startedLat(startPoint.lat())
+                .startedLng(startPoint.lng())
                 .visibility(Visibility.from(request.visibility()))
                 .distance(request.distance())
                 .averagePace(PaceConverter.toDouble(request.averagePace()))
@@ -130,7 +130,7 @@ public class TrackingCommandService {
         // 연관된 일기가 있다면 tracking_id를 null로 변경
         diaryRepository.findByTrackingId(trackingId)
                 .ifPresent(Diary::unsetTracking);
-        
+
         List<String> images = List.copyOf(tracking.getImages());
 
         trackingRepository.delete(tracking);

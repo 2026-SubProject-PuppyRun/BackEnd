@@ -76,9 +76,9 @@ public record MainTrackingResponse(
          */
         private static TrackingPoint from(TrackingPath path) {
             return TrackingPoint.builder()
-                    .lat(path.getLat())
-                    .lng(path.getLng())
-                    .time(path.getTime())
+                    .lat(path.lat())
+                    .lng(path.lng())
+                    .time(path.time())
                     .build();
         }
     }

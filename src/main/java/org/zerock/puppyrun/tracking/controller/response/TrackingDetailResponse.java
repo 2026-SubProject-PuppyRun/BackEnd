@@ -33,7 +33,7 @@ public record TrackingDetailResponse(
 
     public static TrackingDetailResponse of(Tracking tracking, UUID diaryId) {
         List<TrackingPoint> pathPoints = tracking.getPath().stream()
-                .map(p -> new TrackingPoint(p.getLat(), p.getLng(), p.getTime()))
+                .map(p -> new TrackingPoint(p.lat(), p.lng(), p.time()))
                 .toList();
 
         return TrackingDetailResponse.builder()
