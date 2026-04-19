@@ -18,5 +18,11 @@ public interface VaccinationRecordRepository extends JpaRepository<VaccinationRe
 
     List<VaccinationRecord> findAllByPetIdOrderByVaccinatedAtDescCreatedAtDesc(UUID petId);
 
+    List<VaccinationRecord> findAllByPetIdAndVaccinatedAtBetweenOrderByVaccinatedAtAscCreatedAtAsc(
+            UUID petId,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate
+    );
+
     Optional<VaccinationRecord> findByIdAndPetId(UUID vaccinationRecordId, UUID petId);
 }

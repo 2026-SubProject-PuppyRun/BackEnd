@@ -1,5 +1,6 @@
 package org.zerock.puppyrun.care.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +18,12 @@ public interface MedicationRecordRepository extends JpaRepository<MedicationReco
     }
 
     List<MedicationRecord> findAllByPetIdOrderByAdministeredAtDescCreatedAtDesc(UUID petId);
+
+    List<MedicationRecord> findAllByPetIdAndAdministeredAtGreaterThanEqualAndAdministeredAtLessThanOrderByAdministeredAtAscCreatedAtAsc(
+            UUID petId,
+            LocalDateTime startDateTime,
+            LocalDateTime endExclusive
+    );
 
     Optional<MedicationRecord> findByIdAndPetId(UUID medicationRecordId, UUID petId);
 }

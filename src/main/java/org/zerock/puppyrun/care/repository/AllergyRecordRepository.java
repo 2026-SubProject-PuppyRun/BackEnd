@@ -1,5 +1,6 @@
 package org.zerock.puppyrun.care.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +18,12 @@ public interface AllergyRecordRepository extends JpaRepository<AllergyRecord, UU
     }
 
     List<AllergyRecord> findAllByPetIdOrderByCreatedAtDesc(UUID petId);
+
+    List<AllergyRecord> findAllByPetIdAndIdentifiedAtIsNotNullAndIdentifiedAtBetweenOrderByIdentifiedAtAscCreatedAtAsc(
+            UUID petId,
+            LocalDate startDate,
+            LocalDate endDate
+    );
 
     Optional<AllergyRecord> findByIdAndPetId(UUID allergyRecordId, UUID petId);
 }
