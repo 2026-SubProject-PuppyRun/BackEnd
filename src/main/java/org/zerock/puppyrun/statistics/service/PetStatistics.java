@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.entity.PetWeightLog;
 import org.zerock.puppyrun.pet.repository.PetWeightLogRepository;
@@ -57,6 +58,11 @@ public class PetStatistics {
      */
     public List<PetWeightLog> getPetWeightLog(UUID petId) {
         return petWeightLogRepository.findAllByPetIdOrderByCreatedAt(petId);
+    }
+
+    public PetWeightLog getLatestPetWeightLog(UUID petId) {
+        return petWeightLogRepository.findFirstByPetIdOrderByCreatedAtDesc(petId)
+                .orElseThrow(() -> new ResourceNotFoundException("해당 펫의 몸무게 기록을 찾을 수 없습니다."));
     }
 
     /**
