@@ -1,5 +1,6 @@
 package org.zerock.puppyrun.tracking.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.common.exception.UserForbiddenException;
+import org.zerock.puppyrun.common.s3.PathContext.TrackingPhotoContext;
+import org.zerock.puppyrun.common.s3.S3Service;
 import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.tracking.entity.PetTracking;
 import org.zerock.puppyrun.tracking.repository.PetTrackingRepository;
@@ -40,11 +43,18 @@ public class TrackingCommandService {
     private final PetTrackingRepository petTrackingRepository;
     private final PetRepository petRepository;
 
+    // 이미지 업로드를 의존성 주입
+    private final S3Service s3Service;
+
+
     /**
      * 산책 저장
      */
-    public void saveTracking(UUID memberId, RegisterTrackingRequest request, List<MultipartFile> images) {
+    public void saveTracking(UUID memberId, RegisterTrackingRequest request, List<MultipartFile> imageFiles) {
         Member member = memberRepository.findByIdOrThrow(memberId);
+
+        UUID newTrackingId = UUID.randomUUID();
+        LocalDate today = LocalDate.now();
 
         // 경로 데이터 변환
         List<TrackingPath> path = request.path().stream()
@@ -55,7 +65,11 @@ public class TrackingCommandService {
 
         Integer restDuration = request.restPeriods().stream().mapToInt(restPeriods::durationSecond).sum();
 
+        // 이미지 업로드
+        List<String> imagesUrl = s3Service.uploadAll(imageFiles, new TrackingPhotoContext(newTrackingId, today));
+
         Tracking tracking = Tracking.builder()
+                .id(newTrackingId)
                 .member(member)
                 .startedAt(request.startedAt())
                 .endedAt(request.endedAt())
@@ -65,7 +79,7 @@ public class TrackingCommandService {
                 .distance(request.distance())
                 .averagePace(PaceConverter.toDouble(request.averagePace()))
                 .restDuration(restDuration)
-//                .images(images.stream().map(MultipartFile::getOriginalFilename).toList()) todo: s3 저장 후 url 생성
+                .images(imagesUrl)
                 .path(path)
                 .build();
 
@@ -116,7 +130,14 @@ public class TrackingCommandService {
         // 연관된 일기가 있다면 tracking_id를 null로 변경
         diaryRepository.findByTrackingId(trackingId)
                 .ifPresent(Diary::unsetTracking);
+        
+        List<String> images = List.copyOf(tracking.getImages());
+
         trackingRepository.delete(tracking);
+
+        if (!images.isEmpty()) {
+            s3Service.deleteAll(images);
+        }
     }
 
     private void saveTrackingWithPets(UUID memberId, List<UUID> petIdList, Tracking savedTracking) {
@@ -136,7 +157,10 @@ public class TrackingCommandService {
         }
 
         List<PetTracking> petTrackingList = petList.stream()
-                .map(pet -> new PetTracking(pet, savedTracking))
+                .map(pet -> PetTracking.builder()
+                        .pet(pet)
+                        .tracking(savedTracking)
+                        .build())
                 .toList();
 
         petTrackingRepository.saveAll(petTrackingList);

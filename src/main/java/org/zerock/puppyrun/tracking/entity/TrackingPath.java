@@ -2,6 +2,7 @@ package org.zerock.puppyrun.tracking.entity;
 
 import jakarta.persistence.Embeddable;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@EqualsAndHashCode
 public class TrackingPath {
     private Double lat;  // 위도
     private Double lng;  // 경도

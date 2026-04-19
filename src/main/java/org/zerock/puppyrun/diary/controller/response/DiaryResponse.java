@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.Builder;
+import org.zerock.puppyrun.common.s3.support.S3Url;
 import org.zerock.puppyrun.diary.entity.Diary;
 import org.zerock.puppyrun.tracking.entity.Tracking;
 import org.zerock.puppyrun.tracking.entity.TrackingPath;
@@ -22,6 +23,7 @@ public record DiaryResponse(
         String content,
         Weather weather,
         TrackingDetail trackingDetail,
+        @S3Url
         List<String> images
 ) {
 

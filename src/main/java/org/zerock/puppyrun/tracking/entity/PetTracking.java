@@ -2,8 +2,6 @@ package org.zerock.puppyrun.tracking.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -15,16 +13,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.zerock.puppyrun.common.entity.BaseTimeEntity;
+import org.zerock.puppyrun.common.entity.BaseEntity;
 import org.zerock.puppyrun.pet.entity.Pet;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "pet_tracking")
-public class PetTracking extends BaseTimeEntity {
+public class PetTracking extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -38,7 +35,8 @@ public class PetTracking extends BaseTimeEntity {
     private Tracking tracking;
 
     @Builder
-    public PetTracking(Pet pet, Tracking tracking) {
+    public PetTracking(UUID id, Pet pet, Tracking tracking) {
+        this.id = id != null ? id : UUID.randomUUID();
         this.pet = pet;
         this.tracking = tracking;
     }

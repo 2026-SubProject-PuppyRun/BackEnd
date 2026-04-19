@@ -21,16 +21,15 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.zerock.puppyrun.common.entity.BaseTimeEntity;
+import org.zerock.puppyrun.common.entity.BaseEntity;
 import org.zerock.puppyrun.member.entity.Member;
 
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class NotificationSettings extends BaseTimeEntity {
+public class NotificationSettings extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -61,7 +60,8 @@ public class NotificationSettings extends BaseTimeEntity {
 
 
     @Builder
-    public NotificationSettings(Member member, String fcmToken, boolean isPushAgreed) {
+    public NotificationSettings(UUID id, Member member, String fcmToken, boolean isPushAgreed) {
+        this.id = id != null ? id : UUID.randomUUID();
         this.member = member;
         this.fcmToken = fcmToken;
         this.isPushAgreed = isPushAgreed; // 할당

@@ -1,13 +1,21 @@
 package org.zerock.puppyrun.pet.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.zerock.puppyrun.common.entity.BaseTimeEntity;
+import org.zerock.puppyrun.common.entity.BaseEntity;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.pet.DTO.UpdatePetDTO;
 
@@ -15,10 +23,9 @@ import org.zerock.puppyrun.pet.DTO.UpdatePetDTO;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "pet")
-public class Pet extends BaseTimeEntity {
+public class Pet extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -56,8 +63,9 @@ public class Pet extends BaseTimeEntity {
     private String gender;
 
     @Builder
-    public Pet(Member member, String name, LocalDate birthYear, Breed breed, String color, Double weight,
+    public Pet(UUID id, Member member, String name, LocalDate birthYear, Breed breed, String color, Double weight,
                boolean isNeutered, String gender) {
+        this.id = id != null ? id : UUID.randomUUID();
         this.member = member;
         this.name = name;
         this.breed = breed;
