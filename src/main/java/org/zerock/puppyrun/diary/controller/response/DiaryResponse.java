@@ -9,7 +9,7 @@ import lombok.Builder;
 import org.zerock.puppyrun.common.s3.support.S3Url;
 import org.zerock.puppyrun.diary.entity.Diary;
 import org.zerock.puppyrun.tracking.entity.Tracking;
-import org.zerock.puppyrun.tracking.entity.TrackingPath;
+import org.zerock.puppyrun.tracking.entity.RoutePoint;
 
 /**
  * 다이어리 상세 조회 응답 DTO
@@ -30,7 +30,7 @@ public record DiaryResponse(
     /**
      * Diary 엔티티를 DiaryResponse로 변환하는 정적 팩토리 메서드
      */
-    public static DiaryResponse of(Diary diary) {
+    public static DiaryResponse of(Diary diary, List<RoutePoint> path) {
         Tracking tracking = diary.getTracking();
         return DiaryResponse.builder()
                 .DiaryId(diary.getId())
@@ -39,7 +39,7 @@ public record DiaryResponse(
                 .title(diary.getTitle())
                 .content(diary.getContent())
                 .weather(Weather.from(diary)) // 날씨 변환 위임
-                .trackingDetail(TrackingDetail.from(tracking)) // 산책 정보 변환 위임
+                .trackingDetail(TrackingDetail.of(tracking, path)) // 산책 정보 변환 위임
                 .images(diary.getImages())
                 .build();
     }
@@ -75,11 +75,10 @@ public record DiaryResponse(
             LocalDateTime startedAt,
             LocalDateTime endedAt,
             Integer duration,
-            String visibility,
-            Integer distance,
+            String visibility, Integer distance,
             List<TrackingPoint> path
     ) {
-        public static TrackingDetail from(Tracking tracking) {
+        public static TrackingDetail of(Tracking tracking, List<RoutePoint> path) {
             if (tracking == null) {
                 return null;
             }
@@ -89,7 +88,7 @@ public record DiaryResponse(
                     .duration(tracking.getDuration())
                     .visibility(tracking.getVisibility().name())
                     .distance(tracking.getDistance())
-                    .path(TrackingPoint.listOf(tracking.getPath())) // 경로 변환 위임
+                    .path(TrackingPoint.listOf(path)) // 경로 변환 위임
                     .build();
         }
     }
@@ -104,7 +103,7 @@ public record DiaryResponse(
             Integer time
     ) {
         // 리스트 변환 헬퍼 메서드
-        public static List<TrackingPoint> listOf(List<TrackingPath> paths) {
+        public static List<TrackingPoint> listOf(List<RoutePoint> paths) {
             return Optional.ofNullable(paths)
                     .orElseGet(Collections::emptyList)
                     .stream()
@@ -112,7 +111,7 @@ public record DiaryResponse(
                     .toList();
         }
 
-        private static TrackingPoint from(TrackingPath path) {
+        private static TrackingPoint from(RoutePoint path) {
             return TrackingPoint.builder()
                     .lat(path.lat())
                     .lng(path.lng())
