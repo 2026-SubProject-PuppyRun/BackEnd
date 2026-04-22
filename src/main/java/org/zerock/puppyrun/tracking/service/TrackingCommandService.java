@@ -14,7 +14,13 @@ import org.zerock.puppyrun.common.s3.PathContext.TrackingPhotoContext;
 import org.zerock.puppyrun.common.s3.S3Service;
 import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.tracking.entity.PetTracking;
+import org.zerock.puppyrun.tracking.entity.RoutePoint;
+import org.zerock.puppyrun.tracking.entity.Tracking;
+import org.zerock.puppyrun.tracking.entity.TrackingRoute;
+import org.zerock.puppyrun.tracking.entity.Visibility;
 import org.zerock.puppyrun.tracking.repository.PetTrackingRepository;
+import org.zerock.puppyrun.tracking.repository.TrackingRouteRepository;
+import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 import org.zerock.puppyrun.tracking.util.PaceConverter;
 import org.zerock.puppyrun.diary.entity.Diary;
 import org.zerock.puppyrun.diary.repository.DiaryRepository;
@@ -27,10 +33,6 @@ import org.zerock.puppyrun.tracking.controller.request.RegisterTrackingRequest.r
 import org.zerock.puppyrun.tracking.controller.request.UpdateTrackingRequest;
 import org.zerock.puppyrun.tracking.DTO.UpdateTrackingDTO;
 import org.zerock.puppyrun.tracking.controller.response.TrackingDetailResponse;
-import org.zerock.puppyrun.tracking.entity.Tracking;
-import org.zerock.puppyrun.tracking.entity.TrackingPath;
-import org.zerock.puppyrun.tracking.entity.Visibility;
-import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +41,7 @@ import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 public class TrackingCommandService {
     private final DiaryRepository diaryRepository;
     private final TrackingRepository trackingRepository;
+    private final TrackingRouteRepository trackingRouteRepository;
     private final MemberRepository memberRepository;
     private final PetTrackingRepository petTrackingRepository;
     private final PetRepository petRepository;
@@ -57,11 +60,9 @@ public class TrackingCommandService {
         LocalDate today = LocalDate.now();
 
         // 경로 데이터 변환
-        List<TrackingPath> path = request.path().stream()
-                .map(point -> new TrackingPath(point.lat(), point.lng(), point.time()))
+        List<RoutePoint> path = request.path().stream()
+                .map(point -> new RoutePoint(point.lat(), point.lng(), point.time()))
                 .toList();
-
-        TrackingPath startPoint = path.getFirst();
 
         Integer restDuration = request.restPeriods().stream().mapToInt(restPeriods::durationSecond).sum();
 
@@ -73,17 +74,18 @@ public class TrackingCommandService {
                 .member(member)
                 .startedAt(request.startedAt())
                 .endedAt(request.endedAt())
-                .startedLat(startPoint.lat())
-                .startedLng(startPoint.lng())
                 .visibility(Visibility.from(request.visibility()))
                 .distance(request.distance())
                 .averagePace(PaceConverter.toDouble(request.averagePace()))
                 .restDuration(restDuration)
                 .images(imagesUrl)
-                .path(path)
                 .build();
 
         Tracking savedTracking = trackingRepository.save(tracking);
+
+        // 경로 데이터 저장
+        TrackingRoute routeData = new TrackingRoute(savedTracking, path);
+        trackingRouteRepository.save(routeData);
 
         // 산책과 강아지 매핑
         saveTrackingWithPets(member.getId(), request.petIdList(), savedTracking);
@@ -107,7 +109,12 @@ public class TrackingCommandService {
         UUID diaryId = diaryRepository.findIdByTrackingId(trackingId)
                 .orElse(null);
 
-        return TrackingDetailResponse.of(tracking, diaryId);
+        // 상세 정보 조회를 위해 경로 데이터 명시적 조회
+        List<RoutePoint> path = trackingRouteRepository.findByTrackingId(trackingId)
+                .map(TrackingRoute::getOriginalPath)
+                .orElse(List.of());
+
+        return TrackingDetailResponse.of(tracking, path, diaryId);
     }
 
     /**
@@ -132,6 +139,9 @@ public class TrackingCommandService {
                 .ifPresent(Diary::unsetTracking);
 
         List<String> images = List.copyOf(tracking.getImages());
+
+        // 경로 데이터 삭제
+        trackingRouteRepository.deleteById(trackingId);
 
         trackingRepository.delete(tracking);
 

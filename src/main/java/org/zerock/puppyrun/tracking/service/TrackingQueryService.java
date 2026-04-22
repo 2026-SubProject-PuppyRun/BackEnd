@@ -9,6 +9,9 @@ import org.zerock.puppyrun.diary.repository.DiaryRepository;
 import org.zerock.puppyrun.tracking.controller.response.MainTrackingResponse;
 import org.zerock.puppyrun.tracking.controller.response.TrackingDetailResponse;
 import org.zerock.puppyrun.tracking.entity.Tracking;
+import org.zerock.puppyrun.tracking.entity.RoutePoint;
+import org.zerock.puppyrun.tracking.entity.TrackingRoute;
+import org.zerock.puppyrun.tracking.repository.TrackingRouteRepository;
 import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 
 @Service
@@ -16,6 +19,7 @@ import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 @Transactional(readOnly = true)
 public class TrackingQueryService {
     private final TrackingRepository trackingRepository;
+    private final TrackingRouteRepository trackingRouteRepository;
     private final DiaryRepository diaryRepository;
 
     /**
@@ -34,6 +38,11 @@ public class TrackingQueryService {
 
         UUID diaryId = diaryRepository.findIdByTrackingId(trackingId).orElse(null);
 
-        return TrackingDetailResponse.of(tracking, diaryId);
+        // 경로 데이터를 조회하여
+        List<RoutePoint> path = trackingRouteRepository.findByTrackingId(trackingId)
+                .map(TrackingRoute::getOriginalPath)
+                .orElse(List.of());
+
+        return TrackingDetailResponse.of(tracking, path, diaryId);
     }
 }
