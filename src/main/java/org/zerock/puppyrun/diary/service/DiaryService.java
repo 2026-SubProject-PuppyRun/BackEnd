@@ -22,6 +22,9 @@ import org.zerock.puppyrun.diary.repository.DiaryRepository;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.repository.MemberRepository;
 import org.zerock.puppyrun.tracking.entity.Tracking;
+import org.zerock.puppyrun.tracking.entity.RoutePoint;
+import org.zerock.puppyrun.tracking.entity.TrackingRoute;
+import org.zerock.puppyrun.tracking.repository.TrackingRouteRepository;
 import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 import org.zerock.puppyrun.weather.DTO.PrecipitationType;
 import org.zerock.puppyrun.weather.DTO.SkyType;
@@ -32,6 +35,7 @@ import org.zerock.puppyrun.weather.DTO.SkyType;
 @Transactional(readOnly = true)
 public class DiaryService {
     private final TrackingRepository trackingRepository;
+    private final TrackingRouteRepository trackingRouteRepository;
     private final DiaryRepository diaryRepository;
     private final MemberRepository memberRepository;
 
@@ -77,7 +81,9 @@ public class DiaryService {
 
         Diary savedDiary = diaryRepository.save(diary);
 
-        return DiaryResponse.of(savedDiary);
+        List<RoutePoint> path = getTrackingRoute(tracking);
+
+        return DiaryResponse.of(savedDiary, path);
     }
 
     // 일기 수정
@@ -98,7 +104,10 @@ public class DiaryService {
                 .build();
 
         diary.update(updateDiaryDTO);
-        return DiaryResponse.of(diary);
+
+        List<RoutePoint> path = getTrackingRoute(diary.getTracking());
+
+        return DiaryResponse.of(diary, path);
     }
 
     // 일기 삭제
@@ -114,7 +123,8 @@ public class DiaryService {
     // 일기 조회
     public DiaryResponse getDiary(UUID memberId, UUID diaryId) {
         Diary diary = findDiaryWithOwnershipCheck(diaryId, memberId);
-        return DiaryResponse.of(diary);
+        List<RoutePoint> path = getTrackingRoute(diary.getTracking());
+        return DiaryResponse.of(diary, path);
     }
 
 
@@ -129,6 +139,15 @@ public class DiaryService {
             throw new UserForbiddenException("해당 일기에 대한 권한이 없습니다.");
         }
         return diary;
+    }
+
+    private List<RoutePoint> getTrackingRoute(Tracking tracking) {
+        if (tracking == null) {
+            return List.of();
+        }
+        return trackingRouteRepository.findByTrackingId(tracking.getId())
+                .map(TrackingRoute::getOriginalPath)
+                .orElse(List.of());
     }
 
 }

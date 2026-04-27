@@ -2,7 +2,6 @@ package org.zerock.puppyrun.tracking.entity;
 
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -47,12 +46,6 @@ public class Tracking extends BaseEntity {
     private LocalDateTime endedAt;   // 산책 종료 시간
 
     @Column(nullable = false)
-    private Double startedLat;       // 시작 위치
-
-    @Column(nullable = false)
-    private Double startedLng;       // 시작 위치
-
-    @Column(nullable = false)
     private Integer duration;        // 산책 진행 시간
 
     @Column(nullable = false)
@@ -74,30 +67,19 @@ public class Tracking extends BaseEntity {
     @Column(name = "image_url")
     private List<String> images;
 
-    @Convert(converter = TrackingPathConverter.class)
-    @Column(name = "path", columnDefinition = "LONGTEXT")
-    private List<TrackingPath> path;
-
-    // TODO: 산책 루트를 이용하여 유사도 계산후 저장
-
-
     @Builder
     public Tracking(UUID id, Member member, LocalDateTime startedAt, LocalDateTime endedAt, Integer distance,
-                    Double startedLat, Double startedLng, Visibility visibility, List<TrackingPath> path,
-                    Double averagePace, List<String> images, Integer restDuration) {
+                    Visibility visibility, Double averagePace, List<String> images, Integer restDuration) {
         this.id = id != null ? id : UUID.randomUUID();
         this.member = member;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
-        this.startedLat = startedLat;
-        this.startedLng = startedLng;
         this.averagePace = averagePace;
         this.duration = (int) Duration.between(startedAt, endedAt).getSeconds();
         this.distance = distance;
         this.visibility = visibility;
         this.restDuration = restDuration;
         this.images = images != null ? new ArrayList<>(images) : new ArrayList<>();
-        this.path = path != null ? new ArrayList<>(path) : new ArrayList<>();
     }
 
     public void update(UpdateTrackingDTO updateTrackingDTO) {

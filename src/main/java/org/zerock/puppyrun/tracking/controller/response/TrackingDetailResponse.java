@@ -5,8 +5,9 @@ import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
 import org.zerock.puppyrun.common.s3.support.S3Url;
-import org.zerock.puppyrun.tracking.util.PaceConverter;
 import org.zerock.puppyrun.tracking.entity.Tracking;
+import org.zerock.puppyrun.tracking.entity.RoutePoint;
+import org.zerock.puppyrun.tracking.util.PaceConverter;
 
 @Builder
 public record TrackingDetailResponse(
@@ -31,9 +32,9 @@ public record TrackingDetailResponse(
     ) {
     }
 
-    public static TrackingDetailResponse of(Tracking tracking, UUID diaryId) {
-        List<TrackingPoint> pathPoints = tracking.getPath().stream()
-                .map(p -> new TrackingPoint(p.getLat(), p.getLng(), p.getTime()))
+    public static TrackingDetailResponse of(Tracking tracking, List<RoutePoint> path, UUID diaryId) {
+        List<TrackingPoint> pathPoints = path.stream()
+                .map(p -> new TrackingPoint(p.lat(), p.lng(), p.time()))
                 .toList();
 
         return TrackingDetailResponse.builder()
