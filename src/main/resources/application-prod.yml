@@ -10,7 +10,7 @@ spring:
   jpa:
     hibernate:
       # 애플리케이션 실행 시 엔티티와 테이블을 비교하여 스키마가 올바른지 검증
-      ddl-auto: validate
+      ddl-auto: update
     # 운영 환경에서는 성능을 위해 SQL 로깅을 비활성화합니다.
     show-sql: false
     properties:
