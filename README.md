@@ -1,53 +1,156 @@
-# PuppyRun Backend
+<div align="center">
+  <h1>PuppyRun Backend</h1>
+  <h3>
+    반려견과의 산책을 기록하고, 건강 변화와 활동 통계를 확인하며,<br>
+    날씨와 생활 패턴에 맞는 산책 알림을 받을 수 있는
+    <strong>반려견 산책 관리 서비스</strong>의 백엔드입니다.
+  </h3>
+  <h4>
+    PuppyRun은 GPS 산책 경로, 거리, 시간, 페이스, 휴식 구간과 사진을 기록합니다.<br>
+    기록된 데이터는 반려견별 활동 통계와 산책 일기로 연결되며,<br>
+    최근 산책 지역과 시간대를 분석해 날씨 기반 맞춤형 푸시 알림을 제공합니다.
+  </h4>
+</div>
 
-반려견과의 산책을 기록하고, 건강 변화와 활동 통계를 확인하며, 날씨와 생활 패턴에 맞는 산책 알림을 받을 수 있는 **반려견 산책 관리 서비스**의 백엔드입니다.
+## 기술 스택
 
-PuppyRun은 GPS 산책 경로, 거리, 시간, 페이스, 휴식 구간과 사진을 기록합니다. 기록된 데이터는 반려견별 활동 통계와 산책 일기로 연결되며, 최근 산책 지역과 시간대를 분석해 날씨 기반 맞춤형 푸시 알림을 제공합니다.
+| 영역 | 기술 |
+|---|---|
+| Language | Java 21 |
+| Framework | Spring Boot 3.3.5 |
+| Web | Spring MVC, WebClient, Bean Validation |
+| Security | Spring Security, JWT, BCrypt |
+| Persistence | Spring Data JPA, QueryDSL 5, Hibernate Spatial |
+| Database | MySQL, H2 for test |
+| Cache | Spring Cache, Caffeine |
+| Storage | AWS S3 |
+| Push | Firebase Admin SDK, FCM |
+| Async/Batch | Spring Async, Spring Scheduler, CompletableFuture |
+| Build/Deploy | Gradle, Docker, Docker Compose |
+| Logging | Logback, Discord Appender |
 
-## 주요 기능
 
-### 반려견 관리
+## 시스템 아키텍쳐
 
-- 반려견 기본 정보 등록, 조회, 수정, 삭제
-- 견종별 기본 색상과 기준 몸무게 제공
-- 프로필 이미지 등록 및 기본 이미지 전환
-- 몸무게 변경 이력과 누적 산책 거리 조회
+![데이터플로우](./assets/system_architecture.png)
 
-### 산책 기록
+## 주요 데이터 흐름
 
-- 산책 시작·종료 시각, 거리, 평균 페이스, 휴식 시간 저장
-- GPS 원본 경로와 공간 분석용 `Point`, `LineString` 데이터 저장
-- 여러 반려견과 하나의 산책 기록 연결
-- 산책 사진 업로드와 공개 범위 관리
-- 산책 목록, 상세 조회, 수정, 삭제
+### 1 인증된 API 요청
 
-### 산책 일기
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client
+    participant Filter as JWT Filter
+    participant Controller
+    participant Service
+    participant Repository
+    participant DB as MySQL
 
-- 산책 기록과 연결된 일기 작성
-- 제목, 내용, 작성 시각, 날씨, 사진 저장
-- 산책 경로를 포함한 일기 상세 조회
-- 작성자 소유권 검증과 일기 수정·삭제
+    Client->>Filter: REST API + Bearer Access Token
+    Filter->>Filter: JWT 서명, 만료, 사용자 정보 검증
+    Filter->>Controller: UserPrincipal 설정 후 요청 전달
+    Controller->>Service: Request DTO + 사용자 ID
+    Service->>Repository: 비즈니스 조회 또는 변경
+    Repository->>DB: JPA / QueryDSL SQL
+    DB-->>Repository: 조회 또는 저장 결과
+    Repository-->>Service: Entity / Projection
+    Service-->>Controller: Response DTO
+    Controller-->>Client: JSON Response
+```
 
-### 활동 통계
+### 2 산책 기록 및 이미지 저장
 
-- 일별 산책 내역과 하루 누적 거리·시간·횟수 제공
-- 최근 7일 활동 차트와 반려견별 주간 비교 제공
-- 반려견별 거리, 시간, 속도, 빈도, 휴식 시간 분석
-- 연간 월별 요약과 월간 기여도 차트 제공
-- 반려견 몸무게 변화 이력 제공
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client
+    participant API as TrackingController
+    participant Service as TrackingCommandService
+    participant S3Service
+    participant S3 as AWS S3
+    participant DB as MySQL
+    participant Rollback as S3RollbackHandler
 
-### 날씨 및 맞춤 알림
+    Client->>API: 산책 정보 + GPS 경로 + 사진
+    API->>Service: 산책 등록 요청
+    Service->>S3Service: 사진 병렬 업로드
+    S3Service->>S3: Object 저장
+    S3-->>S3Service: Object Key
+    S3Service-->>Rollback: 롤백 정리 이벤트 등록
+    S3Service-->>Service: 이미지 Key 목록
+    Service->>DB: Tracking 저장
+    Service->>DB: TrackingRoute 저장
+    Service->>DB: PetTracking 저장
 
-- 기상청 API 기반 현재 날씨와 예보 조회
-- 지역별 날씨 데이터를 Caffeine Cache에 주기적으로 갱신
-- Firebase Cloud Messaging 기반 푸시 알림 발송
-- 전체·유형별 알림 동의와 FCM 토픽 구독 관리
-- 최근 30일 산책 기록을 분석해 평일·주말 선호 시간대 계산
-- 최근 산책 지역, 선호 시간대, 예보를 조합한 산책 가이드 발송
+    alt DB 트랜잭션 성공
+        Service-->>API: 등록 완료
+        API-->>Client: 200 OK
+    else DB 트랜잭션 롤백
+        Rollback-->>S3: 업로드 이미지 삭제
+        API-->>Client: Error Response
+    end
+```
 
-## 서비스 구조
+### 3 날씨 조회 및 캐시 갱신
 
-![데이터플로우](./assets/data_folow.png)
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Scheduler as WeatherScheduler
+    participant Service as WeatherService
+    participant Client as WeatherApiClient
+    participant API as 기상청 API
+    participant Cache as Caffeine Cache
+    actor User
+
+    loop 매시 정각
+        Scheduler->>Client: 지역별 초단기 예보 요청
+        Client->>API: WebClient GET
+        API-->>Client: JSON Forecast
+        Client-->>Scheduler: WeatherApiResponse
+        Scheduler->>Cache: 지역별 예보 갱신
+    end
+
+    User->>Service: 지역 날씨 조회
+    alt Cache Hit
+        Cache-->>Service: WeatherDTO 목록
+    else Cache Miss
+        Service->>Client: 예보 요청
+        Client->>API: WebClient GET
+        API-->>Client: JSON Forecast
+        Client-->>Service: WeatherApiResponse
+        Service->>Cache: 결과 저장
+    end
+    Service-->>User: 현재 날씨 또는 예보
+```
+
+### 4 산책 리마인드 알림
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Scheduler as WalkingRemindScheduler
+    participant Processor as NotificationProcessor
+    participant Repository as NotificationRepository
+    participant Sender as ReminderSender
+    participant FCMClient as NotificationEventClient
+    participant FCM as Firebase FCM
+    actor Client
+
+    Scheduler->>Processor: 매일 20:00 리마인드 실행
+    Processor->>Repository: 수신 가능 사용자 1,000명씩 조회
+    Repository-->>Processor: EnabledNotifications
+    Processor->>Sender: 사용자별 PushTask 생성
+    Sender-->>Processor: PushTask 목록
+    Processor->>FCMClient: 최대 500건 단위 발송
+    FCMClient-->>FCM: 비동기 메시지 전송
+    FCM-->>Client: Push Notification
+    FCM-->>FCMClient: 성공 / 실패 결과
+    FCMClient->>Repository: 만료 토큰 비활성화
+```
+
 
 ## 패키지 구조
 
@@ -60,7 +163,7 @@ org.zerock.puppyrun
 │   │   └── response
 │   ├── DTO
 │   └── service
-│       └── 회원가입, 로그인, JWT 발급·재발급
+│       └── 회원가입, 로그인, JWT 발급,재발급
 ├── member
 │   ├── controller
 │   │   ├── request
@@ -70,7 +173,7 @@ org.zerock.puppyrun
 │   ├── exception
 │   ├── repository
 │   └── service
-│       └── 계정 조회, 비밀번호·닉네임 변경
+│       └── 계정 조회, 비밀번호,닉네임 변경
 ├── pet
 │   ├── controller
 │   │   ├── request
@@ -98,13 +201,13 @@ org.zerock.puppyrun
 │   ├── entity
 │   ├── repository
 │   └── service
-│       └── 산책 일기와 사진·날씨 정보 관리
+│       └── 산책 일기와 사진,날씨 정보 관리
 ├── statistics
 │   ├── controller
 │   │   └── Response
 │   ├── DTO
 │   └── service
-│       └── 일간·주간·월간 및 반려견별 통계 집계
+│       └── 일간,주간,월간 및 반려견별 통계 집계
 ├── weather
 │   ├── controller
 │   │   └── response
@@ -156,29 +259,11 @@ org.zerock.puppyrun
 - `PetTracking`은 하나의 산책에 여러 반려견이 참여할 수 있도록 연결합니다.
 - `TrackingRoute`는 산책 원본 좌표와 공간 검색용 경로를 함께 보관합니다.
 - `Diary`는 산책과 연결되지만, 산책이 삭제된 뒤에도 독립적으로 유지될 수 있습니다.
-- `WalkingPreference`는 최근 산책 위치와 평일·주말 선호 시간대를 저장합니다.
-- `WalkingPreference`는 회원의 최근 산책 지역과 평일·주말 선호 산책 시간대를 저장하여, 개인화된 산책 추천과 알림 기능에 활용할 수 있도록 구성했습니다.
+- `WalkingPreference`는 최근 산책 위치와 평일,주말 선호 시간대를 저장합니다.
+- `WalkingPreference`는 회원의 최근 산책 지역과 평일,주말 선호 산책 시간대를 저장하여, 개인화된 산책 추천과 알림 기능에 활용할 수 있도록 구성했습니다.
 - `NotificationSettings`는 회원별 알림 설정 정보를 관리하며, FCM 토큰, 활성화 여부, 푸시 알림 동의 여부를 저장합니다.
 
 - `NotificationOptOuts`는 알림 타입별 수신 거부 정보를 관리하여, 사용자가 특정 유형의 알림만 선택적으로 비활성화할 수 있도록 설계했습니다.
-## 기술 스택
-
-| 영역 | 기술 |
-|---|---|
-| Language | Java 21 |
-| Framework | Spring Boot 3.3.5 |
-| Web | Spring MVC, WebClient, Bean Validation |
-| Security | Spring Security, JWT, BCrypt |
-| Persistence | Spring Data JPA, QueryDSL 5, Hibernate Spatial |
-| Database | MySQL, H2 for test |
-| Cache | Spring Cache, Caffeine |
-| Storage | AWS S3 |
-| Push | Firebase Admin SDK, FCM |
-| Async/Batch | Spring Async, Spring Scheduler, CompletableFuture |
-| Build/Deploy | Gradle, Docker, Docker Compose |
-| Logging | Logback, Discord Appender |
-
-
 ## 커밋 컨벤션
 
 | 커밋 타입 | 설명 | 예시 커밋 메시지 |
