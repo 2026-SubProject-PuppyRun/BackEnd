@@ -99,6 +99,10 @@ public class Pet extends BaseEntity {
         this.weight = weight;
     }
 
+    public void refreshWalkedDistance(int walkedDistance) {
+        this.walkedDistance = walkedDistance;
+    }
+
     public void setDefaultProfile() {
         this.profileImageUrl = null;
     }

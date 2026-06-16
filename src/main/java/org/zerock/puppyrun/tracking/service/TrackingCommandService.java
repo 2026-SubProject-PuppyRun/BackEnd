@@ -133,6 +133,7 @@ public class TrackingCommandService {
      */
     public void deleteTracking(UUID memberId, UUID trackingId) {
         Tracking tracking = trackingRepository.findByIdAndVerifyOwnership(trackingId, memberId);
+        List<Pet> petList = petTrackingRepository.findAllPetsByTrackingId(trackingId);
 
         // 연관된 일기가 있다면 tracking_id를 null로 변경
         diaryRepository.findByTrackingId(trackingId)
@@ -144,6 +145,8 @@ public class TrackingCommandService {
         trackingRouteRepository.deleteById(trackingId);
 
         trackingRepository.delete(tracking);
+        trackingRepository.flush();
+        refreshPetWalkedDistances(petList);
 
         if (!images.isEmpty()) {
             s3Service.deleteAll(images);
@@ -176,6 +179,14 @@ public class TrackingCommandService {
                 .toList();
 
         petTrackingRepository.saveAll(petTrackingList);
+        refreshPetWalkedDistances(petList);
 
+    }
+
+    private void refreshPetWalkedDistances(List<Pet> petList) {
+        petList.forEach(pet -> {
+            int walkedDistance = petTrackingRepository.sumTotalDistanceByPetId(pet.getId());
+            pet.refreshWalkedDistance(walkedDistance);
+        });
     }
 }

@@ -21,6 +21,7 @@ import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.MainTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.TrackingDetailSummary;
+import org.zerock.puppyrun.tracking.DTO.TotalMemberTracking;
 import org.zerock.puppyrun.tracking.entity.RoutePoint;
 import org.zerock.puppyrun.tracking.entity.Tracking;
 import org.zerock.puppyrun.tracking.entity.TrackingRoute;
@@ -366,6 +367,26 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
                 )
                 .groupBy(tracking.member.id)
                 .fetch();
+    }
+
+    @Override
+    public TotalMemberTracking getTotalTrackingSummaryByMemberId(UUID memberId) {
+        var distanceSumPath = tracking.distance.sum().coalesce(0);
+        var durationSumPath = tracking.duration.sum().coalesce(0);
+        var trackingCountPath = tracking.id.count();
+
+        Tuple result = queryFactory
+                .select(distanceSumPath, durationSumPath, trackingCountPath)
+                .from(tracking)
+                .where(tracking.member.id.eq(memberId))
+                .fetchOne();
+
+        return TotalMemberTracking.builder()
+                .memberId(memberId)
+                .totalDistance(result != null ? result.get(distanceSumPath) : 0)
+                .totalDuration(result != null ? result.get(durationSumPath) : 0)
+                .totalCount(result != null ? result.get(trackingCountPath) : 0L)
+                .build();
     }
 
 }

@@ -19,6 +19,7 @@ import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.entity.PetWeightLog;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.statistics.service.PetStatistics;
+import org.zerock.puppyrun.tracking.DTO.TotalPetStat;
 
 @Service
 @Slf4j
@@ -37,7 +38,9 @@ public class PetQueryService {
      */
     public PetDetailResponse getPet(UserPrincipal userPrincipal, UUID petId) {
         Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
-        return PetDetailResponse.of(pet);
+        int walkedDistance = petStatistics.getTotalWalkedDistance(pet);
+        int walkedDuration = petStatistics.getTotalWalkedDuration(pet);
+        return PetDetailResponse.of(pet, walkedDistance, walkedDuration);
     }
 
     /**
@@ -48,7 +51,13 @@ public class PetQueryService {
      */
     public PetListResponse getPetList(UserPrincipal userPrincipal) {
         List<Pet> petList = petRepository.findAllByMemberId(userPrincipal.id());
-        return PetListResponse.of(petList);
+        List<UUID> petIds = petList.stream()
+                .map(Pet::getId)
+                .toList();
+        Map<UUID, Integer> walkedDistances = petStatistics.getTotalPetTrackingSummary(petIds).stream()
+                .collect(Collectors.toMap(TotalPetStat::petId, TotalPetStat::totalDistance));
+
+        return PetListResponse.of(petList, walkedDistances);
     }
 
     /**

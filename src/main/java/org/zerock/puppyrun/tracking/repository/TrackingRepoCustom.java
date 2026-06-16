@@ -13,6 +13,7 @@ import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.MainTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.TrackingDetailSummary;
 import org.zerock.puppyrun.tracking.entity.Tracking;
+import org.zerock.puppyrun.tracking.DTO.TotalMemberTracking;
 
 public interface TrackingRepoCustom {
 
@@ -79,4 +80,6 @@ public interface TrackingRepoCustom {
      * @return 기간 내 산책 기록이 있는 회원별 집계 목록
      */
     List<DailyMemberStat> findMemberIdsByDate(List<UUID> memberIds, LocalDate startDate, LocalDate endDate);
+
+    TotalMemberTracking getTotalTrackingSummaryByMemberId(UUID memberId);
 }

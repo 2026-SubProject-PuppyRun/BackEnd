@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 import lombok.Builder;
 import org.zerock.puppyrun.common.s3.support.S3Url;
+import org.zerock.puppyrun.gamification.DTO.LevelInfo;
 import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.entity.PetBadge;
 
@@ -23,6 +24,7 @@ public record PetDetailResponse(
         String profileImageUrl,
         Boolean isNeutered,
         String gender,
+        LevelInfo levelInfo,
         BadgeInfo badgeInfo,
         String mbti
 ) {
@@ -31,6 +33,14 @@ public record PetDetailResponse(
      * Pet 엔티티를 PetDetailResponse DTO로 변환하는 정적 팩토리 메서드
      */
     public static PetDetailResponse of(Pet pet) {
+        return of(pet, pet.getWalkedDistance(), 0);
+    }
+
+    public static PetDetailResponse of(Pet pet, int walkedDistance) {
+        return of(pet, walkedDistance, 0);
+    }
+
+    public static PetDetailResponse of(Pet pet, int walkedDistance, int walkedDuration) {
         return PetDetailResponse.builder()
                 .PetId(pet.getId())
                 .name(pet.getName())
@@ -41,7 +51,8 @@ public record PetDetailResponse(
                 .breedCode(pet.getBreed().getCode())
                 .isNeutered(pet.getIsNeutered())
                 .gender(pet.getGender())
-                .badgeInfo(BadgeInfo.from(pet.getWalkedDistance()))
+                .levelInfo(LevelInfo.of(walkedDistance, walkedDuration))
+                .badgeInfo(BadgeInfo.from(walkedDistance))
                 .mbti(pet.getMbti())
                 .build();
     }

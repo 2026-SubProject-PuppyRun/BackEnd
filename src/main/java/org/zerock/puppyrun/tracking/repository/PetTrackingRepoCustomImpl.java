@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.zerock.puppyrun.tracking.DTO.TotalPetStat;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
 
 import static org.zerock.puppyrun.pet.entity.QPet.pet;
@@ -71,6 +72,26 @@ public class PetTrackingRepoCustomImpl implements PetTrackingRepoCustom {
                 )
                 .where(pet.id.in(petId))
                 .groupBy(pet.id, pet.name, pet.profileImageUrl, pet.color, pet.walkedDistance)
+                .fetch();
+    }
+
+    @Override
+    public List<TotalPetStat> getTotalTrackingSummaryByPetIds(List<UUID> petIds) {
+        return queryFactory
+                .select(Projections.constructor(TotalPetStat.class,
+                        pet.id,
+                        pet.name,
+                        pet.profileImageUrl,
+                        pet.color,
+                        tracking.distance.sum().coalesce(0),
+                        tracking.duration.sum().coalesce(0),
+                        tracking.count()
+                ))
+                .from(pet)
+                .leftJoin(petTracking).on(petTracking.pet.eq(pet))
+                .leftJoin(petTracking.tracking, tracking)
+                .where(pet.id.in(petIds))
+                .groupBy(pet.id, pet.name, pet.profileImageUrl, pet.color)
                 .fetch();
     }
 

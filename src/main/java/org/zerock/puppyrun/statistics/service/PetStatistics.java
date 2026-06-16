@@ -12,6 +12,7 @@ import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.entity.PetWeightLog;
 import org.zerock.puppyrun.pet.repository.PetWeightLogRepository;
+import org.zerock.puppyrun.tracking.DTO.TotalPetStat;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
 import org.zerock.puppyrun.tracking.repository.PetTrackingRepository;
 
@@ -110,5 +111,15 @@ public class PetStatistics {
         return petTrackingRepository.getTrackingSummaryByPetId(petId, startDate, targetDay);
     }
 
+    /**
+     * 펫들의 전체 산책 누적 통계를 조회합니다.
+     */
+    public List<TotalPetStat> getTotalPetTrackingSummary(List<UUID> petIds) {
+        if (petIds.isEmpty()) {
+            return List.of();
+        }
+
+        return petTrackingRepository.getTotalTrackingSummaryByPetIds(petIds);
+    }
 
 }
