@@ -1,6 +1,6 @@
 <div align="center">
   <h1>PuppyRun Backend</h1>
-  <img src="./assets/app-icon_1.png" alt="앱아이콘">
+  <img src="./assets/app-icon.png" alt="앱아이콘">
   <br>
   <h3>
     반려견과의 산책을 기록하고, 건강 변화와 활동 통계를 확인하며,<br>
