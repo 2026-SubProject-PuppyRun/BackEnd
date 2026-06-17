@@ -1,5 +1,7 @@
 <div align="center">
   <h1>PuppyRun Backend</h1>
+  <img src="./assets/app-icon_1.png" alt="앱아이콘">
+  <br>
   <h3>
     반려견과의 산책을 기록하고, 건강 변화와 활동 통계를 확인하며,<br>
     날씨와 생활 패턴에 맞는 산책 알림을 받을 수 있는
@@ -18,8 +20,7 @@
 |---|---|
 | Language | Java 21 |
 | Framework | Spring Boot 3.3.5 |
-| Web | Spring MVC, WebClient, Bean Validation |
-| Security | Spring Security, JWT, BCrypt |
+| Security | Spring Security, JWT |
 | Persistence | Spring Data JPA, QueryDSL 5, Hibernate Spatial |
 | Database | MySQL, H2 for test |
 | Cache | Spring Cache, Caffeine |
