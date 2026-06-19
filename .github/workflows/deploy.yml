@@ -1,16 +1,18 @@
 name: Deploy to EC2
 
 on:
-  push:
-    branches:
-      - dev
   workflow_dispatch:
-    inputs:
-      build_required:
-        description: '코드 변경 시 필수 체크 (단순 .env 수정 시에는 해제하세요)'
-        required: true
-        default: true
-        type: boolean
+#  push:
+#    branches:
+#      - dev
+#  workflow_dispatch:
+#    inputs:
+#      build_required:
+#        description: '코드 변경 시 필수 체크 (단순 .env 수정 시에는 해제하세요)'
+#        required: true
+#        default: true
+#        type: boolean
+
 
 jobs:
   deploy:
