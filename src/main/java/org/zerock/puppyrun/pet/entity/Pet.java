@@ -91,6 +91,9 @@ public class Pet extends BaseEntity {
         this.gender = dto.gender();
     }
 
+    public void updateWeight(Double weight) {
+        this.weight = weight;
+    }
 
     public void setDefaultProfile() {
         this.profileImageUrl = null;

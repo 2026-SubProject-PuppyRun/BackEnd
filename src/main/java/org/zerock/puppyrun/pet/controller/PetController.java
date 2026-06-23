@@ -17,10 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.pet.controller.request.RegisterPetRequest;
+import org.zerock.puppyrun.pet.controller.request.RegisterPetWeightLogRequest;
 import org.zerock.puppyrun.pet.controller.request.UpdatePetRequest;
 import org.zerock.puppyrun.pet.controller.response.PetDetailResponse;
 import org.zerock.puppyrun.pet.controller.response.PetListResponse;
 import org.zerock.puppyrun.pet.controller.response.PetUpdateResponse;
+import org.zerock.puppyrun.pet.controller.response.PetWeightRecordResponse;
 import org.zerock.puppyrun.pet.controller.response.PetWeightLogResponse;
 import org.zerock.puppyrun.pet.service.PetCommandService;
 import org.zerock.puppyrun.pet.service.PetQueryService;
@@ -117,6 +119,19 @@ public class PetController {
     ) {
         petCommandService.deletePet(userPrincipal, petId);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 펫 몸무게 기록 등록
+     */
+    @PostMapping("/{petId}/weight-logs")
+    public ResponseEntity<PetWeightRecordResponse> registerPetWeightLog(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable UUID petId,
+            @RequestBody @Valid RegisterPetWeightLogRequest request
+    ) {
+        PetWeightRecordResponse response = petCommandService.registerPetWeightLog(userPrincipal, petId, request);
+        return ResponseEntity.ok(response);
     }
 
     /**

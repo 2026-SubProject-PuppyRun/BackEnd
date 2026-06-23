@@ -13,11 +13,14 @@ import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.repository.MemberRepository;
 import org.zerock.puppyrun.pet.DTO.UpdatePetDTO;
 import org.zerock.puppyrun.pet.controller.request.RegisterPetRequest;
+import org.zerock.puppyrun.pet.controller.request.RegisterPetWeightLogRequest;
 import org.zerock.puppyrun.pet.controller.request.UpdatePetRequest;
 import org.zerock.puppyrun.pet.controller.response.PetDetailResponse;
 import org.zerock.puppyrun.pet.controller.response.PetUpdateResponse;
+import org.zerock.puppyrun.pet.controller.response.PetWeightRecordResponse;
 import org.zerock.puppyrun.pet.entity.Breed;
 import org.zerock.puppyrun.pet.entity.Pet;
+import org.zerock.puppyrun.pet.entity.PetWeightLog;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.statistics.service.PetStatistics;
 
@@ -85,6 +88,21 @@ public class PetCommandService {
         petStatistics.savePetWeightLog(pet, request.weight());
 
         return PetUpdateResponse.of(pet);
+    }
+
+    public PetWeightRecordResponse registerPetWeightLog(
+            UserPrincipal userPrincipal,
+            UUID petId,
+            RegisterPetWeightLogRequest request
+    ) {
+        Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
+        pet.updateWeight(request.weight());
+        petRepository.save(pet);
+
+        petStatistics.savePetWeightLog(pet, request.weight());
+
+        PetWeightLog latestPetWeightLog = petStatistics.getLatestPetWeightLog(pet.getId());
+        return PetWeightRecordResponse.of(latestPetWeightLog);
     }
 
 
