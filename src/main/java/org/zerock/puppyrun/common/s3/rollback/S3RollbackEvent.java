@@ -8,17 +8,7 @@ import java.util.List;
  */
 public record S3RollbackEvent(List<String> filePaths) {
 
-    /**
-     * 단일 파일 경로로 이벤트를 생성합니다.
-     */
-    public static S3RollbackEvent of(String filePath) {
-        return new S3RollbackEvent(List.of(filePath));
-    }
-
-    /**
-     * 여러 파일 경로 리스트로 이벤트를 생성합니다.
-     */
-    public static S3RollbackEvent listOf(List<String> filePaths) {
-        return new S3RollbackEvent(filePaths);
+    public S3RollbackEvent {
+        filePaths = List.copyOf(filePaths);
     }
 }
