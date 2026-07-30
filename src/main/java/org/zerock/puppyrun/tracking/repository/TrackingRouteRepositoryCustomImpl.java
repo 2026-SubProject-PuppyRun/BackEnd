@@ -24,7 +24,7 @@ import org.zerock.puppyrun.tracking.entity.Visibility;
  * 위치 기반 추천 경로 조회를 QueryDSL로 구현합니다.
  *
  * <p>MySQL이 공개 여부 조인을 먼저 수행하면 {@code start_point} 공간 인덱스를 사용하지 않을 수 있습니다.
- * 이를 방지하기 위해 공간 인덱스로 거리순 후보 ID를 먼저 조회하고, 후보의 공개 여부와 연관 {@link org.zerock.puppyrun.tracking.entity.Tracking} 정보를 두 번째
+ * 이를 방지하기 위해 공간 인덱스로 거리순 후보 ID를 먼저 조회하고, 후보의 공개 여부를 두 번째
  * 쿼리에서 확인합니다.</p>
  */
 @Repository
@@ -93,7 +93,7 @@ public class TrackingRouteRepositoryCustomImpl implements TrackingRouteRepositor
                 break;
             }
 
-            // 후보의 공개 여부를 확인하면서 응답에 필요한 Tracking까지 한 번에 로딩합니다.
+            // 후보의 공개 여부를 확인하고 거리순 후보 순서를 복원합니다.
             Map<UUID, TrackingRoute> publicRoutesById = findPublicRoutesById(candidateIds);
             for (UUID candidateId : candidateIds) {
                 TrackingRoute route = publicRoutesById.get(candidateId);
@@ -148,7 +148,7 @@ public class TrackingRouteRepositoryCustomImpl implements TrackingRouteRepositor
     }
 
     /**
-     * 후보 중 공개 경로만 조회하고 응답 생성에 필요한 Tracking 연관 객체를 fetch join합니다.
+     * 후보 중 공개 경로만 조회합니다.
      *
      * @param candidateIds 공간 검색으로 선별한 경로 ID
      * @return 경로 ID를 키로 갖는 공개 경로 Map
@@ -156,7 +156,7 @@ public class TrackingRouteRepositoryCustomImpl implements TrackingRouteRepositor
     private Map<UUID, TrackingRoute> findPublicRoutesById(List<UUID> candidateIds) {
         List<TrackingRoute> publicRoutes = queryFactory
                 .selectFrom(trackingRoute)
-                .join(trackingRoute.tracking, tracking).fetchJoin()
+                .join(trackingRoute.tracking, tracking)
                 .where(
                         trackingRoute.trackingId.in(candidateIds),
                         tracking.visibility.eq(Visibility.PUBLIC)
