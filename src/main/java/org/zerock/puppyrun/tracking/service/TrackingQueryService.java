@@ -77,7 +77,7 @@ public class TrackingQueryService {
                 limit
         );
 
-        return RecommendedRouteResponse.from(routes, latitude, longitude);
+        return RecommendedRouteResponse.from(routes);
     }
 
     /**
