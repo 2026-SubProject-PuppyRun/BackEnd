@@ -1,6 +1,8 @@
 package org.zerock.puppyrun.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.ResponseEntity;
@@ -67,6 +69,34 @@ public class GlobalExceptionHandler {
                 .status(errorCode.getHttpStatus())
                 .body(errorResponse);
 
+    }
+
+    /**
+     * Controller 메서드의 {@code @RequestParam}, {@code @PathVariable} 검증 실패를 처리합니다.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolationException(
+            ConstraintViolationException e,
+            HttpServletRequest request) {
+        log.warn("ConstraintViolationException: {}", e.getMessage());
+
+        String errorMessage = e.getConstraintViolations()
+                .stream()
+                .findFirst()
+                .map(ConstraintViolation::getMessage)
+                .orElse("입력값이 올바르지 않습니다.");
+
+        ErrorCode errorCode = ErrorCode.INVALID_REQUEST;
+        ErrorResponse errorResponse = ErrorResponse.of(
+                errorCode.getCode(),
+                errorCode.getDescription(),
+                errorMessage,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(errorResponse);
     }
 
 
