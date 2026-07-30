@@ -58,9 +58,10 @@ public class DiaryService {
         UUID newDiaryId = UUID.randomUUID();
         LocalDate today = LocalDate.now();
 
-        List<String> imagesUrl = imageFiles.stream()
-                .map(file -> s3Service.upload(file, new DiaryPhotoContext(newDiaryId, today)))
-                .toList();
+        List<String> imagesUrl = s3Service.uploadAll(
+                imageFiles,
+                new DiaryPhotoContext(newDiaryId, today)
+        );
 
         SkyType skyType = SkyType.fromCode(request.weather().sky());  // 날씨 코드 변환
         PrecipitationType precipitationType = PrecipitationType.fromCode(request.weather().pty()); // 날씨 코드 변환
