@@ -1,4 +1,4 @@
-package org.zerock.puppyrun.auth.controller;
+package org.zerock.puppyrun.auth.local.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,15 +10,15 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.zerock.puppyrun.auth.controller.response.CheckResponse;
-import org.zerock.puppyrun.auth.controller.response.SignInResponse;
-import org.zerock.puppyrun.auth.controller.response.SignUpResponse;
-import org.zerock.puppyrun.auth.controller.response.TokenReissuanceResponse;
-import org.zerock.puppyrun.member.DTO.MemberDTO;
+import org.zerock.puppyrun.auth.local.controller.response.CheckResponse;
+import org.zerock.puppyrun.auth.local.controller.response.SignInResponse;
+import org.zerock.puppyrun.auth.local.controller.response.SignUpResponse;
+import org.zerock.puppyrun.auth.local.controller.response.TokenReissuanceResponse;
 import org.zerock.puppyrun.auth.DTO.TokenDTO;
-import org.zerock.puppyrun.auth.controller.request.SignInRequest;
-import org.zerock.puppyrun.auth.controller.request.SignUpRequest;
-import org.zerock.puppyrun.auth.service.AuthService;
+import org.zerock.puppyrun.auth.local.controller.request.SignInRequest;
+import org.zerock.puppyrun.auth.local.controller.request.SignUpRequest;
+import org.zerock.puppyrun.auth.local.service.AuthService;
+import org.zerock.puppyrun.member.DTO.MemberDTO;
 
 @RequiredArgsConstructor
 @RestController

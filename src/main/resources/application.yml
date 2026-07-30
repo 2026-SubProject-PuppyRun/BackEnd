@@ -36,3 +36,11 @@ data-kr:
 
 firebase:
   account-path: ${FCM_ACCOUNT_PATH}
+
+social-oauth2:
+  google:
+    client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
+    client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET:}
+  kakao:
+    client-id: ${KAKAO_OAUTH_CLIENT_ID:}
+    client-secret: ${KAKAO_OAUTH_CLIENT_SECRET:}

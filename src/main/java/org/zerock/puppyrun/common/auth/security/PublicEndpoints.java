@@ -12,6 +12,7 @@ public final class PublicEndpoints {
             "/api/auth/reset-password",    // 비밀번호 재설정
             "/api/verification/confirm",    // 본인 확인
             "/api/auth/refresh",            // 토큰 갱신
+            "/api/oauth2/*/sign-in",        // 소셜 로그인
             "/images/default/**"            // 기본 이미지
     );
 }

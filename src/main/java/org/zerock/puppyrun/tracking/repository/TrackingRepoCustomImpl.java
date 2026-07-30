@@ -6,11 +6,13 @@ import com.querydsl.core.types.dsl.DateTemplate;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
@@ -19,12 +21,41 @@ import org.zerock.puppyrun.tracking.entity.Tracking;
 
 
 import static org.zerock.puppyrun.diary.entity.QDiary.diary;
+import static org.zerock.puppyrun.member.entity.QMember.member;
 import static org.zerock.puppyrun.tracking.entity.QTracking.tracking;
 
 @Repository
 @RequiredArgsConstructor
 public class TrackingRepoCustomImpl implements TrackingRepoCustom {
     private final JPAQueryFactory queryFactory;
+
+    @Override
+    public List<UUID> findActiveMemberIds(LocalDateTime startDateTime, Pageable pageable) {
+        return queryFactory
+                .select(tracking.member.id)
+                .distinct()
+                .from(tracking)
+                .where(tracking.startedAt.goe(startDateTime))
+                .orderBy(tracking.member.id.asc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+    }
+
+    @Override
+    public List<Tracking> findAllByMemberIdsAndDateRange(
+            List<UUID> memberIds,
+            LocalDateTime startDateTime
+    ) {
+        return queryFactory
+                .selectFrom(tracking)
+                .join(tracking.member, member).fetchJoin()
+                .where(
+                        tracking.member.id.in(memberIds),
+                        tracking.startedAt.goe(startDateTime)
+                )
+                .fetch();
+    }
 
     @Override
     public List<DailyTrackingSummary> getTrackingSummaryDateAsc(UUID memberId, LocalDate startDate, LocalDate endDate) {

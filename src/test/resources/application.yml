@@ -50,10 +50,17 @@ data-kr:
   api-key: api-key
   forecest-url: http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0
 
+social-oauth2:
+  google:
+    client-id: google-client-id
+    client-secret: google-client-secret
+  kakao:
+    client-id: kakao-client-id
+    client-secret: kakao-client-secret
+
 logging:
   level:
     root: INFO
     com.puppyrun: DEBUG
     org.hibernate: WARN
-
 
