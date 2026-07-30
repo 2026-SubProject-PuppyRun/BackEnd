@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -21,6 +22,7 @@ import org.zerock.puppyrun.common.s3.rollback.S3RollbackEvent;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -80,7 +82,9 @@ class S3ServiceTest {
 
             assertThat(result).isNotNull();
             verify(s3Template, times(1)).upload(any(), any(), any(), any());
-            verify(eventPublisher, times(1)).publishEvent(any(S3RollbackEvent.class));
+            ArgumentCaptor<S3RollbackEvent> eventCaptor = ArgumentCaptor.forClass(S3RollbackEvent.class);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+            assertThat(eventCaptor.getValue().filePaths()).containsExactly(result);
         }
     }
 
@@ -106,7 +110,9 @@ class S3ServiceTest {
 
             assertThat(results).hasSize(1);
             verify(s3Template, times(1)).upload(any(), any(), any(), any());
-            verify(eventPublisher, times(1)).publishEvent(any(S3RollbackEvent.class));
+            ArgumentCaptor<S3RollbackEvent> eventCaptor = ArgumentCaptor.forClass(S3RollbackEvent.class);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+            assertThat(eventCaptor.getValue().filePaths()).containsExactlyElementsOf(results);
         }
 
         @Test
@@ -121,6 +127,32 @@ class S3ServiceTest {
             assertThat(results).hasSize(1); // 정상 파일 1개만 성공
             verify(s3Template, times(1)).upload(any(), any(), any(), any());
             verify(eventPublisher, times(1)).publishEvent(any(S3RollbackEvent.class));
+        }
+
+        @Test
+        @DisplayName("다중 업로드가 일부 실패하면 성공한 파일을 롤백 이벤트에 등록한다")
+        void uploadAll_partial_failure_registers_successful_files_for_rollback() {
+            MockMultipartFile successFile =
+                    new MockMultipartFile("file", "success.png", "image/png", "success".getBytes());
+            MockMultipartFile failFile =
+                    new MockMultipartFile("file", "fail.png", "image/png", "fail".getBytes());
+
+            doAnswer(invocation -> {
+                String key = invocation.getArgument(1, String.class);
+                if (key.endsWith("_fail.png")) {
+                    throw new RuntimeException("S3 upload failed");
+                }
+                return null;
+            }).when(s3Template).upload(any(), any(), any(), any());
+
+            assertThatThrownBy(() -> s3Service.uploadAll(List.of(successFile, failFile), dummyPath))
+                    .isInstanceOf(CompletionException.class)
+                    .hasRootCauseMessage("S3 upload failed");
+
+            ArgumentCaptor<S3RollbackEvent> eventCaptor = ArgumentCaptor.forClass(S3RollbackEvent.class);
+            verify(eventPublisher).publishEvent(eventCaptor.capture());
+            assertThat(eventCaptor.getValue().filePaths()).hasSize(1);
+            assertThat(eventCaptor.getValue().filePaths().getFirst()).endsWith("_success.png");
         }
     }
 
