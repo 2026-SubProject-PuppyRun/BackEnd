@@ -45,4 +45,5 @@ public class TrackingQueryService {
 
         return TrackingDetailResponse.of(tracking, path, diaryId);
     }
+
 }
