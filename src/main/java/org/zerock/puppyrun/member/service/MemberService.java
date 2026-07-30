@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.zerock.puppyrun.auth.service.AuthService;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.member.DTO.MemberDTO;
 import org.zerock.puppyrun.member.entity.Member;
@@ -19,7 +18,6 @@ import org.zerock.puppyrun.member.repository.MemberRepository;
 @Slf4j
 @Transactional(readOnly = true)
 public class MemberService {
-    private final AuthService authService;
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
 
