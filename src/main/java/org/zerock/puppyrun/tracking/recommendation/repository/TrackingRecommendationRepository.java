@@ -1,4 +1,4 @@
-package org.zerock.puppyrun.tracking.repository;
+package org.zerock.puppyrun.tracking.recommendation.repository;
 
 import java.util.List;
 import org.zerock.puppyrun.tracking.entity.TrackingRoute;
@@ -8,7 +8,7 @@ import org.zerock.puppyrun.tracking.entity.TrackingRoute;
  *
  * <p>추천 조건이 늘어날 때 기본 JpaRepository를 변경하지 않고 구현체에서 동적 조건을 조합할 수 있습니다.</p>
  */
-public interface TrackingRouteRepositoryCustom {
+public interface TrackingRecommendationRepository {
 
     /**
      * 사용자 위치 주변에서 시작하는 공개 산책 경로를 가까운 순서로 조회합니다.

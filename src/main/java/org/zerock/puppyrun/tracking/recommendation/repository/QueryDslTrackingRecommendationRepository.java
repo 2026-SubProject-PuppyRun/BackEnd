@@ -1,4 +1,4 @@
-package org.zerock.puppyrun.tracking.repository;
+package org.zerock.puppyrun.tracking.recommendation.repository;
 
 import static org.zerock.puppyrun.tracking.entity.QTracking.tracking;
 import static org.zerock.puppyrun.tracking.entity.QTrackingRoute.trackingRoute;
@@ -29,7 +29,7 @@ import org.zerock.puppyrun.tracking.entity.Visibility;
  */
 @Repository
 @RequiredArgsConstructor
-public class TrackingRouteRepositoryCustomImpl implements TrackingRouteRepositoryCustom {
+public class QueryDslTrackingRecommendationRepository implements TrackingRecommendationRepository {
     private static final int SRID = 4326;
     private static final String AXIS_ORDER = "axis-order=long-lat";
     private static final int MINIMUM_CANDIDATE_BATCH_SIZE = 50;
