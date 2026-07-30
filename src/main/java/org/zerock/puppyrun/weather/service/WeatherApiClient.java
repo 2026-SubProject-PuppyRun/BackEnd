@@ -4,16 +4,21 @@ import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.zerock.puppyrun.common.exception.ExternalApiParsingException;
 import org.zerock.puppyrun.weather.DTO.DateTimeDTO;
 import org.zerock.puppyrun.weather.DTO.WeatherApiPara;
 import org.zerock.puppyrun.weather.DTO.WeatherApiResponse;
+import org.zerock.puppyrun.weather.DTO.WeatherDTO;
+import org.zerock.puppyrun.weather.DTO.WeatherForecast;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -22,6 +27,7 @@ import reactor.core.publisher.Mono;
 public class WeatherApiClient {
 
     private final WebClient webClient;
+    private final WeatherMapper weatherMapper;
 
     @Value("${data-kr.api-key}")
     private String API_KEY;
@@ -33,6 +39,41 @@ public class WeatherApiClient {
     final int NUM_OF_ROWS = 100;
     final String DATA_TYPE = "JSON";
     final String TIME_ZONE = "Asia/Seoul";
+
+    /**
+     * 예보 전략에 맞는 지역 날씨를 조회하고 공통 날씨 DTO로 변환합니다.
+     */
+    @Cacheable(value = "RegionalWeather", key = "#forecast.key")
+    public List<WeatherDTO> getRegionalWeather(WeatherForecast forecast) {
+        return fetchForecast(forecast)
+                .map(response -> weatherMapper.toWeatherDTOList(response, forecast.getFilterCategory()))
+                .blockOptional()
+                .orElseGet(List::of);
+    }
+
+    private Mono<WeatherApiResponse> fetchForecast(WeatherForecast forecast) {
+        WeatherApiPara para = forecast.getPara();
+        URI uri = UriComponentsBuilder.fromHttpUrl(FCST_URL)
+                .path(para.path())
+                .queryParam("serviceKey", API_KEY)
+                .queryParam("pageNo", para.pageNo())
+                .queryParam("numOfRows", para.numOfRows())
+                .queryParam("dataType", DATA_TYPE)
+                .queryParam("base_date", para.baseDate())
+                .queryParam("base_time", para.baseTime())
+                .queryParam("nx", para.nx())
+                .queryParam("ny", para.ny())
+                .build(true)
+                .toUri();
+
+        log.info("기상청 API 요청 URI: {}", uri);
+
+        return webClient.get()
+                .uri(uri)
+                .retrieve()
+                .bodyToMono(WeatherApiResponse.class)
+                .doOnNext(this::validateApiResponse);
+    }
 
     /**
      * WebClient를 활용하여 리액티브 타입(Mono)으로 응답을 반환하도록 구현

@@ -10,6 +10,7 @@ import org.zerock.puppyrun.weather.DTO.PrecipitationType;
 import org.zerock.puppyrun.weather.DTO.SkyType;
 import org.zerock.puppyrun.weather.DTO.WeatherApiResponse;
 import org.zerock.puppyrun.weather.DTO.WeatherDTO;
+import org.zerock.puppyrun.weather.DTO.WeatherFilterCategory;
 
 @Component
 @Slf4j
@@ -21,6 +22,28 @@ public class WeatherMapper {
     final int FORECAST_LIMIT = 6; // 예보 데이터 제한 개수
 
     public List<WeatherDTO> toWeatherDTOList(WeatherApiResponse response) {
+        return toWeatherDTOList(
+                response,
+                new WeatherFilterCategory(TEMP, SKY, PTY),
+                FORECAST_LIMIT
+        );
+    }
+
+    /**
+     * 예보 종류별 분류 코드를 사용해 전체 시간대 응답을 변환합니다.
+     */
+    public List<WeatherDTO> toWeatherDTOList(
+            WeatherApiResponse response,
+            WeatherFilterCategory category
+    ) {
+        return toWeatherDTOList(response, category, Long.MAX_VALUE);
+    }
+
+    private List<WeatherDTO> toWeatherDTOList(
+            WeatherApiResponse response,
+            WeatherFilterCategory category,
+            long limit
+    ) {
         // 응답 객체 자체의 Null 체크
         if (response == null || response.response() == null ||
                 response.response().body() == null ||
@@ -39,12 +62,15 @@ public class WeatherMapper {
 
         return groupedByTime.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .limit(FORECAST_LIMIT)
-                .map(entry -> createWeatherDTO(entry.getValue()))
+                .limit(limit)
+                .map(entry -> createWeatherDTO(entry.getValue(), category))
                 .collect(Collectors.toList());
     }
 
-    private WeatherDTO createWeatherDTO(List<WeatherApiResponse.Item> groupItems) {
+    private WeatherDTO createWeatherDTO(
+            List<WeatherApiResponse.Item> groupItems,
+            WeatherFilterCategory category
+    ) {
         // 리스트 Null 및 Empty 체크
         if (groupItems == null || groupItems.isEmpty()) {
             throw new ExternalApiParsingException("날씨 데이터 그룹이 유효하지 않습니다.");
@@ -70,14 +96,17 @@ public class WeatherMapper {
         return WeatherDTO.builder()
                 .date(baseItem.fcstDate())
                 .time(baseItem.fcstTime())
-                .detail(buildWeatherDetail(valueMap))
+                .detail(buildWeatherDetail(valueMap, category))
                 .build();
     }
 
-    private WeatherDTO.Detail buildWeatherDetail(Map<String, String> valueMap) {
-        SkyType skyType = SkyType.fromCode(valueMap.getOrDefault(SKY, "-1"));
-        PrecipitationType ptyType = PrecipitationType.fromCode(valueMap.getOrDefault(PTY, "-1"));
-        String temp = valueMap.getOrDefault(TEMP, "-1");
+    private WeatherDTO.Detail buildWeatherDetail(
+            Map<String, String> valueMap,
+            WeatherFilterCategory category
+    ) {
+        SkyType skyType = SkyType.fromCode(valueMap.getOrDefault(category.sky(), "-1"));
+        PrecipitationType ptyType = PrecipitationType.fromCode(valueMap.getOrDefault(category.pty(), "-1"));
+        String temp = valueMap.getOrDefault(category.temp(), "-1");
 
         return WeatherDTO.Detail.builder()
                 .sky(skyType)
