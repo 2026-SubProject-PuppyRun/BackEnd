@@ -23,16 +23,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.zerock.puppyrun.common.config.QueryDslConfig;
+import org.zerock.puppyrun.a_config.TestContainerConfig;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.pet.entity.Breed;
 import org.zerock.puppyrun.pet.entity.Pet;
@@ -46,20 +38,8 @@ import org.zerock.puppyrun.tracking.entity.Tracking;
  * <p>실행 명령:
  * {@code PET_TRACKING_BENCHMARK_ENABLED=true ./gradlew test --tests '*PetTrackingSummaryPerformanceTest'}
  */
-@Testcontainers
-@Import(QueryDslConfig.class)
-@DataJpaTest(properties = {
-        "spring.jpa.hibernate.ddl-auto=create",
-        "spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect",
-        "spring.jpa.show-sql=false",
-        "spring.jpa.properties.hibernate.show_sql=false",
-        "logging.level.org.hibernate.SQL=OFF",
-        "logging.level.org.springframework.jdbc.core=OFF",
-        "spring.docker.compose.enabled=false"
-})
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @EnabledIfEnvironmentVariable(named = "PET_TRACKING_BENCHMARK_ENABLED", matches = "true")
-class PetTrackingSummaryPerformanceTest {
+class PetTrackingSummaryPerformanceTest extends TestContainerConfig {
 
     private static final int PET_COUNT = 5;
     private static final int ROWS_PER_DAY = 10_000;
@@ -67,17 +47,6 @@ class PetTrackingSummaryPerformanceTest {
     private static final int WARM_UP_COUNT = 2;
     private static final int MEASUREMENT_COUNT = 5;
     private static final LocalDate BASE_DATE = LocalDate.of(2026, 1, 1);
-
-    @Container
-    private static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4");
-
-    @DynamicPropertySource
-    static void configureDataSource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
-        registry.add("spring.datasource.username", MYSQL::getUsername);
-        registry.add("spring.datasource.password", MYSQL::getPassword);
-        registry.add("spring.datasource.driver-class-name", MYSQL::getDriverClassName);
-    }
 
     @Autowired
     private PetTrackingRepository petTrackingRepository;
@@ -91,18 +60,22 @@ class PetTrackingSummaryPerformanceTest {
     @Test
     @DisplayName("QueryDSL 집계와 JPA-only 방식의 대용량 성능을 비교한다")
     void compareQueryDslAndJpaOnly() {
+        // given
         List<UUID> petIds = createOwnerAndPets();
         insertTrackingRows(petIds);
 
         System.out.println("\npet tracking summary benchmark (MySQL 8.4, warm median)");
         System.out.println("matched_rows,querydsl_ms,jpa_criteria_ms,jpa_entity_ms");
 
+        // when
         for (int dayCount : List.of(1, 5, 10)) {
             LocalDate endDate = BASE_DATE.plusDays(dayCount - 1L);
 
             List<TotalPetTracking> expected = queryDslSummary(petIds, BASE_DATE, endDate);
             List<TotalPetTracking> criteriaResult = jpaCriteriaSummary(petIds, BASE_DATE, endDate);
             List<TotalPetTracking> entityResult = jpaEntitySummary(petIds, BASE_DATE, endDate);
+
+            // then
             assertSameSummary(expected, criteriaResult);
             assertSameSummary(expected, entityResult);
 
