@@ -1,10 +1,20 @@
 package org.zerock.puppyrun.s3;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import io.awspring.cloud.s3.S3Template;
 import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -15,21 +25,12 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
-import org.zerock.puppyrun.common.exception.DataIntegrityException;
 import org.zerock.puppyrun.common.s3.PathContext;
 import org.zerock.puppyrun.common.s3.S3Service;
 import org.zerock.puppyrun.common.s3.rollback.S3RollbackEvent;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletionException;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
+@DisplayName("S3 파일 서비스")
 class S3ServiceTest {
 
     @Mock
@@ -41,147 +42,113 @@ class S3ServiceTest {
     @InjectMocks
     private S3Service s3Service;
 
-    private final PathContext dummyPath = new PathContext.UserProfileContext(UUID.randomUUID());
+    private final PathContext path = new PathContext.UserProfileContext(UUID.randomUUID());
 
     @BeforeEach
     void setUp() {
-        // @Value 필드 수동 주입
         ReflectionTestUtils.setField(s3Service, "bucket", "test-bucket");
         ReflectionTestUtils.setField(s3Service, "activeProfile", "local");
     }
 
-    @Nested
-    @DisplayName("파일 업로드 테스트")
-    class UploadTest {
+    @Test
+    @DisplayName("단일 파일을 업로드하고 트랜잭션 보상 대상으로 등록한다")
+    void uploadFileAndRegisterRollback() {
+        // given
+        MockMultipartFile file = file("profile.png", "profile");
 
-        @Test
-        @DisplayName("파일이 null이면 에러 없이 null을 반환한다 (Skip)")
-        void upload_null_skip() {
-            String result = s3Service.upload(null, dummyPath);
-            assertThat(result).isNull();
-            verifyNoInteractions(s3Template, eventPublisher);
-        }
+        // when
+        String uploadedKey = s3Service.upload(file, path);
 
-        @Test
-        @DisplayName("파일 객체는 존재하지만 내용이 비어있으면 null을 반환한다 (Skip)")
-        void upload_empty_file_skip() {
-            MockMultipartFile emptyFile = new MockMultipartFile("file", "test.txt", "text/plain", new byte[0]);
+        // then
+        assertThat(uploadedKey)
+                .startsWith("local/" + path.getPath())
+                .endsWith("_profile.png");
+        verify(s3Template).upload(eq("test-bucket"), eq(uploadedKey), any(), any());
 
-            String result = s3Service.upload(emptyFile, dummyPath);
-
-            assertThat(result).isNull();
-            verifyNoInteractions(s3Template, eventPublisher);
-        }
-
-        @Test
-        @DisplayName("정상적인 파일 업로드 시 S3에 업로드하고 롤백 이벤트를 발행한다")
-        void upload_success() {
-            MockMultipartFile file = new MockMultipartFile("file", "test.png", "image/png", "test-content".getBytes());
-
-            String result = s3Service.upload(file, dummyPath);
-
-            assertThat(result).isNotNull();
-            verify(s3Template, times(1)).upload(any(), any(), any(), any());
-            ArgumentCaptor<S3RollbackEvent> eventCaptor = ArgumentCaptor.forClass(S3RollbackEvent.class);
-            verify(eventPublisher).publishEvent(eventCaptor.capture());
-            assertThat(eventCaptor.getValue().filePaths()).containsExactly(result);
-        }
+        ArgumentCaptor<S3RollbackEvent> eventCaptor = ArgumentCaptor.forClass(S3RollbackEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().filePaths()).containsExactly(uploadedKey);
     }
 
-    @Nested
-    @DisplayName("다중 파일 업로드 테스트")
-    class UploadAllTest {
+    @Test
+    @DisplayName("여러 파일 중 첨부된 파일만 업로드하고 하나의 보상 이벤트로 묶는다")
+    void uploadAttachedFilesTogether() {
+        // given
+        MockMultipartFile first = file("first.png", "first");
+        MockMultipartFile second = file("second.png", "second");
+        MockMultipartFile empty = file("empty.png", "");
+        List<MultipartFile> files = Arrays.asList(first, null, empty, second);
 
-        @Test
-        @DisplayName("리스트가 null이거나 비어있으면 빈 리스트를 반환한다")
-        void uploadAll_null_or_empty_returns_empty_list() {
-            assertThat(s3Service.uploadAll(null, dummyPath)).isEmpty();
-            assertThat(s3Service.uploadAll(List.of(), dummyPath)).isEmpty();
-            verifyNoInteractions(s3Template, eventPublisher);
-        }
+        // when
+        List<String> uploadedKeys = s3Service.uploadAll(files, path);
 
-        @Test
-        @DisplayName("리스트 내 null 요소는 무시하고 정상 파일만 처리한다")
-        void uploadAll_filters_null_elements() {
-            MockMultipartFile file = new MockMultipartFile("file", "test.png", "image/png", "test".getBytes());
-            List<MultipartFile> input = Arrays.asList(file, null);
+        // then
+        assertThat(uploadedKeys)
+                .hasSize(2)
+                .allSatisfy(key -> assertThat(key).startsWith("local/" + path.getPath()));
+        verify(s3Template, times(2)).upload(eq("test-bucket"), any(), any(), any());
 
-            List<String> results = s3Service.uploadAll(input, dummyPath);
-
-            assertThat(results).hasSize(1);
-            verify(s3Template, times(1)).upload(any(), any(), any(), any());
-            ArgumentCaptor<S3RollbackEvent> eventCaptor = ArgumentCaptor.forClass(S3RollbackEvent.class);
-            verify(eventPublisher).publishEvent(eventCaptor.capture());
-            assertThat(eventCaptor.getValue().filePaths()).containsExactlyElementsOf(results);
-        }
-
-        @Test
-        @DisplayName("리스트 내에 비어있는 파일이 섞여있으면 비어있는 파일만 제외하고 업로드한다")
-        void uploadAll_with_empty_file_skips_empty_only() {
-            MockMultipartFile validFile = new MockMultipartFile("file", "test.png", "image/png", "test".getBytes());
-            MockMultipartFile emptyFile = new MockMultipartFile("file", "empty.png", "image/png", new byte[0]);
-            List<MultipartFile> input = List.of(validFile, emptyFile);
-
-            List<String> results = s3Service.uploadAll(input, dummyPath);
-
-            assertThat(results).hasSize(1); // 정상 파일 1개만 성공
-            verify(s3Template, times(1)).upload(any(), any(), any(), any());
-            verify(eventPublisher, times(1)).publishEvent(any(S3RollbackEvent.class));
-        }
-
-        @Test
-        @DisplayName("다중 업로드가 일부 실패하면 성공한 파일을 롤백 이벤트에 등록한다")
-        void uploadAll_partial_failure_registers_successful_files_for_rollback() {
-            MockMultipartFile successFile =
-                    new MockMultipartFile("file", "success.png", "image/png", "success".getBytes());
-            MockMultipartFile failFile =
-                    new MockMultipartFile("file", "fail.png", "image/png", "fail".getBytes());
-
-            doAnswer(invocation -> {
-                String key = invocation.getArgument(1, String.class);
-                if (key.endsWith("_fail.png")) {
-                    throw new RuntimeException("S3 upload failed");
-                }
-                return null;
-            }).when(s3Template).upload(any(), any(), any(), any());
-
-            assertThatThrownBy(() -> s3Service.uploadAll(List.of(successFile, failFile), dummyPath))
-                    .isInstanceOf(CompletionException.class)
-                    .hasRootCauseMessage("S3 upload failed");
-
-            ArgumentCaptor<S3RollbackEvent> eventCaptor = ArgumentCaptor.forClass(S3RollbackEvent.class);
-            verify(eventPublisher).publishEvent(eventCaptor.capture());
-            assertThat(eventCaptor.getValue().filePaths()).hasSize(1);
-            assertThat(eventCaptor.getValue().filePaths().getFirst()).endsWith("_success.png");
-        }
+        ArgumentCaptor<S3RollbackEvent> eventCaptor = ArgumentCaptor.forClass(S3RollbackEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().filePaths()).containsExactlyElementsOf(uploadedKeys);
     }
 
-    @Nested
-    @DisplayName("파일 삭제 테스트")
-    class DeleteTest {
+    @Test
+    @DisplayName("다중 업로드가 일부 실패하면 성공한 파일을 보상 대상으로 남긴다")
+    void registerSuccessfulFilesForRollbackOnPartialFailure() {
+        // given
+        MockMultipartFile success = file("success.png", "success");
+        MockMultipartFile failure = file("failure.png", "failure");
+        doAnswer(invocation -> {
+            String key = invocation.getArgument(1, String.class);
+            if (key.endsWith("_failure.png")) {
+                throw new RuntimeException("S3 upload failed");
+            }
+            return null;
+        }).when(s3Template).upload(any(), any(), any(), any());
 
-        @Test
-        @DisplayName("삭제 경로가 null이면 아무 작업도 하지 않는다 (Skip)")
-        void delete_null_skip() {
-            s3Service.delete(null);
-            verifyNoInteractions(s3Template);
-        }
+        // when
+        Throwable thrown = catchThrowable(
+                () -> s3Service.uploadAll(List.of(success, failure), path)
+        );
 
-        @Test
-        @DisplayName("삭제 경로가 빈 문자열(blank)이면 DataIntegrityException이 발생한다")
-        void delete_blank_throws_exception() {
-            assertThatThrownBy(() -> s3Service.delete(""))
-                    .isExactlyInstanceOf(DataIntegrityException.class);
-        }
+        // then
+        assertThat(thrown)
+                .isInstanceOf(CompletionException.class)
+                .hasRootCauseMessage("S3 upload failed");
 
-        @Test
-        @DisplayName("여러 파일 삭제 시 null 요소는 안전하게 무시한다")
-        void deleteAll_filters_null_elements() {
-            List<String> input = Arrays.asList("path1", null, "path2");
+        ArgumentCaptor<S3RollbackEvent> eventCaptor = ArgumentCaptor.forClass(S3RollbackEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().filePaths())
+                .singleElement()
+                .asString()
+                .endsWith("_success.png");
+    }
 
-            s3Service.deleteAll(input);
+    @Test
+    @DisplayName("키와 URL이 섞인 삭제 요청을 S3 객체 키로 정규화해 처리한다")
+    void deleteFilesByKeyOrUrl() {
+        // given
+        List<String> files = Arrays.asList(
+                "local/profile/first.png",
+                null,
+                "https://s3.ap-northeast-2.amazonaws.com/test-bucket/local/profile/second%20file.png"
+        );
 
-            verify(s3Template, times(2)).deleteObject(any(), any());
-        }
+        // when
+        s3Service.deleteAll(files);
+
+        // then
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(s3Template, times(2)).deleteObject(eq("test-bucket"), keyCaptor.capture());
+        assertThat(keyCaptor.getAllValues())
+                .containsExactly(
+                        "local/profile/first.png",
+                        "local/profile/second file.png"
+                );
+    }
+
+    private MockMultipartFile file(String name, String content) {
+        return new MockMultipartFile("file", name, "image/png", content.getBytes());
     }
 }
