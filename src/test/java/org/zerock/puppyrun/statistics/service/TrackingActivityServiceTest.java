@@ -1,12 +1,10 @@
 package org.zerock.puppyrun.statistics.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Collections;
+import java.time.Month;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,14 +17,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.member.entity.UserRole;
-import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.entity.PetBadge;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.statistics.DTO.DailyPetTracking;
+import org.zerock.puppyrun.statistics.DTO.MonthlyActivity;
 import org.zerock.puppyrun.statistics.DTO.WeeklyActivityChart;
 import org.zerock.puppyrun.statistics.controller.Response.DailyActivityResponse;
+import org.zerock.puppyrun.statistics.controller.Response.MonthlyActivityResponse;
+import org.zerock.puppyrun.statistics.controller.Response.MonthlyContributionResponse;
 import org.zerock.puppyrun.statistics.controller.Response.WeeklyActivityResponse;
+import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
+import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 
 @ExtendWith(MockitoExtension.class)
 class TrackingActivityServiceTest {
@@ -40,6 +42,9 @@ class TrackingActivityServiceTest {
     @Mock
     private PetStatistics petStatistics;
 
+    @Mock
+    private TrackingRepository trackingRepository;
+
     @InjectMocks
     private TrackingActivityService trackingActivityService;
 
@@ -51,132 +56,192 @@ class TrackingActivityServiceTest {
     void setUp() {
         memberId = UUID.randomUUID();
         principal = new UserPrincipal(memberId, "test@puppyrun.com", UserRole.USER);
-        targetDay = LocalDate.of(2026, 3, 23); // 임의의 테스트 기준일
+        targetDay = LocalDate.of(2026, 3, 23);
     }
 
-    // ==========================================
-    // 1. getDailyTracking 테스트
-    // ==========================================
-
     @Test
-    @DisplayName("하루 산책 상세 내역 조회 - 데이터가 있을 경우 정상적으로 응답 객체가 생성된다.")
-    void getDailyTracking_Success_WithData() {
+    @DisplayName("하루 산책 기록을 거리·시간 요약과 상세 내역으로 조회한다")
+    void getDailyTracking() {
         // given
         UUID trackingId = UUID.randomUUID();
-        DailyPetTracking dummyTracking = createDummyDailyPetTracking(trackingId);
-
-        when(trackingStatistics.getDayActivity(memberId, targetDay))
-                .thenReturn(List.of(dummyTracking));
+        given(trackingStatistics.getDayActivity(memberId, targetDay))
+                .willReturn(List.of(createDailyTracking(trackingId)));
 
         // when
         DailyActivityResponse response = trackingActivityService.getDailyTracking(principal, targetDay);
 
         // then
-        assertNotNull(response);
-        assertEquals(targetDay, response.date());
-
-        // Summary 검증 (더미 데이터: 3km, 60분)
-        assertEquals(3.0, response.summary().totalDistanceKm());
-        assertEquals(60, response.summary().totalDurationMin());
-        assertEquals(1, response.summary().walkCount());
-
-        // 개별 상세 리스트 검증
-        assertEquals(1, response.tracking().size());
-        assertEquals(trackingId, response.tracking().getFirst().trackingId());
+        assertThat(response.date()).isEqualTo(targetDay);
+        assertThat(response.summary().totalDistanceKm()).isEqualTo(3.0);
+        assertThat(response.summary().totalDurationMin()).isEqualTo(60);
+        assertThat(response.summary().walkCount()).isEqualTo(1);
+        assertThat(response.tracking())
+                .singleElement()
+                .extracting(DailyActivityResponse.TrackingDetails::trackingId)
+                .isEqualTo(trackingId);
     }
 
     @Test
-    @DisplayName("하루 산책 상세 내역 조회 - 산책 기록이 없으면 빈 리스트와 0 스탯을 반환한다.")
-    void getDailyTracking_Success_EmptyData() {
+    @DisplayName("산책 기록이 없는 날은 0으로 집계된 빈 내역을 반환한다")
+    void getEmptyDailyTracking() {
         // given
-        when(trackingStatistics.getDayActivity(memberId, targetDay))
-                .thenReturn(Collections.emptyList());
+        given(trackingStatistics.getDayActivity(memberId, targetDay)).willReturn(List.of());
 
         // when
         DailyActivityResponse response = trackingActivityService.getDailyTracking(principal, targetDay);
 
         // then
-        assertNotNull(response);
-        assertEquals(0.0, response.summary().totalDistanceKm());
-        assertEquals(0, response.summary().walkCount());
-        assertTrue(response.tracking().isEmpty());
+        assertThat(response.summary().totalDistanceKm()).isZero();
+        assertThat(response.summary().totalDurationMin()).isZero();
+        assertThat(response.summary().walkCount()).isZero();
+        assertThat(response.tracking()).isEmpty();
     }
 
-    //    // ==========================================
-//    // 2. getWeeklyTracking 테스트
-//    // ==========================================
-//
-//    @Test
-//    @DisplayName("주간 통계 조회 - 등록된 펫이 있고 통계가 정상적으로 반환된다.")
-//    void getWeeklyTracking_Success() {
-//        // given
-//        Pet mockPet = mock(Pet.class);
-//        UUID petId = UUID.randomUUID();
-//        List<UUID> petIdList = List.of(petId);
-//
-//        when(petRepository.findPetIdsByMemberId(memberId)).thenReturn(petIdList);
-//
-//        LocalDate thisWeek = targetDay.minusDays(6);
-//        LocalDate lastWeek = targetDay.minusDays(13);
-//
-//        // 차트 데이터 세팅 (원시 데이터: 3000m, 3600초)
-//        WeeklyActivityChart thisWeekDummyChart = createDummyWeeklyActivityChart(targetDay);
-//        when(trackingStatistics.getWeeklyChart(memberId, thisWeek, targetDay)).thenReturn(thisWeekDummyChart);
-//
-//        WeeklyActivityChart lastWeekDummyChart = createDummyWeeklyActivityChart(thisWeek);
-//        when(trackingStatistics.getWeeklyChart(memberId, lastWeek, thisWeek)).thenReturn(lastWeekDummyChart);
-//
-//        // 펫 통계 데이터 세팅 (원시 데이터: 3000m, 3600초)
-//        TotalPetTracking dummySummary = createDummyTotalPetTracking(petId);
-//        when(petStatistics.getWeeklyPetTrackingSummary(petIdList, targetDay)).thenReturn(List.of(dummySummary));
-//
-//        // when
-//        WeeklyActivityResponse response = trackingActivityService.getWeeklyTracking(principal, targetDay);
-//
-//        // then
-//        assertNotNull(response);
-//        assertEquals("weekly", response.period().type());
-//
-//        // 전체 요약 검증 (거리: 3000m -> 3.0km, 시간: 3600초 -> 60분)
-//        assertEquals(3.0, response.summary().totalDistanceKm());
-//        assertEquals(60, response.summary().totalDurationMin());
-//
-//        // 패밀리 리포트(펫 통계) 검증
-//        assertEquals(1, response.familyReport().totalDogs());
-//        assertEquals(petId, response.familyReport().dogStats().getFirst().dogId());
-//        assertEquals(100.0, response.familyReport().dogStats().getFirst().sharePercentage()); // 1마리이므로 100%
-//        assertEquals("000", response.familyReport().dogStats().getFirst().badge());
-//    }
-//
     @Test
-    @DisplayName("주간 통계 조회 - 회원이 등록한 펫이 없을 경우 ResourceNotFoundException 예외가 발생한다.")
-    void getWeeklyTracking_Fail_NoPets() {
+    @DisplayName("주간 산책 기록을 전체 요약·반려견별 비중·이전 주 비교 통계로 반환한다")
+    void getWeeklyTrackingStatistics() {
         // given
-        when(petRepository.findPetIdsByMemberId(memberId)).thenReturn(Collections.emptyList());
+        LocalDate weekStart = targetDay.minusDays(6);
+        UUID firstPetId = UUID.randomUUID();
+        UUID secondPetId = UUID.randomUUID();
+        List<UUID> petIds = List.of(firstPetId, secondPetId);
+        WeeklyActivityChart weeklyChart = new WeeklyActivityChart(
+                weekStart,
+                targetDay,
+                List.of(
+                        weeklyChart(weekStart, "TUESDAY", 1_200, 1_800),
+                        weeklyChart(weekStart.plusDays(1), "WEDNESDAY", 0, 0),
+                        weeklyChart(targetDay, "MONDAY", 2_300, 2_700)
+                )
+        );
+        List<TotalPetTracking> thisWeek = List.of(
+                petTracking(firstPetId, "보리", targetDay, 3_000, 3_600, 2L, 6.5, 600),
+                petTracking(secondPetId, "두부", targetDay, 1_000, 1_800, 1L, 4.5, 300)
+        );
+        List<TotalPetTracking> lastWeek = List.of(
+                petTracking(firstPetId, "보리", weekStart, 2_000, 2_400, 1L, 5.0, 300),
+                petTracking(secondPetId, "두부", weekStart, 500, 900, 1L, 3.5, 120)
+        );
+        given(petRepository.findPetIdsByMemberId(memberId)).willReturn(petIds);
+        given(trackingStatistics.getWeeklyChart(memberId, weekStart, targetDay)).willReturn(weeklyChart);
+        given(petStatistics.getWeeklyPetTrackingSummary(petIds, targetDay)).willReturn(thisWeek);
+        given(petStatistics.getWeeklyPetTrackingSummary(petIds, weekStart)).willReturn(lastWeek);
 
-        // when & then
-        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
-            trackingActivityService.getWeeklyTracking(principal, targetDay);
-        });
+        // when
+        WeeklyActivityResponse response = trackingActivityService.getWeeklyTracking(principal, targetDay);
 
-        assertEquals("펫이 존재하지 않습니다.", exception.getMessage());
+        // then
+        assertThat(response.period().type()).isEqualTo("weekly");
+        assertThat(response.period().startDate()).isEqualTo(weekStart);
+        assertThat(response.period().endDate()).isEqualTo(targetDay);
+        assertThat(response.summary().totalDistanceKm()).isEqualTo(3.5);
+        assertThat(response.summary().totalDurationMin()).isEqualTo(75);
+        assertThat(response.summary().totalCount()).isEqualTo(2);
+        assertThat(response.activityChart())
+                .extracting(WeeklyActivityResponse.ActivityChart::distanceKm)
+                .containsExactly(1.2, 0.0, 2.3);
+        assertThat(response.familyReport().totalDogs()).isEqualTo(2);
+        assertThat(response.familyReport().dogStats())
+                .extracting(WeeklyActivityResponse.DogStat::sharePercentage)
+                .containsExactly(75.0, 25.0);
 
-        // 예외 발생 시 하위 서비스 로직들은 호출되지 않아야 함
-        verify(trackingStatistics, never()).getWeeklyChart(any(), any(), any());
-        verify(petStatistics, never()).getWeeklyPetTrackingSummary(any(), any());
+        WeeklyActivityResponse.DogRadar firstDogRadar = response.dogRadars().getFirst();
+        assertThat(firstDogRadar.dogId()).isEqualTo(firstPetId);
+        assertThat(firstDogRadar.dataPoints().getFirst().metricCode()).isEqualTo("DISTANCE");
+        assertThat(firstDogRadar.dataPoints().getFirst().thisWeekValue()).isEqualTo(3.0);
+        assertThat(firstDogRadar.dataPoints().getFirst().lastWeekValue()).isEqualTo(2.0);
     }
 
-    // ==========================================
-    // 테스트용 헬퍼 메서드 (더미 객체 생성)
-    // ==========================================
+    @Test
+    @DisplayName("등록한 반려견이 없으면 주간 산책 통계를 조회할 수 없다")
+    void rejectWeeklyTrackingWithoutPet() {
+        // given
+        given(petRepository.findPetIdsByMemberId(memberId)).willReturn(List.of());
 
-    private DailyPetTracking createDummyDailyPetTracking(UUID trackingId) {
-        DailyPetTracking.DiaryDetail diaryDetail = DailyPetTracking.DiaryDetail.builder()
+        // when
+        Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(
+                () -> trackingActivityService.getWeeklyTracking(principal, targetDay)
+        );
+
+        // then
+        assertThat(thrown)
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("펫이 존재하지 않습니다.");
+    }
+
+    @Test
+    @DisplayName("월별 산책 요약과 최근 15주 및 선택한 월의 일별 통계를 정확히 반환한다")
+    void getMonthlyTrackingStatistics() {
+        // given
+        LocalDate firstDay = LocalDate.of(2026, 3, 1);
+        LocalDate secondDay = LocalDate.of(2026, 3, 2);
+        MonthlyActivity january = MonthlyActivity.builder()
+                .month(Month.JANUARY)
+                .trackingCount(2)
+                .totalDistance(1_250)
+                .totalDuration(1_800)
+                .activityChart(List.of())
+                .build();
+        MonthlyActivity march = MonthlyActivity.builder()
+                .month(Month.MARCH)
+                .trackingCount(3)
+                .totalDistance(2_750)
+                .totalDuration(3_600)
+                .activityChart(List.of(
+                        monthlyChart(firstDay, 1, 1_200, 1_800),
+                        monthlyChart(secondDay, 2, 1_550, 1_800)
+                ))
+                .build();
+        List<DailyTrackingSummary> contributions = List.of(
+                dailySummary(firstDay, 1, 1_200, 1_800),
+                dailySummary(secondDay, 2, 1_550, 1_800)
+        );
+        given(trackingStatistics.getMonthlyRecord(memberId, targetDay))
+                .willReturn(List.of(january, march));
+        given(trackingRepository.getTrackingSummaryDateAsc(
+                memberId,
+                targetDay.minusWeeks(15),
+                targetDay
+        )).willReturn(contributions);
+        given(trackingStatistics.getMonthlyContribution(memberId, targetDay)).willReturn(march);
+
+        // when
+        MonthlyActivityResponse overview =
+                trackingActivityService.getMonthlyTracking(principal, targetDay);
+        MonthlyContributionResponse daily =
+                trackingActivityService.getMonthlyContributions(principal, targetDay);
+
+        // then
+        assertThat(overview.period().type()).isEqualTo("monthly");
+        assertThat(overview.period().year()).isEqualTo("2026");
+        assertThat(overview.monthlySummary()).hasSize(2);
+        assertThat(overview.monthlySummary().getFirst().label()).isEqualTo("JANUARY");
+        assertThat(overview.monthlySummary().getFirst().totalDistanceKm()).isEqualTo(1.3);
+        assertThat(overview.monthlySummary().getFirst().totalDurationMin()).isEqualTo(30);
+        assertThat(overview.monthlySummary().getFirst().totalCount()).isEqualTo(2);
+        assertThat(overview.monthlySummary().get(1).label()).isEqualTo("MARCH");
+        assertThat(overview.monthlySummary().get(1).totalDistanceKm()).isEqualTo(2.8);
+        assertThat(overview.monthlySummary().get(1).totalDurationMin()).isEqualTo(60);
+        assertThat(overview.monthlySummary().get(1).totalCount()).isEqualTo(3);
+        assertThat(overview.contributionChart())
+                .extracting(MonthlyActivityResponse.ContributionChart::distanceKm)
+                .containsExactly(1.2, 1.6);
+
+        assertThat(daily.period().type()).isEqualTo("contributions");
+        assertThat(daily.period().month()).isEqualTo("MARCH");
+        assertThat(daily.activityChart()).hasSize(2);
+        assertThat(daily.activityChart().getFirst().label()).isEqualTo(firstDay);
+        assertThat(daily.activityChart().getFirst().distanceKm()).isEqualTo(1.2);
+        assertThat(daily.activityChart().getFirst().durationMin()).isEqualTo(30);
+        assertThat(daily.activityChart().getFirst().trackingCount()).isEqualTo(1);
+    }
+
+    private DailyPetTracking createDailyTracking(UUID trackingId) {
+        DailyPetTracking.DiaryDetail diary = DailyPetTracking.DiaryDetail.builder()
                 .hasDiary(true)
                 .diaryId(UUID.randomUUID())
                 .build();
-
-        DailyPetTracking.ParticipatingPet petDetail = DailyPetTracking.ParticipatingPet.builder()
+        DailyPetTracking.ParticipatingPet pet = DailyPetTracking.ParticipatingPet.builder()
                 .petId(UUID.randomUUID())
                 .name("보리")
                 .themeColor("#FFFFFF")
@@ -185,46 +250,84 @@ class TrackingActivityServiceTest {
 
         return new DailyPetTracking(
                 trackingId,
-                targetDay.atStartOfDay().plusHours(10),
-                targetDay.atStartOfDay().plusHours(11),
-                3,       // distance (km)
-                60,      // durationMin
+                targetDay.atTime(10, 0),
+                targetDay.atTime(11, 0),
+                3,
+                60,
                 12000.0,
-                diaryDetail,
+                diary,
                 List.of("image1.jpg"),
-                List.of(petDetail)
+                List.of(pet)
         );
     }
 
-    private WeeklyActivityChart createDummyWeeklyActivityChart(LocalDate targetDay) {
-        WeeklyActivityChart.ActivityChart activityChart = WeeklyActivityChart.ActivityChart.builder()
-                .date(targetDay)
-                .label("MONDAY")
-                .distance(3000) // m 단위
-                .duration(3600) // 초 단위
+    private WeeklyActivityChart.ActivityChart weeklyChart(
+            LocalDate date,
+            String label,
+            int distance,
+            int duration
+    ) {
+        return WeeklyActivityChart.ActivityChart.builder()
+                .date(date)
+                .label(label)
+                .distance(distance)
+                .duration(duration)
+                .restDuration(0)
                 .build();
-
-        return new WeeklyActivityChart(
-                targetDay.minusDays(6),
-                targetDay,
-                List.of(activityChart)
-        );
     }
 
-    private TotalPetTracking createDummyTotalPetTracking(UUID petId) {
-        return new TotalPetTracking(
-                petId,
-                targetDay.minusDays(6),
-                targetDay,
-                "보리",
-                "http://image.url",
-                "#FFFFFF",
-                PetBadge.BEGINNER,
-                3000, // totalDistance (m)
-                3600, // totalDuration (초)
-                1L,    // totalCount
-                12000.0,
-                0
-        );
+    private TotalPetTracking petTracking(
+            UUID petId,
+            String name,
+            LocalDate endDate,
+            int distance,
+            int duration,
+            long count,
+            double averageSpeed,
+            int restDuration
+    ) {
+        return TotalPetTracking.builder()
+                .petId(petId)
+                .startDate(endDate.minusDays(6))
+                .endDate(endDate)
+                .name(name)
+                .profileImageUrl("https://image.test/" + petId)
+                .themeColor("#FFFFFF")
+                .badge(PetBadge.BEGINNER)
+                .totalDistance(distance)
+                .totalDuration(duration)
+                .totalCount(count)
+                .averageSpeed(averageSpeed)
+                .restDuration(restDuration)
+                .build();
+    }
+
+    private MonthlyActivity.ActivityChart monthlyChart(
+            LocalDate date,
+            int trackingCount,
+            int distance,
+            int duration
+    ) {
+        return MonthlyActivity.ActivityChart.builder()
+                .date(date)
+                .trackingCount(trackingCount)
+                .totalDistance(distance)
+                .totalDuration(duration)
+                .build();
+    }
+
+    private DailyTrackingSummary dailySummary(
+            LocalDate date,
+            int trackingCount,
+            int distance,
+            int duration
+    ) {
+        return DailyTrackingSummary.builder()
+                .date(date)
+                .trackingCount(trackingCount)
+                .distance(distance)
+                .duration(duration)
+                .restDuration(0)
+                .build();
     }
 }
