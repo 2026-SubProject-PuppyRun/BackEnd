@@ -33,6 +33,7 @@ class SocialClientServiceTest {
 
     @Test
     void 제공자_전략을_찾아_토큰을_교환하고_사용자_프로필을_조회한다() {
+        // given
         OAuth2Client client = new OAuth2Client(
                 SocialProvider.KAKAO,
                 "authorization-code",
@@ -48,8 +49,10 @@ class SocialClientServiceTest {
         when(providerStrategy.exchangeAccessToken(client)).thenReturn("provider-access-token");
         when(providerStrategy.fetchUserProfile("provider-access-token")).thenReturn(profile);
 
+        // when
         OAuth2UserProfile result = socialClientService.authenticate(client);
 
+        // then
         InOrder inOrder = inOrder(clientFactory, providerStrategy);
         inOrder.verify(clientFactory).getStrategy(SocialProvider.KAKAO);
         inOrder.verify(providerStrategy).exchangeAccessToken(client);

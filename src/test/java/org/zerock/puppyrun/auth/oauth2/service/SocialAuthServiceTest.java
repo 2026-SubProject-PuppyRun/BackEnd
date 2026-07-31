@@ -1,7 +1,6 @@
 package org.zerock.puppyrun.auth.oauth2.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -46,6 +45,7 @@ class SocialAuthServiceTest {
 
     @Test
     void 인가코드_검증부터_멤버_조회와_JWT_발급까지_순서대로_처리한다() {
+        // given
         OAuth2SignInRequest request = request();
         OAuth2UserProfile profile = profile();
         Member member = member();
@@ -54,8 +54,10 @@ class SocialAuthServiceTest {
         when(jwtTokenProvider.generateAccessToken(member.toDto())).thenReturn("access-token");
         when(jwtTokenProvider.generateRefreshToken(member.toDto())).thenReturn("refresh-token");
 
+        // when
         var result = socialAuthService.signIn(request, SocialProvider.GOOGLE);
 
+        // then
         ArgumentCaptor<OAuth2Client> clientCaptor = ArgumentCaptor.forClass(OAuth2Client.class);
         InOrder inOrder = inOrder(socialClientService, socialAccountService, jwtTokenProvider);
         inOrder.verify(socialClientService).authenticate(clientCaptor.capture());
@@ -73,24 +75,36 @@ class SocialAuthServiceTest {
 
     @Test
     void 소셜_제공자_인증에_실패하면_멤버를_조회하거나_JWT를_발급하지_않는다() {
+        // given
         OAuth2AuthenticationException exception =
                 new OAuth2AuthenticationException("인가 코드가 유효하지 않습니다.");
         when(socialClientService.authenticate(any(OAuth2Client.class))).thenThrow(exception);
 
-        assertThatThrownBy(() -> socialAuthService.signIn(request(), SocialProvider.GOOGLE))
-                .isSameAs(exception);
+        // when
+        Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(
+                () -> socialAuthService.signIn(request(), SocialProvider.GOOGLE)
+        );
+
+        // then
+        assertThat(thrown).isSameAs(exception);
         verifyNoInteractions(socialAccountService, jwtTokenProvider);
     }
 
     @Test
     void 멤버_조회나_생성에_실패하면_JWT를_발급하지_않는다() {
+        // given
         OAuth2UserProfile profile = profile();
         ExistingUserException exception = new ExistingUserException("계정 연결이 필요합니다.");
         when(socialClientService.authenticate(any(OAuth2Client.class))).thenReturn(profile);
         when(socialAccountService.findOrCreateMember(profile)).thenThrow(exception);
 
-        assertThatThrownBy(() -> socialAuthService.signIn(request(), SocialProvider.GOOGLE))
-                .isSameAs(exception);
+        // when
+        Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(
+                () -> socialAuthService.signIn(request(), SocialProvider.GOOGLE)
+        );
+
+        // then
+        assertThat(thrown).isSameAs(exception);
         verifyNoInteractions(jwtTokenProvider);
     }
 
