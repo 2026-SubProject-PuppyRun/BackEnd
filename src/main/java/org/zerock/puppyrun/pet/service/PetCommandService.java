@@ -60,7 +60,7 @@ public class PetCommandService {
         petRepository.save(newPet);
         petStatistics.savePetWeightLog(newPet, request.weight());
 
-        return PetDetailResponse.of(newPet, 0);
+        return PetDetailResponse.of(newPet);
     }
 
     /**
@@ -148,5 +148,6 @@ public class PetCommandService {
         pet.updateMbti(request.mbti());
         return PetUpdateResponse.of(pet);
     }
+
 
 }

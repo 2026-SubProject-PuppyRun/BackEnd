@@ -1,6 +1,7 @@
 package org.zerock.puppyrun.pet.controller;
 
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +24,7 @@ import org.zerock.puppyrun.pet.controller.request.UpdateMbtiRequest;
 import org.zerock.puppyrun.pet.controller.request.UpdatePetRequest;
 import org.zerock.puppyrun.pet.controller.response.PetDetailResponse;
 import org.zerock.puppyrun.pet.controller.response.PetListResponse;
+import org.zerock.puppyrun.pet.controller.response.PetProgressResponse;
 import org.zerock.puppyrun.pet.controller.response.PetUpdateResponse;
 import org.zerock.puppyrun.pet.controller.response.PetWeightRecordResponse;
 import org.zerock.puppyrun.pet.controller.response.PetWeightLogResponse;
@@ -154,6 +157,15 @@ public class PetController {
             @PathVariable UUID petId
     ) {
         PetUpdateResponse response = petCommandService.updateMbti(userPrincipal, petId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/progress")
+    public ResponseEntity<PetProgressResponse> getPetProgress(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam(required = false) List<UUID> petIds
+    ) {
+        PetProgressResponse response = petQueryService.getPetProgress(userPrincipal, petIds);
         return ResponseEntity.ok(response);
     }
 

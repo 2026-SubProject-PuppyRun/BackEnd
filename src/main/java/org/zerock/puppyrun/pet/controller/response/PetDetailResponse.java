@@ -27,7 +27,7 @@ public record PetDetailResponse(
     /**
      * Pet 엔티티를 PetDetailResponse DTO로 변환하는 정적 팩토리 메서드
      */
-    public static PetDetailResponse of(Pet pet, int walkedDistance) {
+    public static PetDetailResponse of(Pet pet) {
         return PetDetailResponse.builder()
                 .PetId(pet.getId())
                 .name(pet.getName())
@@ -38,7 +38,7 @@ public record PetDetailResponse(
                 .breedCode(pet.getBreed().getCode())
                 .isNeutered(pet.getIsNeutered())
                 .gender(pet.getGender())
-                .badgeInfo(BadgeInfo.from(pet.getBadge(), walkedDistance))
+                .badgeInfo(BadgeInfo.from(pet.getWalkedDistance()))
                 .mbti(pet.getMbti())
                 .build();
     }
@@ -54,7 +54,8 @@ public record PetDetailResponse(
             int requiredDistance,
             int nextRequiredDistance
     ) {
-        public static BadgeInfo from(PetBadge badge, int distance) {
+        public static BadgeInfo from(int distance) {
+            PetBadge badge = PetBadge.getBadgeByDistance(distance);
             return BadgeInfo.builder()
                     .code(badge.getCode())
                     .walkedDistance(distance)

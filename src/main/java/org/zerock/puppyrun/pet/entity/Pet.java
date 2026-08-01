@@ -16,6 +16,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.zerock.puppyrun.common.entity.BaseEntity;
+import org.zerock.puppyrun.common.exception.DataIntegrityException;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.pet.DTO.UpdatePetDTO;
 
@@ -49,6 +50,9 @@ public class Pet extends BaseEntity {
     @Column(name = "profile_image_url", length = 1000)
     private String profileImageUrl;
 
+    @Column(name = "walked_distance")
+    private int walkedDistance;
+
     @Column(name = "color")
     private String color;
 
@@ -78,6 +82,7 @@ public class Pet extends BaseEntity {
         this.isNeutered = isNeutered;
         this.gender = gender;
         this.profileImageUrl = null;
+        this.walkedDistance = 0;
         this.badge = PetBadge.BEGINNER;
         this.mbti = null;
     }
@@ -105,6 +110,13 @@ public class Pet extends BaseEntity {
 
     public boolean isNotOwner(UUID memberId) {
         return !this.member.getId().equals(memberId);
+    }
+
+    public void addWalkedDistance(int distance) {
+        if (distance < 0) {
+            throw new DataIntegrityException("산책거리는 음수일 수 없습니다.");
+        }
+        this.walkedDistance += distance;
     }
 
     public void updateMbti(String mbti) {
