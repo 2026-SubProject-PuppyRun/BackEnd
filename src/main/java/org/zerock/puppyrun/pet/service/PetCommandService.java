@@ -14,6 +14,7 @@ import org.zerock.puppyrun.member.repository.MemberRepository;
 import org.zerock.puppyrun.pet.DTO.UpdatePetDTO;
 import org.zerock.puppyrun.pet.controller.request.RegisterPetRequest;
 import org.zerock.puppyrun.pet.controller.request.RegisterPetWeightLogRequest;
+import org.zerock.puppyrun.pet.controller.request.UpdateMbtiRequest;
 import org.zerock.puppyrun.pet.controller.request.UpdatePetRequest;
 import org.zerock.puppyrun.pet.controller.response.PetDetailResponse;
 import org.zerock.puppyrun.pet.controller.response.PetUpdateResponse;
@@ -59,7 +60,7 @@ public class PetCommandService {
         petRepository.save(newPet);
         petStatistics.savePetWeightLog(newPet, request.weight());
 
-        return PetDetailResponse.of(newPet, 0);
+        return PetDetailResponse.of(newPet);
     }
 
     /**
@@ -135,4 +136,18 @@ public class PetCommandService {
         Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
         petRepository.deleteById(petId);
     }
+
+    /**
+     * 펫의 엠비티아이를 수정합니다.
+     *
+     * @param userPrincipal 현재 인증된 사용자 정보
+     * @param petId         펫의 id
+     */
+    public PetUpdateResponse updateMbti(UserPrincipal userPrincipal, UUID petId, UpdateMbtiRequest request) {
+        Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
+        pet.updateMbti(request.mbti());
+        return PetUpdateResponse.of(pet);
+    }
+
+
 }

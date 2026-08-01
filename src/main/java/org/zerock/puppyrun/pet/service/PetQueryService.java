@@ -1,14 +1,19 @@
 package org.zerock.puppyrun.pet.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
+import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.pet.controller.response.PetDetailResponse;
 import org.zerock.puppyrun.pet.controller.response.PetListResponse;
+import org.zerock.puppyrun.pet.controller.response.PetProgressResponse;
 import org.zerock.puppyrun.pet.controller.response.PetWeightLogResponse;
 import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.entity.PetWeightLog;
@@ -32,8 +37,7 @@ public class PetQueryService {
      */
     public PetDetailResponse getPet(UserPrincipal userPrincipal, UUID petId) {
         Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
-        int walkedDistance = petStatistics.getTotalWalkedDistance(pet); // 누적 산책거리 조회
-        return PetDetailResponse.of(pet, walkedDistance);
+        return PetDetailResponse.of(pet);
     }
 
     /**
@@ -55,4 +59,45 @@ public class PetQueryService {
         List<PetWeightLog> petWeightLog = petStatistics.getPetWeightLog(pet.getId());
         return PetWeightLogResponse.of(pet, petWeightLog);
     }
+
+    /**
+     * 쿼리 파라미터로 전달된 펫 ID 개수에 따라 전체, 단건 또는 복수 펫의 진행도를 조회합니다.
+     */
+    public PetProgressResponse getPetProgress(UserPrincipal userPrincipal, List<UUID> petIds) {
+        // 사용자 소유 펫 전체 조회
+        if (petIds == null || petIds.isEmpty()) {
+            List<Pet> pets = petRepository.findAllByMemberId(userPrincipal.id());
+            return PetProgressResponse.from(pets);
+        }
+
+        // 중복 제거
+        List<UUID> distinctPetIds = petIds.stream()
+                .distinct()
+                .toList();
+
+        //단건 조회
+        if (distinctPetIds.size() == 1) {
+            Pet pet = petRepository.findByIdAndVerifyOwnership(
+                    distinctPetIds.getFirst(),
+                    userPrincipal.id()
+            );
+            return PetProgressResponse.from(pet);
+        }
+
+        // 복수 조회
+        List<Pet> pets = petRepository.findAllByMemberIdAndIdIn(userPrincipal.id(), distinctPetIds);
+        Map<UUID, Pet> petById = pets.stream()
+                .collect(Collectors.toMap(Pet::getId, Function.identity()));
+
+        if (petById.size() != distinctPetIds.size()) {
+            throw new ResourceNotFoundException("조회할 수 없는 펫이 포함되어 있습니다.");
+        }
+
+        List<Pet> orderedPets = distinctPetIds.stream()
+                .map(petById::get)
+                .toList();
+
+        return PetProgressResponse.from(orderedPets);
+    }
+
 }

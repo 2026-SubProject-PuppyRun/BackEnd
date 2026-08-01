@@ -24,6 +24,13 @@
 - PR 설명 작성 요청을 받으면 [PR 작성 규칙](.codex/conventions/pull-request.md)과 [.github/pull_request_template.md](.github/pull_request_template.md)를 읽고 따릅니다.
 - 커밋, 푸시, PR 생성처럼 외부 상태를 변경하는 작업은 사용자가 명시적으로 요청한 범위에서만 수행합니다.
 
+## API 명세서
+
+- API 명세서 작성, 수정 또는 검토 요청을 받으면 [API 명세서 작성 규칙](.codex/conventions/api-spec.md)을 먼저 읽고 따릅니다.
+- API 명세서는 PR 템플릿과 동일한 제목·요약·API 목록·성공/실패 시나리오 구조로 작성합니다.
+- 구현된 API의 명세는 Controller, 요청·응답 DTO, Validation, Service 예외 및 `ErrorCode`를 확인한 뒤 실제 동작만 기록합니다.
+- 아직 구현되지 않은 API는 `제안 명세`임을 제목과 요약에 명시하고, 확정되지 않은 정책을 구현된 동작처럼 단정하지 않습니다.
+
 ## 서브에이전트
 
 Codex 사용자 정의 에이전트는 `.codex/agents/*.toml`에 정의되어 있습니다.

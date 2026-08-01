@@ -20,7 +20,9 @@ public record PetUpdateResponse(
         String gender,
 
         @S3Url
-        String profileImageUrl
+        String profileImageUrl,
+
+        String mbti
 ) {
     public static PetUpdateResponse of(Pet pet) {
         return PetUpdateResponse.builder()
@@ -31,6 +33,7 @@ public record PetUpdateResponse(
                 .isNeutered(pet.getIsNeutered())
                 .gender(pet.getGender())
                 .profileImageUrl(pet.getProfileImageUrl())
+                .mbti(pet.getMbti())
                 .build();
     }
 }

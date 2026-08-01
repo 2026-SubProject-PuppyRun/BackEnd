@@ -48,7 +48,7 @@ public enum PetBadge {
      * @param distance 누적 산책 거리 (미터)
      * @return 거리에 맞는 가장 높은 등급의 뱃지
      */
-    public static PetBadge getBadgeByDistance(double distance) {
+    public static PetBadge getBadgeByDistance(int distance) {
         for (PetBadge badge : BADGES_BY_DISTANCE_DESC) {
             if (distance >= badge.getRequiredDistance()) {
                 return badge;

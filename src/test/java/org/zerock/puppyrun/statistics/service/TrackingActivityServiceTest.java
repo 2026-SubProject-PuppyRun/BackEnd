@@ -17,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.member.entity.UserRole;
-import org.zerock.puppyrun.pet.entity.PetBadge;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.statistics.DTO.DailyPetTracking;
 import org.zerock.puppyrun.statistics.DTO.MonthlyActivity;
@@ -293,7 +292,7 @@ class TrackingActivityServiceTest {
                 .name(name)
                 .profileImageUrl("https://image.test/" + petId)
                 .themeColor("#FFFFFF")
-                .badge(PetBadge.BEGINNER)
+                .walkedDistance(0)
                 .totalDistance(distance)
                 .totalDuration(duration)
                 .totalCount(count)

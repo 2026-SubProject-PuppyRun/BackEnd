@@ -32,6 +32,8 @@ public interface PetRepository extends JpaRepository<Pet, UUID> {
 
     List<Pet> findAllByMemberId(UUID memberId);
 
+    List<Pet> findAllByMemberIdAndIdIn(UUID memberId, List<UUID> petIds);
+
     @Query("SELECT p.id FROM Pet p WHERE p.member.id = :memberId")
     List<UUID> findPetIdsByMemberId(@Param("memberId") UUID memberId);
 }

@@ -13,12 +13,14 @@ public record TotalPetTracking(
         String name,            // 강아지 이름
         String profileImageUrl, // 프로필 이미지 URL
         String themeColor,      // 테마 색상 (엔티티의 color)
-        PetBadge badge,         // 현재 뱃지
+        Integer walkedDistance, // 전체 누적 산책 거리
         Integer totalDistance,  // 누적 거리
         Integer totalDuration,  // 누적 시간
         Long totalCount,         // 산책 횟수
         Double averageSpeed,     // 평균 속도
         Integer restDuration      // 휴식 시간
 ) {
+    public PetBadge badge() {
+        return PetBadge.getBadgeByDistance(walkedDistance != null ? walkedDistance : 0);
+    }
 }
-
