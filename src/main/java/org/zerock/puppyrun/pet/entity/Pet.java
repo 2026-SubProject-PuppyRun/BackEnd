@@ -40,10 +40,6 @@ public class Pet extends BaseEntity {
     private LocalDate birthYear; // 출생년도
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "badge")
-    private PetBadge badge;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "breed")
     private Breed breed;
 
@@ -83,7 +79,6 @@ public class Pet extends BaseEntity {
         this.gender = gender;
         this.profileImageUrl = null;
         this.walkedDistance = 0;
-        this.badge = PetBadge.BEGINNER;
         this.mbti = null;
     }
 

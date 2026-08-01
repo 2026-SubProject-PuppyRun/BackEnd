@@ -54,7 +54,7 @@ public class PetTrackingRepoCustomImpl implements PetTrackingRepoCustom {
                         pet.name,
                         pet.profileImageUrl,
                         pet.color,
-                        pet.badge,
+                        pet.walkedDistance,
                         tracking.distance.sum().coalesce(0),
                         tracking.duration.sum().coalesce(0),
                         tracking.count(),
@@ -70,7 +70,7 @@ public class PetTrackingRepoCustomImpl implements PetTrackingRepoCustom {
                                 .and(tracking.startedAt.lt(endDate.plusDays(1).atStartOfDay())) // < endDate+1 00:00
                 )
                 .where(pet.id.in(petId))
-                .groupBy(pet.id, pet.name, pet.profileImageUrl, pet.color, pet.badge)
+                .groupBy(pet.id, pet.name, pet.profileImageUrl, pet.color, pet.walkedDistance)
                 .fetch();
     }
 
