@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.pet.controller.request.RegisterPetRequest;
 import org.zerock.puppyrun.pet.controller.request.RegisterPetWeightLogRequest;
+import org.zerock.puppyrun.pet.controller.request.UpdateMbtiRequest;
 import org.zerock.puppyrun.pet.controller.request.UpdatePetRequest;
 import org.zerock.puppyrun.pet.controller.response.PetDetailResponse;
 import org.zerock.puppyrun.pet.controller.response.PetListResponse;
@@ -143,6 +144,16 @@ public class PetController {
             @PathVariable UUID petId
     ) {
         PetWeightLogResponse response = petQueryService.getPetWeightLog(userPrincipal, petId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{petId}/mbti")
+    public ResponseEntity<PetUpdateResponse> updateMbti(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestBody @Valid UpdateMbtiRequest request,
+            @PathVariable UUID petId
+    ) {
+        PetUpdateResponse response = petCommandService.updateMbti(userPrincipal, petId, request);
         return ResponseEntity.ok(response);
     }
 

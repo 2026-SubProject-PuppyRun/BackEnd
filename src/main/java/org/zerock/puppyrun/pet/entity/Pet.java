@@ -62,6 +62,9 @@ public class Pet extends BaseEntity {
     @Column(name = "gender", nullable = false, length = 1)
     private String gender;
 
+    @Column(name = "mbti", length = 4)
+    private String mbti;
+
     @Builder
     public Pet(UUID id, Member member, String name, LocalDate birthYear, Breed breed, String color, Double weight,
                boolean isNeutered, String gender) {
@@ -76,6 +79,7 @@ public class Pet extends BaseEntity {
         this.gender = gender;
         this.profileImageUrl = null;
         this.badge = PetBadge.BEGINNER;
+        this.mbti = null;
     }
 
     public void updateProfile(String profileImageUrl) {
@@ -101,5 +105,9 @@ public class Pet extends BaseEntity {
 
     public boolean isNotOwner(UUID memberId) {
         return !this.member.getId().equals(memberId);
+    }
+
+    public void updateMbti(String mbti) {
+        this.mbti = mbti;
     }
 }

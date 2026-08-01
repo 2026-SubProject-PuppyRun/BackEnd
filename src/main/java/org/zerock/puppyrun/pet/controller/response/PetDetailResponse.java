@@ -20,7 +20,8 @@ public record PetDetailResponse(
         String profileImageUrl,
         Boolean isNeutered,
         String gender,
-        BadgeInfo badgeInfo
+        BadgeInfo badgeInfo,
+        String mbti
 ) {
 
     /**
@@ -38,6 +39,7 @@ public record PetDetailResponse(
                 .isNeutered(pet.getIsNeutered())
                 .gender(pet.getGender())
                 .badgeInfo(BadgeInfo.from(pet.getBadge(), walkedDistance))
+                .mbti(pet.getMbti())
                 .build();
     }
 
