@@ -70,16 +70,10 @@ public class Diary extends BaseEntity {
     @JoinColumn(name = "tracking_id")
     private Tracking tracking;
 
-    // 이미지 리스트 매핑
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "diary_images", joinColumns = @JoinColumn(name = "diary_id"))
-    @Column(name = "image_url")
-    private List<String> images;
-
 
     @Builder
     public Diary(UUID id, String title, String content, Member member, String temp, SkyType sky, PrecipitationType pty,
-                 LocalDateTime writingTime, Tracking tracking, List<String> images) {
+                 LocalDateTime writingTime, Tracking tracking) {
         this.id = id != null ? id : UUID.randomUUID();
         this.title = title;
         this.content = content;
@@ -89,7 +83,6 @@ public class Diary extends BaseEntity {
         this.sky = sky;
         this.pty = pty;
         this.tracking = tracking;
-        this.images = images != null ? images : List.of(); // TODO: 추후 S3 만들어지면 저장할 것
     }
 
     /**
@@ -105,11 +98,6 @@ public class Diary extends BaseEntity {
         this.temp = updateDiaryDTO.temp();
         this.sky = updateDiaryDTO.sky();
         this.pty = updateDiaryDTO.pty();
-
-        if (updateDiaryDTO.images() != null) {
-            this.images.clear();
-            this.images.addAll(updateDiaryDTO.images());
-        }
     }
 
     /**

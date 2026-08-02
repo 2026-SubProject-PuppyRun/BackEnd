@@ -39,3 +39,6 @@ out/
 
 /logs/
 /src/main/resources/firebase-service-account.json
+
+# Local exports and test data
+/.api/

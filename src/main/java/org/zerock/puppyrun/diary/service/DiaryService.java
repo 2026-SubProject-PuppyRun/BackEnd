@@ -44,7 +44,7 @@ public class DiaryService {
 
     // 일기 작성
     @Transactional
-    public DiaryResponse registerDiary(UUID memberId, RegisterDiaryRequest request, List<MultipartFile> imageFiles) {
+    public DiaryResponse registerDiary(UUID memberId, RegisterDiaryRequest request) {
 
         if (diaryRepository.existsByTrackingId(request.trackingId())) {
             throw new InvalidValueException("이미 해당 산책 기록에 대한 일기가 존재합니다.");
@@ -56,12 +56,6 @@ public class DiaryService {
         Member member = memberRepository.findByIdOrThrow(memberId);
 
         UUID newDiaryId = UUID.randomUUID();
-        LocalDate today = LocalDate.now();
-
-        List<String> imagesUrl = s3Service.uploadAll(
-                imageFiles,
-                new DiaryPhotoContext(newDiaryId, today)
-        );
 
         SkyType skyType = SkyType.fromCode(request.weather().sky());  // 날씨 코드 변환
         PrecipitationType precipitationType = PrecipitationType.fromCode(request.weather().pty()); // 날씨 코드 변환
@@ -77,7 +71,6 @@ public class DiaryService {
                 .writingTime(request.writingTime())
                 .member(member)
                 .tracking(tracking)
-                .images(imagesUrl)
                 .build();
 
         Diary savedDiary = diaryRepository.save(diary);
@@ -115,10 +108,7 @@ public class DiaryService {
     @Transactional
     public void deleteDiary(UUID memberId, UUID diaryId) {
         Diary diary = findDiaryWithOwnershipCheck(diaryId, memberId);
-        List<String> images = List.copyOf(diary.getImages());
         diaryRepository.delete(diary);
-        // 이미지 삭제
-        s3Service.deleteAll(images);
     }
 
     // 일기 조회

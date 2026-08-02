@@ -92,29 +92,27 @@ public class TrackingCommandService {
     }
 
     /**
-     * 산책 정보 수정
+     * TODO: 산책 정보 수정은 추후 기능이 고도화 되면 추가 하겠음
      */
     public TrackingDetailResponse updateTracking(UUID memberId, UUID trackingId, UpdateTrackingRequest request) {
-        Tracking tracking = trackingRepository.findByIdAndVerifyOwnership(trackingId, memberId);
-
-        UpdateTrackingDTO updateTrackingDTO = UpdateTrackingDTO.builder()
-                .endedAt(request.endedAt())
-                .startedAt(request.startedAt())
-                .visibility(request.visibility())
-                .build();
-
-        tracking.update(updateTrackingDTO);
-
-        // 일기 ID 조회 (없으면 null)
-        UUID diaryId = diaryRepository.findIdByTrackingId(trackingId)
-                .orElse(null);
-
-        // 상세 정보 조회를 위해 경로 데이터 명시적 조회
-        List<RoutePoint> path = trackingRouteRepository.findByTrackingId(trackingId)
-                .map(TrackingRoute::getOriginalPath)
-                .orElse(List.of());
-
-        return TrackingDetailResponse.of(tracking, path, diaryId);
+//        Tracking tracking = trackingRepository.findByIdAndVerifyOwnership(trackingId, memberId);
+//
+//        UpdateTrackingDTO updateTrackingDTO = UpdateTrackingDTO.builder()
+//                .endedAt(request.endedAt())
+//                .startedAt(request.startedAt())
+//                .visibility(request.visibility())
+//                .build();
+//
+//        tracking.update(updateTrackingDTO);
+//
+//
+//        // 상세 정보 조회를 위해 경로 데이터 명시적 조회
+//        List<RoutePoint> path = trackingRouteRepository.findByTrackingId(trackingId)
+//                .map(TrackingRoute::getOriginalPath)
+//                .orElse(List.of());
+//
+//        return TrackingDetailResponse.of(tracking, path, diaryId);
+        return null;
     }
 
     /**

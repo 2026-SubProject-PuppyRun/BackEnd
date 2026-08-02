@@ -22,9 +22,7 @@ public record DiaryResponse(
         String title,
         String content,
         Weather weather,
-        TrackingDetail trackingDetail,
-        @S3Url
-        List<String> images
+        TrackingDetail trackingDetail
 ) {
 
     /**
@@ -40,7 +38,6 @@ public record DiaryResponse(
                 .content(diary.getContent())
                 .weather(Weather.from(diary)) // 날씨 변환 위임
                 .trackingDetail(TrackingDetail.of(tracking, path)) // 산책 정보 변환 위임
-                .images(diary.getImages())
                 .build();
     }
 

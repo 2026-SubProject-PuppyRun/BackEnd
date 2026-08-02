@@ -34,12 +34,11 @@ public class DiaryController {
     @PostMapping
     public ResponseEntity<DiaryResponse> registerDiary(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @RequestPart("request") @Valid RegisterDiaryRequest request,
-            @RequestPart("images") List<MultipartFile> images
+            @RequestBody @Valid RegisterDiaryRequest request
     ) {
         UUID memberId = userPrincipal.id(); // 인증된 사용자 ID 가져오기
 
-        DiaryResponse response = diaryService.registerDiary(memberId, request, images);
+        DiaryResponse response = diaryService.registerDiary(memberId, request);
 
         return ResponseEntity.ok(response);
     }
