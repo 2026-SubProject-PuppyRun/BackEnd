@@ -13,7 +13,6 @@ public record UpdateDiaryDTO(
         LocalDateTime writingTime,
         String temp,
         SkyType sky,
-        PrecipitationType pty,
-        List<String> images
+        PrecipitationType pty
 ) {
 }
