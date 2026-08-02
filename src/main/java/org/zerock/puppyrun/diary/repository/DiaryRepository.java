@@ -10,10 +10,6 @@ import org.zerock.puppyrun.diary.entity.Diary;
 
 @Repository
 public interface DiaryRepository extends JpaRepository<Diary, UUID> {
-    // JPQL을 사용하여 Diary 엔티티의 id만 조회 (SELECT d.id ...)
-    @Query("SELECT d.id FROM Diary d WHERE d.tracking.id = :trackingId")
-    Optional<UUID> findIdByTrackingId(@Param("trackingId") UUID trackingId);
-
 
     boolean existsByTrackingId(UUID trackingId);
 
