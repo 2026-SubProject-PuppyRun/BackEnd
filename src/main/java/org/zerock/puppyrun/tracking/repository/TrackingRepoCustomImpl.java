@@ -17,17 +17,53 @@ import org.springframework.stereotype.Repository;
 import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
+import org.zerock.puppyrun.tracking.DTO.MainTrackingSummary;
 import org.zerock.puppyrun.tracking.entity.Tracking;
+import org.zerock.puppyrun.tracking.entity.TrackingRoute;
 
 
 import static org.zerock.puppyrun.diary.entity.QDiary.diary;
 import static org.zerock.puppyrun.member.entity.QMember.member;
 import static org.zerock.puppyrun.tracking.entity.QTracking.tracking;
+import static org.zerock.puppyrun.tracking.entity.QTrackingImage.trackingImage;
+import static org.zerock.puppyrun.tracking.entity.QTrackingRoute.trackingRoute;
 
 @Repository
 @RequiredArgsConstructor
 public class TrackingRepoCustomImpl implements TrackingRepoCustom {
     private final JPAQueryFactory queryFactory;
+
+    @Override
+    public List<MainTrackingSummary> findMainTrackingSummaries(UUID memberId) {
+        return queryFactory
+                .select(
+                        tracking.id,
+                        trackingImage.imageUrl,
+                        trackingRoute
+                )
+                .from(tracking)
+                .leftJoin(trackingImage).on(
+                        trackingImage.tracking.eq(tracking),
+                        trackingImage.imageOrder.eq(0)
+                )
+                .leftJoin(trackingRoute).on(trackingRoute.tracking.eq(tracking))
+                .where(tracking.member.id.eq(memberId))
+                .orderBy(
+                        tracking.startedAt.desc(),
+                        tracking.id.asc()
+                )
+                .fetch()
+                .stream()
+                .map(row -> {
+                    TrackingRoute route = row.get(trackingRoute);
+                    return new MainTrackingSummary(
+                            row.get(tracking.id),
+                            row.get(trackingImage.imageUrl),
+                            route != null ? route.getOriginalPath() : List.of()
+                    );
+                })
+                .toList();
+    }
 
     @Override
     public List<UUID> findActiveMemberIds(LocalDateTime startDateTime, Pageable pageable) {

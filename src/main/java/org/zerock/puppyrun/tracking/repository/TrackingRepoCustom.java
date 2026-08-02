@@ -8,9 +8,15 @@ import org.springframework.data.domain.Pageable;
 import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
+import org.zerock.puppyrun.tracking.DTO.MainTrackingSummary;
 import org.zerock.puppyrun.tracking.entity.Tracking;
 
 public interface TrackingRepoCustom {
+
+    /**
+     * 회원의 산책 목록을 대표 이미지, 경로와 함께 조회합니다.
+     */
+    List<MainTrackingSummary> findMainTrackingSummaries(UUID memberId);
 
     /**
      * 기준 시각 이후 산책한 회원 ID를 페이지 단위로 조회합니다.

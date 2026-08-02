@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.diary.repository.DiaryRepository;
+import org.zerock.puppyrun.tracking.DTO.MainTrackingSummary;
 import org.zerock.puppyrun.tracking.controller.response.MainTrackingResponse;
 import org.zerock.puppyrun.tracking.controller.response.TrackingDetailResponse;
 import org.zerock.puppyrun.tracking.entity.Tracking;
@@ -26,8 +27,8 @@ public class TrackingQueryService {
      * 산책 리스트 조회
      */
     public MainTrackingResponse getTrackingListResponse(UUID memberId) {
-        List<Tracking> trackingList = trackingRepository.findAllByMemberId(memberId);
-        return MainTrackingResponse.from(trackingList);
+        List<MainTrackingSummary> summaries = trackingRepository.findMainTrackingSummaries(memberId);
+        return MainTrackingResponse.from(summaries);
     }
 
     /**
