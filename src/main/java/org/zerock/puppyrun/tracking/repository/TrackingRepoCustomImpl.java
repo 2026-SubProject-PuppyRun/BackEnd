@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -18,12 +19,15 @@ import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.MainTrackingSummary;
+import org.zerock.puppyrun.tracking.DTO.TrackingDetailSummary;
 import org.zerock.puppyrun.tracking.entity.Tracking;
 import org.zerock.puppyrun.tracking.entity.TrackingRoute;
 
 
 import static org.zerock.puppyrun.diary.entity.QDiary.diary;
 import static org.zerock.puppyrun.member.entity.QMember.member;
+import static org.zerock.puppyrun.pet.entity.QPet.pet;
+import static org.zerock.puppyrun.tracking.entity.QPetTracking.petTracking;
 import static org.zerock.puppyrun.tracking.entity.QTracking.tracking;
 import static org.zerock.puppyrun.tracking.entity.QTrackingImage.trackingImage;
 import static org.zerock.puppyrun.tracking.entity.QTrackingRoute.trackingRoute;
@@ -63,6 +67,103 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
                     );
                 })
                 .toList();
+    }
+
+    @Override
+    public Optional<TrackingDetailSummary> findTrackingDetailSummary(UUID trackingId) {
+        Tuple detailRow = queryFactory
+                .select(
+                        tracking.id,
+                        tracking.member.id,
+                        tracking.startedAt,
+                        tracking.endedAt,
+                        tracking.duration,
+                        tracking.visibility,
+                        tracking.distance,
+                        tracking.averagePace,
+                        trackingRoute,
+                        diary.id,
+                        diary.writingTime,
+                        diary.content,
+                        diary.temp,
+                        diary.sky,
+                        diary.pty
+                )
+                .from(tracking)
+                .leftJoin(trackingRoute).on(trackingRoute.tracking.eq(tracking))
+                .leftJoin(diary).on(diary.tracking.eq(tracking))
+                .where(tracking.id.eq(trackingId))
+                .fetchOne();
+
+        if (detailRow == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(toTrackingDetailSummary(detailRow));
+    }
+
+    @Override
+    public List<TrackingDetailSummary.TrackingImageSummary> findTrackingImageSummaries(UUID trackingId) {
+        return queryFactory
+                .select(Projections.constructor(
+                        TrackingDetailSummary.TrackingImageSummary.class,
+                        trackingImage.imageOrder,
+                        trackingImage.imageUrl
+                ))
+                .from(trackingImage)
+                .where(trackingImage.tracking.id.eq(trackingId))
+                .orderBy(trackingImage.imageOrder.asc())
+                .fetch();
+    }
+
+    @Override
+    public List<TrackingDetailSummary.ParticipatingPet> findParticipatingPetSummaries(UUID trackingId) {
+        return queryFactory
+                .select(Projections.constructor(
+                        TrackingDetailSummary.ParticipatingPet.class,
+                        pet.id,
+                        pet.name,
+                        pet.profileImageUrl,
+                        pet.color
+                ))
+                .distinct()
+                .from(petTracking)
+                .join(petTracking.pet, pet)
+                .where(petTracking.tracking.id.eq(trackingId))
+                .orderBy(pet.id.asc())
+                .fetch();
+    }
+
+    private TrackingDetailSummary toTrackingDetailSummary(Tuple detailRow) {
+        TrackingRoute route = detailRow.get(trackingRoute);
+        return new TrackingDetailSummary(
+                detailRow.get(tracking.id),
+                detailRow.get(tracking.member.id),
+                detailRow.get(tracking.startedAt),
+                detailRow.get(tracking.endedAt),
+                detailRow.get(tracking.duration),
+                detailRow.get(tracking.visibility),
+                detailRow.get(tracking.distance),
+                detailRow.get(tracking.averagePace),
+                route != null ? route.getOriginalPath() : List.of(),
+                toDiarySummary(detailRow)
+        );
+    }
+
+    private TrackingDetailSummary.DiarySummary toDiarySummary(Tuple detailRow) {
+        UUID diaryId = detailRow.get(diary.id);
+        if (diaryId == null) {
+            return null;
+        }
+
+        return new TrackingDetailSummary.DiarySummary(
+                diaryId,
+                detailRow.get(diary.writingTime),
+                detailRow.get(diary.content),
+                detailRow.get(diary.temp),
+                detailRow.get(diary.sky).getCode(),
+                detailRow.get(diary.pty).getCode()
+        );
     }
 
     @Override

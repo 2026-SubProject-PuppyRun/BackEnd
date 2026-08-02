@@ -3,12 +3,14 @@ package org.zerock.puppyrun.tracking.repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.MainTrackingSummary;
+import org.zerock.puppyrun.tracking.DTO.TrackingDetailSummary;
 import org.zerock.puppyrun.tracking.entity.Tracking;
 
 public interface TrackingRepoCustom {
@@ -17,6 +19,21 @@ public interface TrackingRepoCustom {
      * 회원의 산책 목록을 대표 이미지, 경로와 함께 조회합니다.
      */
     List<MainTrackingSummary> findMainTrackingSummaries(UUID memberId);
+
+    /**
+     * 산책 상세 기본 정보와 경로 및 일기를 조회합니다.
+     */
+    Optional<TrackingDetailSummary> findTrackingDetailSummary(UUID trackingId);
+
+    /**
+     * 산책 이미지를 등록 순서대로 조회합니다.
+     */
+    List<TrackingDetailSummary.TrackingImageSummary> findTrackingImageSummaries(UUID trackingId);
+
+    /**
+     * 산책에 참여한 펫을 조회합니다.
+     */
+    List<TrackingDetailSummary.ParticipatingPet> findParticipatingPetSummaries(UUID trackingId);
 
     /**
      * 기준 시각 이후 산책한 회원 ID를 페이지 단위로 조회합니다.
