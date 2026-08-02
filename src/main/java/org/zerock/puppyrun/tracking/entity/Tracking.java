@@ -1,8 +1,7 @@
 package org.zerock.puppyrun.tracking.entity;
 
-import jakarta.persistence.CollectionTable;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -10,6 +9,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -61,11 +62,9 @@ public class Tracking extends BaseEntity {
     @Column(nullable = false)
     private Visibility visibility;
 
-    // 이미지 리스트 매핑
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "tracking_images", joinColumns = @JoinColumn(name = "tracking_id"))
-    @Column(name = "image_url")
-    private List<String> images;
+    @OneToMany(mappedBy = "tracking", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("imageOrder ASC")
+    private List<TrackingImage> trackingImages = new ArrayList<>();
 
     @Builder
     public Tracking(UUID id, Member member, LocalDateTime startedAt, LocalDateTime endedAt, Integer distance,
@@ -79,7 +78,7 @@ public class Tracking extends BaseEntity {
         this.distance = distance;
         this.visibility = visibility;
         this.restDuration = restDuration;
-        this.images = images != null ? new ArrayList<>(images) : new ArrayList<>();
+        uploadImages(images);
     }
 
     public void update(UpdateTrackingDTO updateTrackingDTO) {
@@ -93,7 +92,34 @@ public class Tracking extends BaseEntity {
     }
 
     public void uploadImages(List<String> images) {
-        this.images = images != null ? new ArrayList<>(images) : new ArrayList<>();
+        List<String> imageUrls = images != null ? images : List.of();
+        int commonImageCount = Math.min(trackingImages.size(), imageUrls.size());
+
+        for (int index = 0; index < commonImageCount; index++) {
+            trackingImages.get(index).updateImageUrl(imageUrls.get(index));
+        }
+
+        if (trackingImages.size() > imageUrls.size()) {
+            trackingImages.subList(imageUrls.size(), trackingImages.size()).clear();
+        }
+
+        for (int index = commonImageCount; index < imageUrls.size(); index++) {
+            trackingImages.add(TrackingImage.builder()
+                    .tracking(this)
+                    .imageUrl(imageUrls.get(index))
+                    .imageOrder(index)
+                    .build());
+        }
+    }
+
+    public List<String> getImages() {
+        return trackingImages.stream()
+                .map(TrackingImage::getImageUrl)
+                .toList();
+    }
+
+    public String getFeaturedImage() {
+        return trackingImages.isEmpty() ? null : trackingImages.getFirst().getImageUrl();
     }
 
     public void changeVisibility(Visibility visibility) {
