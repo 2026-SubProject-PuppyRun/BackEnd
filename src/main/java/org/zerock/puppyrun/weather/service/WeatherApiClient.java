@@ -11,6 +11,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.zerock.puppyrun.common.exception.ExternalApiParsingException;
 import org.zerock.puppyrun.weather.DTO.WeatherApiPara;
 import org.zerock.puppyrun.weather.DTO.WeatherApiResponse;
+import org.zerock.puppyrun.weather.exception.WeatherApiResponseException;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -22,7 +23,7 @@ public class WeatherApiClient {
 
     @Value("${data-kr.api-key}")
     private String API_KEY;
-    @Value("${data-kr.forecest-url}")
+    @Value("${data-kr.forecast-url}")
     private String FCST_URL;
 
     final String DATA_TYPE = "JSON";
@@ -68,8 +69,12 @@ public class WeatherApiClient {
                     .map(WeatherApiResponse.Response::header)
                     .map(WeatherApiResponse.Header::resultMsg)
                     .orElse("메시지 없음");
-            log.error("날씨 API 호출 실패 - Code: {}, Msg: {}", resultCode, resultMsg);
-            throw new ExternalApiParsingException("날씨 API 호출 실패: %s".formatted(resultMsg));
+            log.error(
+                    "기상청 API 응답 오류: resultCode={}, resultMessage={}",
+                    resultCode,
+                    resultMsg
+            );
+            throw new WeatherApiResponseException(resultCode, resultMsg);
         }
 
         Optional.of(response.response())

@@ -2,18 +2,23 @@ package org.zerock.puppyrun.weather.service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.core.codec.DecodingException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.zerock.puppyrun.common.config.CacheType;
 import org.zerock.puppyrun.common.exception.CacheNotFoundException;
+import org.zerock.puppyrun.common.exception.ExternalApiParsingException;
 import org.zerock.puppyrun.weather.DTO.GridPoint;
 import org.zerock.puppyrun.weather.DTO.WeatherApiPara;
 import org.zerock.puppyrun.weather.DTO.WeatherDTO;
+import org.zerock.puppyrun.weather.exception.WeatherApiResponseException;
 import org.zerock.puppyrun.weather.utils.WeatherForecast;
 import org.zerock.puppyrun.weather.utils.WeatherRegionCatalog;
 import reactor.core.publisher.Flux;
@@ -28,6 +33,8 @@ import reactor.core.publisher.Mono;
 public class WeatherForecastUpdater {
 
     private static final int API_CALL_INTERVAL_MILLIS = 1000;
+    private static final int MAX_CONCURRENT_API_CALLS = 5;
+    private static final Duration API_RESPONSE_TIMEOUT = Duration.ofSeconds(10);
 
     private final WeatherApiClient weatherApiClient;
     private final WeatherMapper weatherMapper;
@@ -36,14 +43,22 @@ public class WeatherForecastUpdater {
 
     public void update(WeatherForecast forecast, CacheType cacheType, LocalDateTime requestTime) {
         log.info(
-                "날씨 데이터 정기 업데이트 시작: strategy={}, cache={}",
+                "날씨 데이터 업데이트 시작: strategy={}, cache={}",
                 forecast.getClass().getSimpleName(),
                 cacheType.getCacheName()
         );
 
         Flux.fromIterable(getGridPoints())
                 .delayElements(Duration.ofMillis(API_CALL_INTERVAL_MILLIS))
-                .concatMap(gridPoint -> update(forecast, cacheType, requestTime, gridPoint))
+                .flatMap(
+                        gridPoint -> update(forecast, cacheType, requestTime, gridPoint),
+                        MAX_CONCURRENT_API_CALLS
+                )
+                .doOnComplete(() -> log.info(
+                        "날씨 데이터 업데이트 완료: strategy={}, cache={}",
+                        forecast.getClass().getSimpleName(),
+                        cacheType.getCacheName()
+                ))
                 .subscribe();
     }
 
@@ -56,6 +71,7 @@ public class WeatherForecastUpdater {
         WeatherApiPara para = forecast.getPara(requestTime, gridPoint);
 
         return weatherApiClient.fetchWeather(para)
+                .timeout(API_RESPONSE_TIMEOUT)
                 .map(response -> weatherMapper.toWeatherDTO(
                         response,
                         forecast.getFilterCategory()
@@ -68,15 +84,123 @@ public class WeatherForecastUpdater {
                         gridPoint.ny()
                 ))
                 .onErrorResume(exception -> {
-                    log.error(
-                            "날씨 갱신 실패 (strategy={}, nx={}, ny={}): {}",
-                            forecast.getClass().getSimpleName(),
-                            gridPoint.nx(),
-                            gridPoint.ny(),
-                            exception.getMessage()
-                    );
+                    logUpdateFailure(forecast, para, exception);
                     return Mono.empty();
                 });
+    }
+
+    private void logUpdateFailure(
+            WeatherForecast forecast,
+            WeatherApiPara para,
+            Throwable exception
+    ) {
+        WeatherFailure failure = classifyFailure(exception);
+
+        log.error(
+                "날씨 갱신 실패: strategy={}, path={}, baseDate={}, baseTime={}, nx={}, ny={}, "
+                        + "errorType={}, responseCode={}, detail={}",
+                forecast.getClass().getSimpleName(),
+                para.path(),
+                para.baseDate(),
+                para.baseTime(),
+                para.nx(),
+                para.ny(),
+                failure.errorType(),
+                failure.responseCode(),
+                failure.detail()
+        );
+    }
+
+    WeatherFailure classifyFailure(Throwable exception) {
+        if (exception instanceof TimeoutException) {
+            return new WeatherFailure(
+                    "TIMEOUT",
+                    "NO_RESPONSE",
+                    "%d초 안에 HTTP 응답 본문 완료 신호를 받지 못했습니다."
+                            .formatted(API_RESPONSE_TIMEOUT.toSeconds())
+            );
+        }
+
+        if (exception instanceof WebClientResponseException responseException) {
+            return new WeatherFailure(
+                    "HTTP_ERROR",
+                    String.valueOf(responseException.getStatusCode().value()),
+                    abbreviate(responseException.getResponseBodyAsString())
+            );
+        }
+
+        if (exception instanceof WebClientRequestException requestException) {
+            Throwable cause = getRootCause(requestException);
+            return new WeatherFailure(
+                    "CONNECTION_ERROR",
+                    "NO_RESPONSE",
+                    cause.getClass().getSimpleName() + ": " + safeMessage(cause)
+            );
+        }
+
+        if (exception instanceof DecodingException) {
+            return new WeatherFailure(
+                    "DECODING_ERROR",
+                    "RESPONSE_RECEIVED",
+                    safeMessage(exception)
+            );
+        }
+
+        if (exception instanceof WeatherApiResponseException responseException) {
+            return new WeatherFailure(
+                    "API_RESPONSE_ERROR",
+                    responseException.getResponseCode(),
+                    safeMessage(responseException)
+            );
+        }
+
+        if (exception instanceof ExternalApiParsingException apiException) {
+            return new WeatherFailure(
+                    "API_RESPONSE_ERROR",
+                    apiException.getErrorCode().getCode(),
+                    safeMessage(apiException)
+            );
+        }
+
+        return new WeatherFailure(
+                "UNKNOWN_ERROR",
+                exception.getClass().getSimpleName(),
+                safeMessage(exception)
+        );
+    }
+
+    private Throwable getRootCause(Throwable exception) {
+        Throwable cause = exception;
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+        return cause;
+    }
+
+    private String safeMessage(Throwable exception) {
+        String message = exception.getMessage();
+        return message == null || message.isBlank()
+                ? "메시지 없음"
+                : message.replaceAll("[\\r\\n]+", " ");
+    }
+
+    private String abbreviate(String value) {
+        if (value == null || value.isBlank()) {
+            return "응답 본문 없음";
+        }
+
+        String normalized = value.replaceAll("[\\r\\n]+", " ");
+        int maxLength = 500;
+        return normalized.length() <= maxLength
+                ? normalized
+                : normalized.substring(0, maxLength) + "...";
+    }
+
+    record WeatherFailure(
+            String errorType,
+            String responseCode,
+            String detail
+    ) {
     }
 
     private void putWeatherToCache(
