@@ -25,7 +25,8 @@ spring:
     property-naming-strategy: SNAKE_CASE
 
 
-
+weather:
+  region-path: config/weather-regions.csv
 
 discord:
   webhooks-url: ${DISCORD_WEBHOOKS_URL}
