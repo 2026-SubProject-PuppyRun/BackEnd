@@ -22,6 +22,7 @@ import org.zerock.puppyrun.weather.exception.WeatherNotFoundException;
 @Slf4j
 public class WeatherService {
 
+    private static final int MAX_FORECAST_HOURS = 24;
     private static final DateTimeFormatter FORECAST_DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyyMMddHHmm");
 
@@ -35,40 +36,56 @@ public class WeatherService {
         String targetDate = nearestHour.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String targetTime = nearestHour.format(DateTimeFormatter.ofPattern("HHmm"));
 
-        if (!weather.date().equals(targetDate)) {
-            throw new WeatherNotFoundException("해당 시간대의 날씨 정보를 찾을 수 없습니다.");
-        }
-
-        WeatherDTO.Detail detail = weather.detail().stream()
-                .filter(weatherDetail -> weatherDetail.time().equals(targetTime))
+        WeatherDTO.WeatherList forecast = weather.weatherList().stream()
+                .filter(weatherList -> weatherList.date().equals(targetDate))
+                .filter(weatherList -> weatherList.time().equals(targetTime))
                 .findFirst()
                 .orElseThrow(() -> {
-                    log.error("타겟 시간 : {}, 날씨 정보를 찾을 수 없습니다.", targetTime);
+                    log.error("타겟 시간 : {} {}, 날씨 정보를 찾을 수 없습니다.", targetDate, targetTime);
                     return new WeatherNotFoundException("해당 시간대의 날씨 정보를 찾을 수 없습니다.");
                 });
 
-        return new WeatherDTO(targetDate, List.of(detail));
+        return new WeatherDTO(List.of(forecast));
     }
 
     /**
-     * 초단기예보 캐시에서 현재 정시 이후의 날씨를 조회합니다.
+     * 초단기예보를 우선 조회하고 요청 개수를 채울 수 없으면 단기예보로 전환합니다.
      */
-    public WeatherDTO getUltraShortWeather(
+    public WeatherDTO getFcstWeather(
             GridPoint gridPoint,
             LocalDateTime now,
             int limit
     ) {
-        return getRegionalWeather(CacheType.ULTRA_SHORT_WEATHER, gridPoint, now, limit);
-    }
+        validateLimit(limit);
 
-    /**
-     * 단기예보 캐시에서 현재 정시 이후의 날씨를 조회합니다.
-     */
-    public WeatherDTO getShortTermWeather(
-            GridPoint gridPoint,
-            LocalDateTime now,
-            int limit
-    ) {
+        try {
+            WeatherDTO ultraShortWeather = getRegionalWeather(
+                    CacheType.ULTRA_SHORT_WEATHER,
+                    gridPoint,
+                    now,
+                    limit
+            );
+
+            if (ultraShortWeather.weatherList().size() == limit) {
+                return ultraShortWeather;
+            }
+
+            log.info(
+                    "초단기예보 부족으로 단기예보 캐시 조회: nx={}, ny={}, requested={}, available={}",
+                    gridPoint.nx(),
+                    gridPoint.ny(),
+                    limit,
+                    ultraShortWeather.weatherList().size()
+            );
+        } catch (WeatherNotFoundException exception) {
+            log.info(
+                    "초단기예보 캐시 조회 실패로 단기예보 캐시 조회: nx={}, ny={}, reason={}",
+                    gridPoint.nx(),
+                    gridPoint.ny(),
+                    exception.getMessage()
+            );
+        }
+
         return getRegionalWeather(CacheType.SHORT_TERM_WEATHER, gridPoint, now, limit);
     }
 
@@ -86,10 +103,6 @@ public class WeatherService {
                 now
         );
 
-        if (limit < 1) {
-            throw new InvalidValueException("날씨 조회 개수는 1 이상이어야 합니다.");
-        }
-
         Cache cache = cacheManager.getCache(cacheType.getCacheName());
         if (cache == null) {
             throw new CacheNotFoundException("날씨 캐시를 찾을 수 없습니다.");
@@ -102,9 +115,9 @@ public class WeatherService {
 
         LocalDateTime startTime = now.truncatedTo(ChronoUnit.HOURS);
 
-        List<WeatherDTO.Detail> weatherForecasts = cachedWeather.detail().stream()
-                .filter(detail -> !toDateTime(cachedWeather.date(), detail).isBefore(startTime))
-                .sorted(Comparator.comparing(detail -> toDateTime(cachedWeather.date(), detail)))
+        List<WeatherDTO.WeatherList> weatherForecasts = cachedWeather.weatherList().stream()
+                .filter(forecast -> !toDateTime(forecast).isBefore(startTime))
+                .sorted(Comparator.comparing(this::toDateTime))
                 .limit(limit)
                 .toList();
 
@@ -112,12 +125,18 @@ public class WeatherService {
             throw new WeatherNotFoundException("현재 시간 이후의 날씨 정보가 존재하지 않습니다.");
         }
 
-        return new WeatherDTO(cachedWeather.date(), weatherForecasts);
+        return new WeatherDTO(weatherForecasts);
     }
 
-    private LocalDateTime toDateTime(String date, WeatherDTO.Detail detail) {
+    private void validateLimit(int limit) {
+        if (limit < 1 || limit > MAX_FORECAST_HOURS) {
+            throw new InvalidValueException("날씨 조회 개수는 1 이상 24 이하여야 합니다.");
+        }
+    }
+
+    private LocalDateTime toDateTime(WeatherDTO.WeatherList forecast) {
         return LocalDateTime.parse(
-                date + detail.time(),
+                forecast.date() + forecast.time(),
                 FORECAST_DATE_TIME_FORMATTER
         );
     }
