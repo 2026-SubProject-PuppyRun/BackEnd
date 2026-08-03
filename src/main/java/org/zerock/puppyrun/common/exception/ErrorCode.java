@@ -32,7 +32,8 @@ public enum ErrorCode {
     EXTERNAL_API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "API_001", "외부 API 요청 중 오류가 발생했습니다."),
 
     // 날씨 에러
-    INVALID_WEATHER(HttpStatus.INTERNAL_SERVER_ERROR, "WEATHER_001", "잘못된 날씨입니다."),
+    INVALID_WEATHER(HttpStatus.INTERNAL_SERVER_ERROR, "WEATHER_001", "잘못된 날씨 코드입니다."),
+    NOT_FOUND_WEATHER(HttpStatus.INTERNAL_SERVER_ERROR, "WEATHER_002", "날씨를 찾을 수 없습니다."),
 
     // 알림 설정 에러
     NOT_EXISTS_FCM_TOKEN(HttpStatus.NOT_FOUND, "NOTI_001", "FCM 토큰이 존재하지 않습니다."),

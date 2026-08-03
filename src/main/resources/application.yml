@@ -25,14 +25,16 @@ spring:
     property-naming-strategy: SNAKE_CASE
 
 
-
+weather:
+  region-path: config/weather-regions.csv
+  initialize-on-startup: true
 
 discord:
   webhooks-url: ${DISCORD_WEBHOOKS_URL}
 
 data-kr:
   api-key: ${DATA_API_KEY}
-  forecest-url: ${DATA_FORECEST_URL}
+  forecast-url: ${DATA_FORECAST_URL}
 
 firebase:
   account-path: ${FCM_ACCOUNT_PATH}

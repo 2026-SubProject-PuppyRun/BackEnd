@@ -5,15 +5,16 @@ import lombok.Builder;
 
 @Builder
 public record WeatherDTO(
-        String date,
-        String time,
-        Detail detail
+        List<WeatherList> weatherList
 ) {
     @Builder
-    public record Detail(
+    public record WeatherList(
+            String date,
+            String time,
             String temp, // 온도
             SkyType sky,  // 하늘
-            PrecipitationType pty   // 강수
+            PrecipitationType pty, // 강수 상태
+            String pcp // 강수량
     ) {
     }
 }

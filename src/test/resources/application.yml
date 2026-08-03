@@ -48,7 +48,11 @@ discord:
 
 data-kr:
   api-key: api-key
-  forecest-url: http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0
+  forecast-url: https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0
+
+weather:
+  region-path: config/weather-regions.csv
+  initialize-on-startup: false
 
 social-oauth2:
   google:
@@ -63,4 +67,3 @@ logging:
     root: INFO
     com.puppyrun: DEBUG
     org.hibernate: WARN
-

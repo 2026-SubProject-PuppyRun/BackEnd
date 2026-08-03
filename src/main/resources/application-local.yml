@@ -19,3 +19,6 @@ spring:
         bucket: ${AWS_S3_BUCKET_NAME}
       stack:
         auto: false
+weather:
+  region-path: config/weather-regions.csv
+  initialize-on-startup: true

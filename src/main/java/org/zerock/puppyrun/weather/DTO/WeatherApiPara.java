@@ -15,11 +15,4 @@ public record WeatherApiPara(
         int numOfRows,
         String path
 ) {
-
-    /**
-     * 기존 초단기예보 호출과 호환되는 생성자입니다.
-     */
-    public WeatherApiPara(String baseDate, String baseTime, int nx, int ny) {
-        this(baseDate, baseTime, nx, ny, 1, 100, "/getUltraSrtFcst");
-    }
 }
