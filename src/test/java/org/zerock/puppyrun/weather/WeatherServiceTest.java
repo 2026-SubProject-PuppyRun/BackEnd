@@ -14,6 +14,7 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.zerock.puppyrun.common.config.CacheType;
+import org.zerock.puppyrun.common.exception.ErrorCode;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.weather.DTO.GridPoint;
 import org.zerock.puppyrun.weather.DTO.PrecipitationType;
@@ -167,7 +168,10 @@ class WeatherServiceTest {
                 3
         ))
                 .isInstanceOf(WeatherNotFoundException.class)
-                .hasMessage("현재 시간 이후의 날씨 정보가 존재하지 않습니다.");
+                .hasMessage("현재 시간 이후의 날씨 정보가 존재하지 않습니다.")
+                .satisfies(exception -> assertThat(
+                        ((WeatherNotFoundException) exception).getErrorCode()
+                ).isEqualTo(ErrorCode.NOT_FOUND_WEATHER));
     }
 
     @Test
@@ -184,7 +188,10 @@ class WeatherServiceTest {
                 6
         ))
                 .isInstanceOf(WeatherNotFoundException.class)
-                .hasMessage("해당 지역의 날씨 정보가 존재하지 않습니다.");
+                .hasMessage("해당 지역의 날씨 정보가 존재하지 않습니다.")
+                .satisfies(exception -> assertThat(
+                        ((WeatherNotFoundException) exception).getErrorCode()
+                ).isEqualTo(ErrorCode.NOT_FOUND_WEATHER));
     }
 
     @Test

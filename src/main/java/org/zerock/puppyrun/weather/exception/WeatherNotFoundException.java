@@ -5,10 +5,10 @@ import org.zerock.puppyrun.common.exception.ErrorCode;
 
 public class WeatherNotFoundException extends BusinessException {
     public WeatherNotFoundException(String message) {
-        super(ErrorCode.INVALID_WEATHER, message);
+        super(ErrorCode.NOT_FOUND_WEATHER, message);
     }
 
     public WeatherNotFoundException(String message, Throwable cause) {
-        super(ErrorCode.INVALID_WEATHER, message, cause);
+        super(ErrorCode.NOT_FOUND_WEATHER, message, cause);
     }
 }
