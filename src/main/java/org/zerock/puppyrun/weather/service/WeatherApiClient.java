@@ -1,24 +1,16 @@
 package org.zerock.puppyrun.weather.service;
 
 import java.net.URI;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.zerock.puppyrun.common.exception.ExternalApiParsingException;
-import org.zerock.puppyrun.weather.DTO.DateTimeDTO;
 import org.zerock.puppyrun.weather.DTO.WeatherApiPara;
 import org.zerock.puppyrun.weather.DTO.WeatherApiResponse;
-import org.zerock.puppyrun.weather.DTO.WeatherDTO;
-import org.zerock.puppyrun.weather.DTO.WeatherForecast;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -27,32 +19,18 @@ import reactor.core.publisher.Mono;
 public class WeatherApiClient {
 
     private final WebClient webClient;
-    private final WeatherMapper weatherMapper;
 
     @Value("${data-kr.api-key}")
     private String API_KEY;
     @Value("${data-kr.forecest-url}")
     private String FCST_URL;
 
-    final String FCST_URI = "/getUltraSrtFcst";
-    final int PAGE_NO = 1;
-    final int NUM_OF_ROWS = 100;
     final String DATA_TYPE = "JSON";
-    final String TIME_ZONE = "Asia/Seoul";
 
     /**
-     * 예보 전략에 맞는 지역 날씨를 조회하고 공통 날씨 DTO로 변환합니다.
+     * 완성된 요청 파라미터로 기상청 원본 응답을 조회합니다.
      */
-    @Cacheable(value = "RegionalWeather", key = "#forecast.key")
-    public List<WeatherDTO> getRegionalWeather(WeatherForecast forecast) {
-        return fetchForecast(forecast)
-                .map(response -> weatherMapper.toWeatherDTOList(response, forecast.getFilterCategory()))
-                .blockOptional()
-                .orElseGet(List::of);
-    }
-
-    private Mono<WeatherApiResponse> fetchForecast(WeatherForecast forecast) {
-        WeatherApiPara para = forecast.getPara();
+    public Mono<WeatherApiResponse> fetchWeather(WeatherApiPara para) {
         URI uri = UriComponentsBuilder.fromHttpUrl(FCST_URL)
                 .path(para.path())
                 .queryParam("serviceKey", API_KEY)
@@ -73,34 +51,6 @@ public class WeatherApiClient {
                 .retrieve()
                 .bodyToMono(WeatherApiResponse.class)
                 .doOnNext(this::validateApiResponse);
-    }
-
-    /**
-     * WebClient를 활용하여 리액티브 타입(Mono)으로 응답을 반환하도록 구현
-     */
-    public Mono<WeatherApiResponse> fetchWeather(WeatherApiPara para) {
-        String uriString = String.format(
-                "%s%s?serviceKey=%s&pageNo=%d&numOfRows=%d&dataType=%s&base_date=%s&base_time=%s&nx=%d&ny=%d",
-                FCST_URL, FCST_URI, API_KEY, PAGE_NO, NUM_OF_ROWS, DATA_TYPE,
-                para.baseDate(), para.baseTime(), para.nx(), para.ny());
-
-        URI uri = URI.create(uriString);
-
-        log.info("Generated URI: {}", uri); // 생성된 URI 확인
-
-        return webClient.get()
-                .uri(uri)
-                .retrieve()
-                .bodyToMono(WeatherApiResponse.class)
-                .doOnNext(this::validateApiResponse);
-    }
-
-    public DateTimeDTO createCurrentDateTimeDto() {
-        LocalDateTime now = LocalDateTime.now(ZoneId.of(TIME_ZONE));
-        LocalDateTime baseDateTime = now.minusHours(1);
-        String baseDate = baseDateTime.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String baseTime = baseDateTime.format(DateTimeFormatter.ofPattern("HH00"));
-        return new DateTimeDTO(baseDate, baseTime);
     }
 
     private void validateApiResponse(WeatherApiResponse response) {
