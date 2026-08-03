@@ -2,8 +2,6 @@ package org.zerock.puppyrun.notification.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -16,10 +14,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.zerock.puppyrun.common.entity.BaseEntity;
 import org.zerock.puppyrun.member.entity.Member;
-import org.zerock.puppyrun.weather.DTO.RegionType;
 
 /**
- * 회원의 최근 산책 지역과 평일·주말 선호 산책 시간을 저장합니다.
+ * 회원의 최근 산책 위치와 평일·주말 선호 산책 시간을 저장합니다.
  */
 @Entity
 @Getter
@@ -34,9 +31,11 @@ public class WalkingPreference extends BaseEntity {
     @JoinColumn(name = "member_id")
     private Member member;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "last_known_region")
-    private RegionType lastKnownRegion;
+    @Column(name = "last_known_latitude")
+    private Double lastKnownLatitude;
+
+    @Column(name = "last_known_longitude")
+    private Double lastKnownLongitude;
 
     @Column(name = "preferred_weekday_time")
     private Integer preferredWeekdayTime;
@@ -47,23 +46,27 @@ public class WalkingPreference extends BaseEntity {
     @Builder
     public WalkingPreference(
             Member member,
-            RegionType lastKnownRegion,
+            Double lastKnownLatitude,
+            Double lastKnownLongitude,
             Integer preferredWeekdayTime,
             Integer preferredWeekendTime
     ) {
         this.member = member;
-        this.lastKnownRegion = lastKnownRegion;
+        this.lastKnownLatitude = lastKnownLatitude;
+        this.lastKnownLongitude = lastKnownLongitude;
         this.preferredWeekdayTime = preferredWeekdayTime;
         this.preferredWeekendTime = preferredWeekendTime;
     }
 
     /**
-     * 마지막으로 확인된 산책 지역을 갱신합니다.
+     * 마지막으로 확인된 산책 위치를 갱신합니다.
      *
-     * @param region 최근 산책 지역
+     * @param latitude 최근 산책 위치의 위도
+     * @param longitude 최근 산책 위치의 경도
      */
-    public void updateRegion(RegionType region) {
-        this.lastKnownRegion = region;
+    public void updateLocation(double latitude, double longitude) {
+        this.lastKnownLatitude = latitude;
+        this.lastKnownLongitude = longitude;
     }
 
     /**
