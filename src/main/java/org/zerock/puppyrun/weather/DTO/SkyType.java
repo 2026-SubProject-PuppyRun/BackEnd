@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.weather.exception.WeatherNotFoundException;
 
+/**
+ * 초단기·단기예보가 공통으로 사용하는 하늘 상태 코드입니다.
+ */
 @Getter
 @RequiredArgsConstructor
 public enum SkyType {

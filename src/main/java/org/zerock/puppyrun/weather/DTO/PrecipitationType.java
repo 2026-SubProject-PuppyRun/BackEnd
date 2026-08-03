@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.weather.exception.WeatherNotFoundException;
 
+/**
+ * 초단기·단기예보의 강수 형태 코드를 합집합으로 관리합니다.
+ */
 @Getter
 @RequiredArgsConstructor
 public enum PrecipitationType {
@@ -14,8 +17,9 @@ public enum PrecipitationType {
     RAIN("1", "비"),
     RAIN_SNOW("2", "비/눈"),
     SNOW("3", "눈"),
+    SHOWER("4", "소나기"),
     RAINDROP("5", "빗방울"),
-    RAINDROP_SNOW_DRIFT("6", "빗방울날림"),
+    RAINDROP_SNOW_DRIFT("6", "빗방울눈날림"),
     SNOW_DRIFT("7", "눈날림");
 
     private final String code;
@@ -24,7 +28,10 @@ public enum PrecipitationType {
     /**
      * 정수형 코드값을 입력받아 해당하는 Enum 상수를 반환합니다.
      *
-     * @param code 강수형태 코드 (0, 1, 2, 3, 5, 6, 7)
+     * <p>단기예보의 소나기(4)와 초단기예보의 빗방울·눈날림(5, 6, 7)을
+     * 모두 포함하는 공통 코드입니다.</p>
+     *
+     * @param code 강수형태 코드 (0~7)
      * @return PrecipitationType
      * @throws InvalidValueException 정의되지 않은 코드일 경우 예외 발생
      */
