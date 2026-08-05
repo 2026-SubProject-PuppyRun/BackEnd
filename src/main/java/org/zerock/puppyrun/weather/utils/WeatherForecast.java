@@ -2,6 +2,7 @@ package org.zerock.puppyrun.weather.utils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import org.zerock.puppyrun.common.config.CacheType;
 import org.zerock.puppyrun.weather.DTO.GridPoint;
 import org.zerock.puppyrun.weather.DTO.WeatherApiPara;
 import org.zerock.puppyrun.weather.DTO.WeatherFilterCategory;
@@ -18,12 +19,22 @@ public interface WeatherForecast {
 
     int getNumberOfRows();
 
-    LocalDateTime getBaseDateTime(LocalDateTime requestTime);
+    LocalDateTime getBaseDateTime();
 
     WeatherFilterCategory getFilterCategory();
 
-    default WeatherApiPara getPara(LocalDateTime requestTime, GridPoint gridPoint) {
-        LocalDateTime baseDateTime = getBaseDateTime(requestTime);
+    CacheType getCacheType();
+
+    ForecastType getType();
+
+    LocalDateTime requestTime();
+
+    default boolean isDbBackupRequired() {
+        return false;
+    }
+
+    default WeatherApiPara getPara(GridPoint gridPoint) {
+        LocalDateTime baseDateTime = getBaseDateTime();
 
         return WeatherApiPara.builder()
                 .path(getPath())
@@ -39,7 +50,7 @@ public interface WeatherForecast {
     /**
      * 매시간 30분에 발표되는 초단기예보 전략입니다.
      */
-    record UltraShort() implements WeatherForecast {
+    record UltraShort(LocalDateTime requestTime) implements WeatherForecast {
 
         @Override
         public String getPath() {
@@ -57,8 +68,18 @@ public interface WeatherForecast {
         }
 
         @Override
-        public LocalDateTime getBaseDateTime(LocalDateTime requestTime) {
-            LocalDateTime baseDateTime = requestTime
+        public CacheType getCacheType() {
+            return CacheType.ULTRA_SHORT_WEATHER;
+        }
+
+        @Override
+        public ForecastType getType() {
+            return ForecastType.ULTRA_SHORT;
+        }
+
+        @Override
+        public LocalDateTime getBaseDateTime() {
+            LocalDateTime baseDateTime = this.requestTime
                     .withMinute(30)
                     .withSecond(0)
                     .withNano(0);
@@ -72,7 +93,7 @@ public interface WeatherForecast {
     /**
      * 02시부터 3시간 간격으로 발표되는 단기예보 전략입니다.
      */
-    record ShortTerm() implements WeatherForecast {
+    record ShortTerm(LocalDateTime requestTime) implements WeatherForecast {
 
         @Override
         public String getPath() {
@@ -90,8 +111,23 @@ public interface WeatherForecast {
         }
 
         @Override
-        public LocalDateTime getBaseDateTime(LocalDateTime requestTime) {
-            LocalDateTime adjusted = requestTime.minusMinutes(30);
+        public CacheType getCacheType() {
+            return CacheType.SHORT_TERM_WEATHER;
+        }
+
+        @Override
+        public ForecastType getType() {
+            return ForecastType.SHORT_TERM;
+        }
+
+        @Override
+        public boolean isDbBackupRequired() {
+            return true;
+        }
+
+        @Override
+        public LocalDateTime getBaseDateTime() {
+            LocalDateTime adjusted = this.requestTime.minusMinutes(30);
             int hour = adjusted.getHour();
 
             if (hour < 2) {
@@ -110,5 +146,10 @@ public interface WeatherForecast {
                     .withSecond(0)
                     .withNano(0);
         }
+    }
+
+    enum ForecastType {
+        ULTRA_SHORT,
+        SHORT_TERM;
     }
 }
