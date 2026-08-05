@@ -32,6 +32,7 @@ public class CacheConfig {
                 .collect(Collectors.toList());
 
         cacheManager.setCaches(caches);
+        cacheManager.afterPropertiesSet();
         return cacheManager;
     }
 }
