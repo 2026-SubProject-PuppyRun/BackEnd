@@ -34,6 +34,20 @@ spring:
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
 
+management:
+  server:
+    port: 8081
+
+  endpoint:
+    health:
+      show-details: never
+
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+
 app:
   base-url: ${BASE_URL} # 로컬 호스트
 
