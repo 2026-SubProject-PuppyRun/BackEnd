@@ -84,6 +84,7 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
                         trackingRoute,
                         diary.id,
                         diary.writingTime,
+                        diary.title,
                         diary.content,
                         diary.temp,
                         diary.sky,
@@ -159,6 +160,7 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
         return new TrackingDetailSummary.DiarySummary(
                 diaryId,
                 detailRow.get(diary.writingTime),
+                detailRow.get(diary.title),
                 detailRow.get(diary.content),
                 detailRow.get(diary.temp),
                 detailRow.get(diary.sky).getCode(),

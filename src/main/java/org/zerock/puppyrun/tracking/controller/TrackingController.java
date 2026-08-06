@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -35,15 +36,16 @@ public class TrackingController {
 
 
     // 산책 저장
-    @PostMapping("")
-    public ResponseEntity<String> saveTracking(
+    @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TrackingDetailResponse> saveTracking(
             @Valid @RequestPart("request") RegisterTrackingRequest request,
-            @RequestPart("images") List<MultipartFile> images,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
 
-        trackingCommandService.saveTracking(userPrincipal.id(), request, images);
+        UUID trackingId = trackingCommandService.saveTracking(userPrincipal.id(), request, images);
+        TrackingDetailResponse response = trackingQueryService.getTrackingResponse(userPrincipal.id(), trackingId);
 
-        return ResponseEntity.ok("산책 저장 완료");
+        return ResponseEntity.ok(response);
     }
 
     // 산책 기록 조회

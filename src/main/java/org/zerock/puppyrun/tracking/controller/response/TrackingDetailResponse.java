@@ -39,6 +39,7 @@ public record TrackingDetailResponse(
     public record DiaryInfo(
             UUID diaryId,
             LocalDateTime writingTime,
+            String title,
             String content,
             Weather weather
     ) {
@@ -51,6 +52,7 @@ public record TrackingDetailResponse(
                     .diaryId(diary.diaryId())
                     .content(diary.content())
                     .writingTime(diary.writingTime())
+                    .title(diary.title())
                     .weather(new Weather(
                             diary.temp(),
                             diary.skyCode(),

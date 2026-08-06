@@ -53,7 +53,7 @@ public class TrackingCommandService {
     /**
      * 산책 저장
      */
-    public void saveTracking(UUID memberId, RegisterTrackingRequest request, List<MultipartFile> imageFiles) {
+    public UUID saveTracking(UUID memberId, RegisterTrackingRequest request, List<MultipartFile> imageFiles) {
         Member member = memberRepository.findByIdOrThrow(memberId);
 
         UUID newTrackingId = UUID.randomUUID();
@@ -89,6 +89,8 @@ public class TrackingCommandService {
 
         // 산책과 강아지 매핑
         saveTrackingWithPets(member.getId(), request.petIdList(), savedTracking);
+
+        return savedTracking.getId();
     }
 
     /**
