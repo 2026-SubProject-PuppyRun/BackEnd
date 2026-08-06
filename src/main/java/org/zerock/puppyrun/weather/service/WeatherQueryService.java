@@ -81,16 +81,16 @@ public class WeatherQueryService {
                 forecasts
         );
 
+        log.info(
+                "초단기예보 캐시 조회. nx={}, ny={}, 수집={}/{}",
+                gridPoint.nx(),
+                gridPoint.ny(),
+                forecasts.size(),
+                limit
+        );
+
         // 2. 부족하면 단기예보 캐시 조회 후 추가
         if (isMissing(forecasts, startTime, limit)) {
-            log.info(
-                    "초단기예보 누락으로 단기예보 캐시 조회. nx={}, ny={}, 수집={}/{}",
-                    gridPoint.nx(),
-                    gridPoint.ny(),
-                    forecasts.size(),
-                    limit
-            );
-
             addCacheForecasts(
                     CacheType.SHORT_TERM_WEATHER,
                     gridPoint,
@@ -98,17 +98,18 @@ public class WeatherQueryService {
                     endTime,
                     forecasts
             );
-        }
 
-        // 3. 부족하면 DB 조회 후 추가
-        if (isMissing(forecasts, startTime, limit)) {
             log.info(
-                    "캐시 예보 누락으로 단기예보 DB 조회. nx={}, ny={}, 수집={}/{}",
+                    "초단기예보 누락으로 단기예보 캐시 조회. nx={}, ny={}, 수집={}/{}",
                     gridPoint.nx(),
                     gridPoint.ny(),
                     forecasts.size(),
                     limit
             );
+        }
+
+        // 3. 부족하면 DB 조회 후 추가
+        if (isMissing(forecasts, startTime, limit)) {
 
             addDbForecasts(
                     ForecastType.SHORT_TERM,
@@ -116,6 +117,14 @@ public class WeatherQueryService {
                     startTime,
                     endTime,
                     forecasts
+            );
+
+            log.info(
+                    "단기 예보 누락으로 단기예보 DB 조회. nx={}, ny={}, 수집={}/{}",
+                    gridPoint.nx(),
+                    gridPoint.ny(),
+                    forecasts.size(),
+                    limit
             );
         }
 

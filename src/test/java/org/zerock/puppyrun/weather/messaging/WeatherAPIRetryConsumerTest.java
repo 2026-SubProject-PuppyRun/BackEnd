@@ -37,7 +37,7 @@ class WeatherAPIRetryConsumerTest {
         LocalDateTime requestTime = LocalDateTime.of(2026, 8, 5, 8, 30);
         WeatherForecast forecast = new WeatherForecast.ShortTerm(requestTime);
         WeatherAPIRetryMessage message = new WeatherAPIRetryMessage(
-                ForecastType.SHORT_TERM,
+                forecast,
                 gridPoint,
                 requestTime
         );
