@@ -16,6 +16,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.DefaultJackson2JavaTypeMapper;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,6 +25,12 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class RabbitConfig {
+
+    @Value("${weather.retry.api.ttl:600000}")
+    private long apiRetryTtl;
+
+    @Value("${weather.retry.db.ttl:10000}")
+    private long dbRetryTtl;
 
     @Bean
     public MessageConverter jackson2JsonMessageConverter(ObjectMapper objectMapper) {
@@ -65,10 +72,12 @@ public class RabbitConfig {
                     .with(queueType.getTargetRoutingKey());
             declarables.add(targetBinding);
 
+            long ttl = (queueType == RabbitQueueType.WEATHER_API_RETRY) ? apiRetryTtl : dbRetryTtl;
+
             Queue delayQueue = QueueBuilder.durable(queueType.getDelayQueueName())
                     .deadLetterExchange(queueType.getDlxExchangeName())
                     .deadLetterRoutingKey(queueType.getTargetRoutingKey())
-                    .ttl((int) queueType.getTtl())
+                    .ttl((int) ttl)
                     .build();
             declarables.add(delayQueue);
 
