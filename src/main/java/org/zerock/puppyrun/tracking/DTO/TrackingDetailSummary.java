@@ -32,6 +32,7 @@ public record TrackingDetailSummary(
     public record DiarySummary(
             UUID diaryId,
             LocalDateTime writingTime,
+            String title,
             String content,
             String temp,
             String skyCode,

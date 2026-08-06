@@ -8,6 +8,10 @@ jwt:
   refresh-token-expiration: ${JWT_REFRESH_TOKEN_VALIDITY:1209600000} # 14일 (1209600밀리초)
 
 spring:
+  devtools:
+    restart:
+      enabled: false  # DevTools 자동 재시작 비활성화 → 매 실행마다 JVM 완전 재기동으로 Docker Compose 지원 정상 동작
+
   cloud:
     aws:
       credentials:
@@ -22,3 +26,8 @@ spring:
 weather:
   region-path: config/weather-regions.csv
   initialize-on-startup: true
+  retry:
+    api:
+      ttl: 600000 # 10분 (600,000ms)
+    db:
+      ttl: 10000  # 10초 (10,000ms)

@@ -49,7 +49,7 @@ public sealed interface PathContext
         @Override
         public String getPath() {
             String datePath = date.format(DATE_FORMATTER);
-            return String.format("diaries/%s/%s", datePath, diaryId);
+            return String.format("public/diaries/%s/%s", datePath, diaryId);
         }
     }
 
@@ -60,7 +60,7 @@ public sealed interface PathContext
         @Override
         public String getPath() {
             String datePath = date.format(DATE_FORMATTER);
-            return String.format("tracking/%s/%s", datePath, trackingId);
+            return String.format("public/tracking/%s/%s", datePath, trackingId);
         }
     }
 }
