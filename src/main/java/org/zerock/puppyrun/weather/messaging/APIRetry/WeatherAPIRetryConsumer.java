@@ -30,16 +30,16 @@ public class WeatherAPIRetryConsumer {
     public void process(WeatherAPIRetryMessage message) {
         if (message == null
                 || message.gridPoint() == null
-                || message.forecast() == null
+                || message.forecastType() == null
                 || message.requestTime() == null) {
             log.error("[API 재시도 메시지 오류] 필수 값이 누락되어 재시도를 종료합니다.");
             return;
         }
 
         log.info("[API 재시도 큐 수신] 10분 지연 후 소비 시작 | nx={}, ny={}, 예보종류={}",
-                message.gridPoint().nx(), message.gridPoint().ny(), message.forecast().getType());
+                message.gridPoint().nx(), message.gridPoint().ny(), message.forecastType());
 
-        WeatherForecast forecast = message.forecast();
+        WeatherForecast forecast = WeatherForecast.toForecast(message.forecastType(), message.requestTime());
         GridPoint gridPoint = message.gridPoint();
 
         WeatherUpdateResult retryResult = weatherForecastCollector.collectOne(

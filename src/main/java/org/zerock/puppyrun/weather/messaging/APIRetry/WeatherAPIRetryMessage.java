@@ -9,12 +9,12 @@ import org.zerock.puppyrun.weather.utils.WeatherForecast.ForecastType;
 /**
  * 기상청 API 10분 지연 보상 재시도 전용 RabbitMQ 메시지 DTO 레코드입니다.
  *
- * @param forecast    예보 종류 (초단기/단기)
- * @param gridPoint   수집 대상 격자 좌표
- * @param requestTime 최초 수집 요청 시각
+ * @param forecastType 예보 종류 (초단기/단기)
+ * @param gridPoint    수집 대상 격자 좌표
+ * @param requestTime  최초 수집 요청 시각
  */
 public record WeatherAPIRetryMessage(
-        WeatherForecast forecast,
+        ForecastType forecastType,
         GridPoint gridPoint,
         LocalDateTime requestTime
 ) {
@@ -25,7 +25,7 @@ public record WeatherAPIRetryMessage(
         }
 
         return new WeatherAPIRetryMessage(
-                failedResult.forecast(),
+                failedResult.forecast().getType(),
                 failedResult.gridPoint(),
                 failedResult.forecast().requestTime()
         );

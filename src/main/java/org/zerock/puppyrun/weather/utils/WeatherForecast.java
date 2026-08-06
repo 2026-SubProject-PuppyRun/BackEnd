@@ -152,4 +152,11 @@ public interface WeatherForecast {
         ULTRA_SHORT,
         SHORT_TERM;
     }
+
+    static WeatherForecast toForecast(ForecastType forecastType, LocalDateTime requestTime) {
+        return switch (forecastType) {
+            case ULTRA_SHORT -> new WeatherForecast.UltraShort(requestTime);
+            case SHORT_TERM -> new WeatherForecast.ShortTerm(requestTime);
+        };
+    }
 }
