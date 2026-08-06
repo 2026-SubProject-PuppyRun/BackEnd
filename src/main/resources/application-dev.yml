@@ -13,6 +13,7 @@ spring:
   docker:
     compose:
       lifecycle-management: start_and_stop
+      stop-command: down
 
       skip:
         in-tests: true
