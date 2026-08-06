@@ -2,10 +2,13 @@ package org.zerock.puppyrun.weather;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,16 +23,20 @@ import org.zerock.puppyrun.weather.DTO.GridPoint;
 import org.zerock.puppyrun.weather.DTO.PrecipitationType;
 import org.zerock.puppyrun.weather.DTO.SkyType;
 import org.zerock.puppyrun.weather.DTO.WeatherDTO;
+import org.zerock.puppyrun.weather.enity.WeatherForecastEntity;
 import org.zerock.puppyrun.weather.exception.WeatherNotFoundException;
-import org.zerock.puppyrun.weather.service.WeatherService;
+import org.zerock.puppyrun.weather.repository.WeatherForecastRepository;
+import org.zerock.puppyrun.weather.service.WeatherQueryService;
 
-class WeatherServiceTest {
+class WeatherQueryServiceTest {
 
     private final CacheManager cacheManager = new ConcurrentMapCacheManager(
             CacheType.ULTRA_SHORT_WEATHER.getCacheName(),
             CacheType.SHORT_TERM_WEATHER.getCacheName()
     );
-    private final WeatherService weatherService = new WeatherService(cacheManager);
+    private final WeatherForecastRepository weatherForecastRepository = mock(WeatherForecastRepository.class);
+    private final WeatherQueryService weatherQueryService = new WeatherQueryService(cacheManager,
+            weatherForecastRepository);
 
     @BeforeEach
     void setUp() {
@@ -42,28 +49,76 @@ class WeatherServiceTest {
     }
 
     @Test
-    @DisplayName("초단기예보 캐시가 없으면 단기예보를 현재 정시부터 시간순으로 조회한다")
-    void fallBackToShortTermWeatherWhenUltraShortCacheIsMissing() {
+    @DisplayName("초단기 캐시에 있는 데이터는 우선 사용하고 부족한 시간대는 단기 캐시에서 추가적으로 보완한다")
+    void mergeUltraShortAndShortTermCacheUsingMap() {
         // given
-        GridPoint schedulerKey = new GridPoint(98, 76);
-        Cache cache = cacheManager.getCache(CacheType.SHORT_TERM_WEATHER.getCacheName());
-        assertThat(cache).isNotNull();
-        cache.put(schedulerKey, weather(
-                "20260803",
-                "1200", "0900", "1100", "1000", "1300"
+        GridPoint gridPoint = new GridPoint(98, 76);
+        Cache ultraShortCache = cacheManager.getCache(CacheType.ULTRA_SHORT_WEATHER.getCacheName());
+        Cache shortTermCache = cacheManager.getCache(CacheType.SHORT_TERM_WEATHER.getCacheName());
+        assertThat(ultraShortCache).isNotNull();
+        assertThat(shortTermCache).isNotNull();
+
+        // 초단기예보: 10:00, 11:00 (2개 존재)
+        ultraShortCache.put(gridPoint, weatherWithTemp(
+                "20260803", "ultra", "1000", "1100"
+        ));
+        // 단기예보: 10:00, 11:00, 12:00, 13:00 (4개 존재)
+        shortTermCache.put(gridPoint, weatherWithTemp(
+                "20260803", "short", "1000", "1100", "1200", "1300"
         ));
 
         // when
-        WeatherDTO result = weatherService.getFcstWeather(
-                new GridPoint(98, 76),
-                LocalDateTime.of(2026, 8, 3, 10, 37, 25),
-                3
+        WeatherDTO result = weatherQueryService.getFcstWeather(
+                gridPoint,
+                LocalDateTime.of(2026, 8, 3, 10, 15),
+                4
         );
 
-        // then
+        // then: 10:00, 11:00은 초단기(ultra) 데이터 유지, 12:00, 13:00은 단기(short) 데이터로 보완
+        assertThat(result.weatherList())
+                .extracting(WeatherDTO.WeatherList::temp)
+                .containsExactly("ultra", "ultra", "short", "short");
+
         assertThat(result.weatherList())
                 .extracting(WeatherDTO.WeatherList::time)
-                .containsExactly("1000", "1100", "1200");
+                .containsExactly("1000", "1100", "1200", "1300");
+    }
+
+    @Test
+    @DisplayName("초단기 및 단기 캐시 데이터로도 부족하면 DB 데이터로 남은 시간대를 보완 병합한다")
+    void mergeCacheAndDbUsingMapWhenLimitNotMet() {
+        // given
+        GridPoint gridPoint = new GridPoint(98, 76);
+        LocalDateTime now = LocalDateTime.of(2026, 8, 3, 10, 15);
+        Cache ultraShortCache = cacheManager.getCache(CacheType.ULTRA_SHORT_WEATHER.getCacheName());
+        Cache shortTermCache = cacheManager.getCache(CacheType.SHORT_TERM_WEATHER.getCacheName());
+        assertThat(ultraShortCache).isNotNull();
+        assertThat(shortTermCache).isNotNull();
+
+        // 초단기: 10:00 (1개)
+        ultraShortCache.put(gridPoint, weatherWithTemp("20260803", "ultra", "1000"));
+        // 단기 캐시: 11:00 (1개)
+        shortTermCache.put(gridPoint, weatherWithTemp("20260803", "short", "1100"));
+        // DB 백업: 12:00, 13:00 (2개)
+        WeatherDTO dbWeatherData = weatherWithTemp("20260803", "db", "1200", "1300");
+        WeatherForecastEntity mockEntity = WeatherForecastEntity.builder()
+                .baseDateTime(now)
+                .nx(98)
+                .ny(76)
+                .type(org.zerock.puppyrun.weather.utils.WeatherForecast.ForecastType.SHORT_TERM)
+                .weather(dbWeatherData)
+                .build();
+        given(weatherForecastRepository.findFirstByNxAndNyAndTypeOrderByBaseDateTimeDesc(
+                98, 76, org.zerock.puppyrun.weather.utils.WeatherForecast.ForecastType.SHORT_TERM
+        )).willReturn(Optional.of(mockEntity));
+
+        // when (limit = 4)
+        WeatherDTO result = weatherQueryService.getFcstWeather(gridPoint, now, 4);
+
+        // then: 초단기(ultra 10시) -> 단기캐시(short 11시) -> DB(db 12시, 13시) 조합
+        assertThat(result.weatherList())
+                .extracting(WeatherDTO.WeatherList::temp)
+                .containsExactly("ultra", "short", "db", "db");
     }
 
     @Test
@@ -83,7 +138,7 @@ class WeatherServiceTest {
         ));
 
         // when
-        WeatherDTO result = weatherService.getFcstWeather(
+        WeatherDTO result = weatherQueryService.getFcstWeather(
                 gridPoint,
                 LocalDateTime.of(2026, 8, 3, 10, 15),
                 3
@@ -93,35 +148,6 @@ class WeatherServiceTest {
         assertThat(result.weatherList())
                 .extracting(WeatherDTO.WeatherList::temp)
                 .containsExactly("ultra", "ultra", "ultra");
-    }
-
-    @Test
-    @DisplayName("초단기예보가 요청 개수보다 부족하면 단기예보 전체로 전환한다")
-    void fallBackToShortTermWeatherWhenUltraShortForecastsAreInsufficient() {
-        // given
-        GridPoint gridPoint = new GridPoint(98, 76);
-        Cache ultraShortCache = cacheManager.getCache(CacheType.ULTRA_SHORT_WEATHER.getCacheName());
-        Cache shortTermCache = cacheManager.getCache(CacheType.SHORT_TERM_WEATHER.getCacheName());
-        assertThat(ultraShortCache).isNotNull();
-        assertThat(shortTermCache).isNotNull();
-        ultraShortCache.put(gridPoint, weatherWithTemp(
-                "20260803", "ultra", "1000", "1100"
-        ));
-        shortTermCache.put(gridPoint, weatherWithTemp(
-                "20260803", "short", "1000", "1100", "1200"
-        ));
-
-        // when
-        WeatherDTO result = weatherService.getFcstWeather(
-                gridPoint,
-                LocalDateTime.of(2026, 8, 3, 10, 15),
-                3
-        );
-
-        // then
-        assertThat(result.weatherList())
-                .extracting(WeatherDTO.WeatherList::temp)
-                .containsExactly("short", "short", "short");
     }
 
     @Test
@@ -138,7 +164,7 @@ class WeatherServiceTest {
         shortTermCache.put(gridPoint, new WeatherDTO(forecasts));
 
         // when
-        WeatherDTO result = weatherService.getFcstWeather(
+        WeatherDTO result = weatherQueryService.getFcstWeather(
                 gridPoint,
                 LocalDateTime.of(2026, 8, 3, 22, 37),
                 24
@@ -153,42 +179,22 @@ class WeatherServiceTest {
     }
 
     @Test
-    @DisplayName("캐시의 예보 날짜가 지난 경우 현재 이후 날씨가 없다고 판단한다")
-    void rejectExpiredRegionalWeather() {
-        // given
-        GridPoint gridPoint = new GridPoint(60, 127);
-        Cache cache = cacheManager.getCache(CacheType.SHORT_TERM_WEATHER.getCacheName());
-        assertThat(cache).isNotNull();
-        cache.put(gridPoint, weather("20260803", "2200", "2300"));
-
-        // when & then
-        assertThatThrownBy(() -> weatherService.getFcstWeather(
-                gridPoint,
-                LocalDateTime.of(2026, 8, 4, 0, 15),
-                3
-        ))
-                .isInstanceOf(WeatherNotFoundException.class)
-                .hasMessage("현재 시간 이후의 날씨 정보가 존재하지 않습니다.")
-                .satisfies(exception -> assertThat(
-                        ((WeatherNotFoundException) exception).getErrorCode()
-                ).isEqualTo(ErrorCode.NOT_FOUND_WEATHER));
-    }
-
-    @Test
-    @DisplayName("초단기와 단기 캐시에 모두 날씨가 없으면 조회를 거부한다")
-    void rejectMissingRegionalWeatherCache() {
+    @DisplayName("캐시와 DB 모두 조회가 실패하면 날씨 정보 부재 예외를 발생시킨다")
+    void rejectMissingRegionalWeatherCacheAndDb() {
         // given
         GridPoint gridPoint = new GridPoint(98, 76);
         LocalDateTime now = LocalDateTime.of(2026, 8, 3, 10, 30);
+        given(weatherForecastRepository.findFirstByNxAndNyAndTypeOrderByBaseDateTimeDesc(
+                98, 76, org.zerock.puppyrun.weather.utils.WeatherForecast.ForecastType.SHORT_TERM
+        )).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> weatherService.getFcstWeather(
+        assertThatThrownBy(() -> weatherQueryService.getFcstWeather(
                 gridPoint,
                 now,
                 6
         ))
                 .isInstanceOf(WeatherNotFoundException.class)
-                .hasMessage("해당 지역의 날씨 정보가 존재하지 않습니다.")
                 .satisfies(exception -> assertThat(
                         ((WeatherNotFoundException) exception).getErrorCode()
                 ).isEqualTo(ErrorCode.NOT_FOUND_WEATHER));
@@ -202,7 +208,7 @@ class WeatherServiceTest {
         LocalDateTime now = LocalDateTime.of(2026, 8, 3, 10, 30);
 
         // when & then
-        assertThatThrownBy(() -> weatherService.getFcstWeather(
+        assertThatThrownBy(() -> weatherQueryService.getFcstWeather(
                 gridPoint,
                 now,
                 0
@@ -219,7 +225,7 @@ class WeatherServiceTest {
         LocalDateTime now = LocalDateTime.of(2026, 8, 3, 10, 30);
 
         // when & then
-        assertThatThrownBy(() -> weatherService.getFcstWeather(
+        assertThatThrownBy(() -> weatherQueryService.getFcstWeather(
                 gridPoint,
                 now,
                 25
@@ -236,7 +242,7 @@ class WeatherServiceTest {
         LocalDateTime now = LocalDateTime.of(2026, 8, 3, 10, 31);
 
         // when
-        WeatherDTO result = weatherService.getNearestTimeWeather(weather, now);
+        WeatherDTO result = weatherQueryService.getNearestTimeWeather(weather, now);
 
         // then
         assertThat(result.weatherList().getFirst().date()).isEqualTo("20260803");

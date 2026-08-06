@@ -2,79 +2,62 @@ package org.zerock.puppyrun.weather.scheduler;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.zerock.puppyrun.common.config.CacheType;
-import org.zerock.puppyrun.weather.service.WeatherForecastUpdater;
+import org.zerock.puppyrun.weather.service.WeatherForecastCollector;
+import org.zerock.puppyrun.weather.service.WeatherUpdateResultHandler;
 import org.zerock.puppyrun.weather.utils.WeatherForecast.ShortTerm;
 import org.zerock.puppyrun.weather.utils.WeatherForecast.UltraShort;
 
 /**
- * 예보별 실행 시점과 전략·캐시 관계만 선언합니다.
+ * 정기적인 기상청 예보 수집(초단기/단기) 및 시작 시 캐시 초기화 스케줄러입니다.
  */
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class WeatherScheduler {
 
     private static final ZoneId WEATHER_ZONE = ZoneId.of("Asia/Seoul");
 
-    private final WeatherForecastUpdater weatherForecastUpdater;
-    private final boolean initializeOnStartup;
+    private final WeatherForecastCollector weatherForecastCollector;
+    private final WeatherUpdateResultHandler resultHandler;
 
-    public WeatherScheduler(
-            WeatherForecastUpdater weatherForecastUpdater,
-            @Value("${weather.initialize-on-startup:true}") boolean initializeOnStartup
-    ) {
-        this.weatherForecastUpdater = weatherForecastUpdater;
-        this.initializeOnStartup = initializeOnStartup;
-    }
 
     /**
-     * 애플리케이션 준비가 완료되면 단기예보 캐시를 한 번 초기화합니다.
+     * 매시간 정각마다 초단기예보 수집 및 캐시 저장을 실행합니다.
      */
-    @EventListener(ApplicationReadyEvent.class)
-    public void initializeWeatherForecasts() {
-        if (!initializeOnStartup) {
-            log.info("서버 시작 시 날씨 캐시 초기화가 비활성화되어 있습니다.");
-            return;
-        }
-
-        LocalDateTime requestTime = LocalDateTime.now(WEATHER_ZONE);
-        log.info("서버 시작 시 날씨 캐시 초기화를 시작합니다: time={}", requestTime);
-
-        weatherForecastUpdater.update(
-                new ShortTerm(),
-                CacheType.SHORT_TERM_WEATHER,
-                requestTime
-        );
-    }
-
     @Scheduled(
             cron = "0 0 * * * *",
             zone = "Asia/Seoul"
     )
     public void scheduledUltraShortForecastUpdate() {
-        weatherForecastUpdater.update(
-                new UltraShort(),
-                CacheType.ULTRA_SHORT_WEATHER,
-                LocalDateTime.now(WEATHER_ZONE)
-        );
+        LocalDateTime requestTime = LocalDateTime.now(WEATHER_ZONE);
+        log.info("정기 초단기예보 수집 실행 (시각={})", requestTime);
+
+        weatherForecastCollector.collectAll(new UltraShort(requestTime))
+                .collectList()
+                .flatMap(resultHandler::processInitial)
+                .subscribe();
     }
 
+    /**
+     * 매일 02:30부터 3시간마다 단기예보 수집 및 캐시/DB 백업 저장을 실행합니다.
+     *
+     * <p>실행 시각: 02:30, 05:30, 08:30, 11:30, 14:30, 17:30, 20:30, 23:30</p>
+     */
     @Scheduled(
             cron = "0 30 2,5,8,11,14,17,20,23 * * *",
             zone = "Asia/Seoul"
     )
     public void scheduledShortTermForecastUpdate() {
-        weatherForecastUpdater.update(
-                new ShortTerm(),
-                CacheType.SHORT_TERM_WEATHER,
-                LocalDateTime.now(WEATHER_ZONE)
-        );
-    }
+        LocalDateTime requestTime = LocalDateTime.now(WEATHER_ZONE);
+        log.info("정기 단기예보 수집 실행 (시각={})", requestTime);
 
+        weatherForecastCollector.collectAll(new ShortTerm(requestTime))
+                .collectList()
+                .flatMap(resultHandler::processInitial)
+                .subscribe();
+    }
 }

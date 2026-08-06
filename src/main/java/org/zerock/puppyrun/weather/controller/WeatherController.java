@@ -13,7 +13,7 @@ import org.zerock.puppyrun.weather.DTO.WeatherDTO;
 import org.zerock.puppyrun.weather.DTO.WeatherRegion;
 import org.zerock.puppyrun.weather.controller.response.WeatherForecastResponse;
 import org.zerock.puppyrun.weather.controller.response.WeatherResponse;
-import org.zerock.puppyrun.weather.service.WeatherService;
+import org.zerock.puppyrun.weather.service.WeatherQueryService;
 import org.zerock.puppyrun.weather.utils.WeatherRegionCatalog;
 
 @RestController
@@ -26,7 +26,7 @@ public class WeatherController {
     private static final String DEFAULT_FORECAST_QUERY_LIMIT = "24";
 
     private final WeatherRegionCatalog weatherRegionCatalog;
-    private final WeatherService weatherService;
+    private final WeatherQueryService weatherQueryService;
 
     /**
      * 현재 시간 기준 날씨 조회
@@ -40,13 +40,13 @@ public class WeatherController {
         WeatherRegion weatherRegion = weatherRegionCatalog.findNearestRegion(lat, lon);
         GridPoint gridPoint = new GridPoint(weatherRegion.nx(), weatherRegion.ny());
 
-        WeatherDTO weather = weatherService.getFcstWeather(
+        WeatherDTO weather = weatherQueryService.getFcstWeather(
                 gridPoint,
                 now,
                 CURRENT_WEATHER_QUERY_LIMIT
         );
 
-        WeatherDTO currentWeather = weatherService.getNearestTimeWeather(weather, now);
+        WeatherDTO currentWeather = weatherQueryService.getNearestTimeWeather(weather, now);
 
         WeatherResponse response = WeatherResponse.of(currentWeather, weatherRegion);
 
@@ -66,7 +66,7 @@ public class WeatherController {
         WeatherRegion weatherRegion = weatherRegionCatalog.findNearestRegion(lat, lon);
         GridPoint gridPoint = new GridPoint(weatherRegion.nx(), weatherRegion.ny());
 
-        WeatherDTO weather = weatherService.getFcstWeather(
+        WeatherDTO weather = weatherQueryService.getFcstWeather(
                 gridPoint,
                 now,
                 limit

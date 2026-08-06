@@ -116,9 +116,7 @@ public class WeatherMapper {
         if (baseItem == null) {
             throw new ExternalApiParsingException("기준 날씨 아이템이 존재하지 않습니다.");
         }
-
-        log.info("Weather Processing groupItems : {}", groupItems);
-
+        
         // 분류 코드를 키로 만들어 필요한 날씨 값을 빠르게 찾습니다.
         Map<String, String> valueMap = groupItems.stream()
                 .collect(Collectors.toMap(
