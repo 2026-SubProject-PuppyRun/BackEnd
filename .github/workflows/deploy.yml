@@ -81,16 +81,17 @@ jobs:
           
           "cd /home/ubuntu",
           
-          "echo '"$DC_BASE64"' | base64 -d > docker-compose.deploy.yml",
-          "echo '"$ENV_BASE64"' | base64 -d > .env",
+          "printf '%s' '"$DC_BASE64"' | base64 -d > docker-compose.deploy.yml",
+          "printf '%s' '"$ENV_BASE64"' | base64 -d > .env",
           
           "chmod 600 docker-compose.deploy.yml",
           "chmod 600 .env",
           
           "docker compose -f docker-compose.deploy.yml pull backend",
           "docker compose -f docker-compose.deploy.yml up -d backend",
-          "docker image prune -f",
           
           "chmod +x health-check.sh",
           "./health-check.sh"
+          
+          "docker image prune -f",
           ]'
