@@ -11,7 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.zerock.puppyrun.a_config.TestContainerConfig;
 import org.zerock.puppyrun.fixture.weather.WeatherFixture;
 import org.zerock.puppyrun.weather.DTO.WeatherSaveCommand;
@@ -21,7 +20,6 @@ import org.zerock.puppyrun.weather.messaging.DBRetry.WeatherDBRetryPublisher;
 import org.zerock.puppyrun.weather.repository.WeatherForecastRepository;
 import org.zerock.puppyrun.weather.service.WeatherCacheProcess;
 import org.zerock.puppyrun.weather.service.WeatherCommandService;
-import org.zerock.puppyrun.weather.service.WeatherForecastCollector;
 import org.zerock.puppyrun.weather.service.WeatherUpdateResultHandler;
 import org.zerock.puppyrun.weather.utils.WeatherForecast;
 import reactor.core.publisher.Mono;
@@ -52,9 +50,6 @@ class WeatherFailureCompensationIntegrationTest extends TestContainerConfig {
 
     @Autowired
     private WeatherDBRetryPublisher dbRetryPublisher;
-
-    @MockBean
-    private WeatherForecastCollector weatherForecastCollector;
 
     @BeforeEach
     void setUp() {

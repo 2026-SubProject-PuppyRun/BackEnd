@@ -2,18 +2,28 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
 
-    show-sql: false
+    show-sql: true
 
     properties:
       hibernate:
-        format_sql: false
+        format_sql: true
+
+  docker:
+    compose:
+      lifecycle-management: start_and_stop
+      stop-command: down
+
+      skip:
+        in-tests: true
 
 logging:
   level:
     root: INFO
-
+    org.zerock.puppyrun: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
 
 
 # 날씨 보상 재시도 지연 TTL

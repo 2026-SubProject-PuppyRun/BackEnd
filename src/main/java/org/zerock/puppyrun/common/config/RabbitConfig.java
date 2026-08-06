@@ -1,6 +1,7 @@
 package org.zerock.puppyrun.common.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.amqp.core.Binding;
@@ -26,11 +27,17 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitConfig {
 
-    @Value("${weather.retry.api.ttl:600000}")
-    private long apiRetryTtl;
+    private final long apiRetryTtl;
+    private final long dbRetryTtl;
 
-    @Value("${weather.retry.db.ttl:10000}")
-    private long dbRetryTtl;
+    RabbitConfig(
+            @Value("${weather.retry.api.ttl}") Duration apiTtl,
+            @Value("${weather.retry.db.ttl}") Duration dbTtl
+    ) {
+        apiRetryTtl = apiTtl.toMillis();
+        dbRetryTtl = dbTtl.toMillis();
+    }
+
 
     @Bean
     public MessageConverter jackson2JsonMessageConverter(ObjectMapper objectMapper) {

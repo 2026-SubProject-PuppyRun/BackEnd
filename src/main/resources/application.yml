@@ -1,33 +1,47 @@
 spring:
   profiles:
-    active: local # 기본적으로 local 실행 (배포 시 prod로 변경)
+    active: dev # 기본적으로 dev 실행 (배포 시 prod로 변경)
 
   application:
     name: PuppyRun
 
-  jpa:
-    hibernate:
-      ddl-auto: update
-
-    properties:
-      hibernate:
-        default_batch_fetch_size: 100
-
-    show-sql: true
-
-  docker:
-    compose:
-      lifecycle-management: start_and_stop
-      skip:
-        in-tests: false
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
   jackson:
     property-naming-strategy: SNAKE_CASE
 
 
-weather:
-  region-path: config/weather-regions.csv
-  initialize-on-startup: true
+  cloud:
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY_ID}
+        secret-key: ${AWS_SECRET_ACCESS_KEY}
+
+      region:
+        static: ${AWS_REGION}
+
+      s3:
+        bucket: ${AWS_S3_BUCKET_NAME}
+
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+app:
+  base-url: ${BASE_URL} # 로컬 호스트
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_VALIDITY}
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_VALIDITY}
 
 discord:
   webhooks-url: ${DISCORD_WEBHOOKS_URL}
