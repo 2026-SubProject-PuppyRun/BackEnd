@@ -36,7 +36,7 @@ public class S3Service {
     @Value("${spring.cloud.aws.s3.bucket}")
     private String bucket;
 
-    @Value("${spring.profiles.active:local}")
+    @Value("${spring.profiles.active:dev}")
     private String activeProfile;
 
     /**

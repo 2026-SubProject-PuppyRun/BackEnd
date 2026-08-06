@@ -1,10 +1,35 @@
 services:
+
   mysql:
-    image: 'mysql:latest'
+    image: mysql:8.0
+    container_name: puppyrun-mysql
+    restart: "no"
+
     environment:
-      - 'MYSQL_DATABASE=mydatabase'
-      - 'MYSQL_PASSWORD=secret'
-      - 'MYSQL_ROOT_PASSWORD=verysecret'
-      - 'MYSQL_USER=myuser'
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+
     ports:
-      - '3307:3306'
+      - "${DB_PORT}:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: puppyrun-rabbitmq
+    restart: "no"
+
+    ports:
+      - "${RABBITMQ_AMQP_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+
+volumes:
+  mysql_data:
