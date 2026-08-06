@@ -1,17 +1,16 @@
 name: Deploy to EC2
 
 on:
+  push:
+    branches:
+      - dev
   workflow_dispatch:
-#  push:
-#    branches:
-#      - dev
-#  workflow_dispatch:
-#    inputs:
-#      build_required:
-#        description: '코드 변경 시 필수 체크 (단순 .env 수정 시에는 해제하세요)'
-#        required: true
-#        default: true
-#        type: boolean
+    inputs:
+      build_required:
+        description: '코드 변경 시 필수 체크 (단순 .env 수정 시에는 해제하세요)'
+        required: true
+        default: true
+        type: boolean
 
 
 jobs:
@@ -72,19 +71,26 @@ jobs:
           ENV_BASE64=$(echo -n "${{ secrets.ENV_FILE }}" | base64 -w 0)
           
           aws ssm send-command \
-            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
-            --document-name "AWS-RunShellScript" \
-            --region "${{ secrets.AWS_REGION }}" \
-            --parameters commands='[
-              "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
-              "export AWS_REGION=${{ secrets.AWS_REGION }}",
-              "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com",
-              "cd /home/ubuntu",
-              "echo '"$DC_BASE64"' | base64 -d > docker-compose.deploy.yml",
-              "echo '"$ENV_BASE64"' | base64 -d > .env",
-              "chmod 600 docker-compose.deploy.yml",
-              "chmod 600 .env",
-              "docker compose -f docker-compose.deploy.yml pull backend",
-              "docker compose -f docker-compose.deploy.yml up -d backend",
-              "docker image prune -f"
-            ]'
+          --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+          --document-name "AWS-RunShellScript" \
+          --region "${{ secrets.AWS_REGION }}" \
+          --parameters commands='[
+          "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
+          "export AWS_REGION=${{ secrets.AWS_REGION }}",
+          "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com",
+          
+          "cd /home/ubuntu",
+          
+          "echo '"$DC_BASE64"' | base64 -d > docker-compose.deploy.yml",
+          "echo '"$ENV_BASE64"' | base64 -d > .env",
+          
+          "chmod 600 docker-compose.deploy.yml",
+          "chmod 600 .env",
+          
+          "docker compose -f docker-compose.deploy.yml pull backend",
+          "docker compose -f docker-compose.deploy.yml up -d backend",
+          "docker image prune -f",
+          
+          "chmod +x health-check.sh",
+          "./health-check.sh"
+          ]'
