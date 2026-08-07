@@ -64,34 +64,17 @@ jobs:
           docker tag puppyrun-backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:latest
 
+            # SSM 배포는 항상 실행 (빌드 생략 시에도 .env와 yml 동기화를 위해 필요)
+
       # SSM 배포는 항상 실행 (빌드 생략 시에도 .env와 yml 동기화를 위해 필요)
       - name: Deploy via SSM
         run: |
-          DC_BASE64=$(base64 -w 0 docker-compose.deploy.yml)
-          ENV_BASE64=$(echo -n "${{ secrets.ENV_FILE }}" | base64 -w 0)
-          
           aws ssm send-command \
-          --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
-          --document-name "AWS-RunShellScript" \
-          --region "${{ secrets.AWS_REGION }}" \
-          --parameters commands='[
-          "export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}",
-          "export AWS_REGION=${{ secrets.AWS_REGION }}",
-          "aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com",
-          
-          "cd /home/ubuntu",
-          
-          "printf '%s' '"$DC_BASE64"' | base64 -d > docker-compose.deploy.yml",
-          "printf '%s' '"$ENV_BASE64"' | base64 -d > .env",
-          
-          "chmod 600 docker-compose.deploy.yml",
-          "chmod 600 .env",
-          
-          "docker compose -f docker-compose.deploy.yml pull backend",
-          "docker compose -f docker-compose.deploy.yml up -d backend",
-          
-          "chmod +x health-check.sh",
-          "./health-check.sh"
-          
-          "docker image prune -f",
-          ]'
+            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --region "${{ secrets.AWS_REGION }}" \
+            --parameters commands='[
+              "cd /home/ubuntu",
+              "chmod +x deploy.sh",
+              "./deploy.sh"
+            ]'
