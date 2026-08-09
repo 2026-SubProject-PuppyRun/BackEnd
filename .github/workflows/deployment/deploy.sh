@@ -39,27 +39,28 @@ deploy_release() {
 
   echo "===== ECR Login ====="
 
-  # ECR 로그인 실패 시 AWS/Docker가 출력하는 원본 에러를 그대로 전달
+  # ECR 로그인 시 안내 문구 억제 (실패 시 stderr 원본 에러 노출)
   aws ecr get-login-password \
     --region "$AWS_REGION" |
     docker login \
       --username AWS \
       --password-stdin \
-      "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+      "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com" >/dev/null
 
   echo "===== Deploy image: $image_tag ====="
 
-  # Docker Compose Pull 실패 시 원본 stderr를 그대로 출력
+  # --ansi never 및 --quiet 옵션으로 진행률(Progress Bar/Downloading/Extracting) 출력을 차단하여 에러만 표시
   IMAGE_TAG="$image_tag" \
     docker compose \
+      --ansi never \
       -p puppyrun \
       --env-file "$env_file" \
       -f "$compose_file" \
-      pull "$SERVICE_NAME"
+      pull --quiet "$SERVICE_NAME"
 
-  # Docker Compose Up 실패 시 원본 stderr를 그대로 출력
   IMAGE_TAG="$image_tag" \
     docker compose \
+      --ansi never \
       -p puppyrun \
       --env-file "$env_file" \
       -f "$compose_file" \
