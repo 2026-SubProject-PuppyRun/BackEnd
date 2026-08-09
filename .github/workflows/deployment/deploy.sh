@@ -247,6 +247,9 @@ fail_deployment() {
 
 echo "===== Deployment Start ====="
 
+# 배포 시작 전 댕글링 이미지 사전 정리
+docker image prune -f || true
+
 
 if [ "$SCRIPT_DIR" != "$RELEASES_DIRECTORY/$RELEASE_TAG" ]; then
   echo "Release directory does not match release tag: $SCRIPT_DIR"
@@ -307,9 +310,10 @@ fi
 echo "Registered successful release: $RELEASE_TAG"
 
 
-echo "===== Remove Old Images ====="
+echo "===== Remove Unused Docker Images (Free Disk Space) ====="
 
-docker image prune -f || true
+# 현재 구동 중인 컨테이너 외의 모든 구버전/미사용 로컬 이미지를 즉시 완전 삭제하여 EC2 디스크 용량 극대화 환수
+docker image prune -a -f || true
 
 
 echo "===== Deployment Success ====="
