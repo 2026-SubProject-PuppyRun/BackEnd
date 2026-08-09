@@ -77,6 +77,12 @@ write_container_versions() {
 
   chmod 600 "$temporary_file" || return 1
   mv -f "$temporary_file" "$CONTAINER_VERSIONS_FILE"
+
+  if [ -n "${AWS_S3_BUCKET:-}" ]; then
+    echo "[v] Syncing container versions to S3..."
+    aws s3 cp "$CONTAINER_VERSIONS_FILE" "s3://${AWS_S3_BUCKET}/puppyrun/releases/${RELEASE_TAG}/container-versions.env" || true
+    aws s3 cp "$CONTAINER_VERSIONS_FILE" "s3://${AWS_S3_BUCKET}/puppyrun/current/container-versions.env" || true
+  fi
 }
 
 rollback_current_release() {

@@ -183,38 +183,19 @@ jobs:
 
 
       # ----------------------------------------
-      # 10. 배포에 필요한 파일을 EC2로 복사
+      # 10. 릴리스 번들을 AWS S3로 업로드
       # ----------------------------------------
-      - name: Copy deployment bundle to EC2
+      - name: Upload deployment bundle to AWS S3
 
-        # SCP를 사용하여 Runner -> EC2로 파일 전송
-        uses: appleboy/scp-action@v1
-        with:
-
-          # EC2의 SSH 접속 주소
-          host: ${{ secrets.EC2_HOST }}
-
-          # EC2 SSH 사용자
-          username: ubuntu
-
-          # EC2 SSH Private Key
-          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-
-          # SSH 서버의 fingerprint 검증
-          fingerprint: ${{ secrets.EC2_SSH_FINGERPRINT }}
-
-          # Compose, 배포 스크립트, 릴리스별 .env를 모두 전송
-          source: .github/workflows/deployment/*,.github/workflows/deployment/.env
-
-          # GitHub Actions 실행 단위의 독립 릴리스 폴더
-          target: /home/ubuntu/puppyrun/releases/${{ env.RELEASE_TAG }}
-
-          # deployment 디렉터리 자체는 제외하고 내부 파일만 복사
-          strip_components: 3
+        # S3 버킷으로 배포 아티팩트를 압축하여 업로드
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          RELEASE_BUNDLE_DIRECTORY: .github/workflows/deployment
+        run: bash .github/workflows/github-actions/upload-release-to-s3.sh
 
 
       # ----------------------------------------
-      # 11. SSM 배포 명령 전송
+      # 11. SSM 배포 명령 전송 (S3에서 다운로드 후 실행)
       # ----------------------------------------
       - name: Send deployment command to SSM
 
@@ -226,6 +207,9 @@ jobs:
           # SSM 명령을 실행할 EC2 Instance ID
           INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
 
+          # S3 아티팩트를 업로드한 S3 버킷명
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+
           # EC2에서 이번 릴리스가 저장된 디렉터리
           DEPLOY_DIRECTORY: /home/ubuntu/puppyrun/releases/${{ env.RELEASE_TAG }}
 
@@ -235,7 +219,7 @@ jobs:
           # 빌드한 경우에는 SHA 태그, 빌드를 생략한 경우에는 마지막 성공 버전을 재배포
           DEPLOY_IMAGE_TAG: ${{ (github.event_name == 'push' || github.event.inputs.build_required == true) && github.sha || '__CURRENT__' }}
 
-        # SSM SendCommand를 실행하는 스크립트
+        # SSM SendCommand를 실행하는 스크립트 (S3 다운로드 및 배포 실행)
         run: bash .github/workflows/github-actions/send-ssm-command.sh
 
 
