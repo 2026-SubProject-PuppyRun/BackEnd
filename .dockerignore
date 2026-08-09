@@ -1,0 +1,5 @@
+# Docker build context에는 실행 JAR만 포함한다.
+*
+!build/
+!build/libs/
+!build/libs/*.jar
