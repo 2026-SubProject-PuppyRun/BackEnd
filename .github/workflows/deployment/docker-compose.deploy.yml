@@ -45,13 +45,20 @@ services:
 
     ports:
       - "${BACKEND_PORT}:8080"
+      - "127.0.0.1:8081:8081"
+
+    volumes:
+      - backend_data:/var/lib/backend
 
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
 
     env_file:
-      - .env-backend
+      - .env
+
+
 
 
 volumes:
   mysql_data:
+  backend_data:
