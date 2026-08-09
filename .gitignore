@@ -36,6 +36,7 @@ out/
 ### VS Code ###
 .vscode/
 /.env
+/.github/workflows/deployment/.env
 
 /logs/
 /src/main/resources/firebase-service-account.json

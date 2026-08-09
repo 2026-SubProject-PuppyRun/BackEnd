@@ -1,80 +1,284 @@
 name: Deploy to EC2
 
+# ==========================================
+# Workflow 실행 조건
+# ==========================================
 on:
+
+  # dev 브랜치에 push가 발생하면 자동 배포
   push:
     branches:
       - dev
+      - cd-test
+
+  # GitHub Actions 화면에서 수동으로 배포 가능
   workflow_dispatch:
     inputs:
       build_required:
+        # 코드 변경 여부에 따라 빌드 수행 여부를 직접 선택
         description: '코드 변경 시 필수 체크 (단순 .env 수정 시에는 해제하세요)'
         required: true
         default: true
         type: boolean
 
 
+# ==========================================
+# Job 정의
+# ==========================================
 jobs:
+
+  # 배포 전체 과정을 담당하는 Job
   deploy:
+
+    # GitHub가 제공하는 Ubuntu Runner에서 실행
     runs-on: ubuntu-latest
+
+    # GitHub Environment의 production 환경 사용
+    # -> production에 등록된 Secret / 환경 보호 규칙 등을 사용
     environment: production
 
+    # current/previous 릴리스 포인터를 동시에 변경하지 않도록 배포를 순차 실행
+    concurrency:
+      group: puppyrun-production-deploy
+      cancel-in-progress: false
+
+    # 같은 workflow를 재실행해도 충돌하지 않는 EC2 릴리스 폴더 이름
+    env:
+      RELEASE_TAG: ${{ github.run_id }}-${{ github.run_attempt }}
+
+
+    # ========================================
+    # Step 정의
+    # ========================================
     steps:
+
+      # ----------------------------------------
+      # 1. 소스 코드 가져오기
+      # ----------------------------------------
       - name: Checkout
+
+        # 현재 GitHub Repository의 코드를 Runner로 가져옴
         uses: actions/checkout@v4
 
-      # 빌드가 필요한 경우에만 JDK 설정 및 JAR 빌드 진행
+
+      # ----------------------------------------
+      # 2. JDK 21 설정
+      # ----------------------------------------
       - name: Set up JDK 21
+
+        # push 또는 수동 실행에서 빌드가 필요한 경우에만 실행
         if: github.event_name == 'push' || github.event.inputs.build_required == true
+
+        # Java 개발 환경을 Runner에 설치
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
+
+      # ----------------------------------------
+      # 3. Gradle 실행 권한 부여
+      # ----------------------------------------
       - name: Grant execute permission
+
+        # Gradle 빌드가 필요한 경우에만 실행
         if: github.event_name == 'push' || github.event.inputs.build_required == true
+
+        # gradlew를 실행할 수 있도록 권한 부여
         run: chmod +x ./gradlew
 
-      - name: Create Firebase service account file
-        if: github.event_name == 'push' || github.event.inputs.build_required == true
-        run: |
-          mkdir -p src/main/resources
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > src/main/resources/firebase-service-account.json
 
+      # ----------------------------------------
+      # 4. Firebase 인증 파일 생성
+      # ----------------------------------------
+      - name: Create Firebase service account file
+
+        # 빌드가 필요한 경우에만 실행
+        if: github.event_name == 'push' || github.event_inputs.build_required == true
+
+        run: |
+
+          # Firebase 인증 파일을 저장할 디렉터리 생성
+          mkdir -p src/main/resources
+
+          # GitHub Secret에 저장된 Firebase JSON을 파일로 생성
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' \
+            > src/main/resources/firebase-service-account.json
+
+
+      # ----------------------------------------
+      # 5. Spring Boot JAR 빌드
+      # ----------------------------------------
       - name: Build jar
+
+        # 코드 변경 등으로 빌드가 필요한 경우에만 실행
         if: github.event_name == 'push' || github.event.inputs.build_required == true
+
+        # 기존 빌드 결과물을 삭제하고 Spring Boot JAR 생성
         run: ./gradlew clean bootJar
 
-      # AWS 인증은 SSM 명령 전송을 위해 항상 필요
+
+      # ----------------------------------------
+      # 6. AWS 인증
+      # ----------------------------------------
       - name: Configure AWS credentials
+
+        # 이후 AWS CLI에서 사용할 AWS 인증 정보 설정
+        # SSM 명령 전송 등에 필요
         uses: aws-actions/configure-aws-credentials@v4
         with:
+
+          # AWS Access Key
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
+          # AWS Secret Access Key
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+          # AWS 작업 리전
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # ECR 로그인은 빌드/푸시가 필요할 때만 실행
+
+      # ----------------------------------------
+      # 7. ECR 로그인
+      # ----------------------------------------
       - name: Login to ECR
+
+        # Docker 이미지 빌드 및 Push가 필요한 경우에만 실행
         if: github.event_name == 'push' || github.event.inputs.build_required == true
+
+        # AWS ECR에 Docker CLI 인증
         uses: aws-actions/amazon-ecr-login@v2
 
+
+      # ----------------------------------------
+      # 8. Docker 이미지 빌드 및 ECR Push
+      # ----------------------------------------
       - name: Build, Tag, and Push Docker image
+
+        # 빌드가 필요한 경우에만 Docker 이미지 생성
         if: github.event_name == 'push' || github.event.inputs.build_required == true
+
         run: |
+
+          # 현재 프로젝트의 Dockerfile을 기준으로 이미지 생성
           docker build -t puppyrun-backend:latest .
-          docker tag puppyrun-backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:latest
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:latest
 
-            # SSM 배포는 항상 실행 (빌드 생략 시에도 .env와 yml 동기화를 위해 필요)
+          # ECR Repository 주소를 이미지에 Tag로 지정
+          docker tag puppyrun-backend:latest \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:${{ github.sha }}
 
-      # SSM 배포는 항상 실행 (빌드 생략 시에도 .env와 yml 동기화를 위해 필요)
-      - name: Deploy via SSM
-        run: |
-          aws ssm send-command \
-            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
-            --document-name "AWS-RunShellScript" \
-            --region "${{ secrets.AWS_REGION }}" \
-            --parameters commands='[
-              "cd /home/ubuntu",
-              "chmod +x deploy.sh",
-              "./deploy.sh"
-            ]'
+          # 롤백 가능한 불변 버전 태그만 먼저 Push
+          docker push \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:${{ github.sha }}
+
+
+      # ----------------------------------------
+      # 9. 릴리스 환경 파일 생성
+      # ----------------------------------------
+      - name: Create release environment file
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+          RELEASE_BUNDLE_DIRECTORY: .github/workflows/deployment
+        run: bash .github/workflows/github-actions/create-release-env-file.sh
+
+
+      # ----------------------------------------
+      # 10. 릴리스 번들을 AWS S3로 업로드
+      # ----------------------------------------
+      - name: Upload deployment bundle to AWS S3
+
+        # S3 버킷으로 배포 아티팩트를 압축하여 업로드
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          RELEASE_BUNDLE_DIRECTORY: .github/workflows/deployment
+        run: bash .github/workflows/github-actions/upload-release-to-s3.sh
+
+
+      # ----------------------------------------
+      # 11. SSM 배포 명령 전송 (S3에서 다운로드 후 실행)
+      # ----------------------------------------
+      - name: Send deployment command to SSM
+
+        # 이 Step에서 생성한 command_id를 다음 Step에서 사용하기 위해 ID 지정
+        id: ssm_send
+
+        env:
+
+          # SSM 명령을 실행할 EC2 Instance ID
+          INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+
+          # S3 아티팩트를 업로드한 S3 버킷명
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+
+          # ECR 로그인 시 필요한 AWS 계정 ID 및 리전
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
+          # EC2에서 이번 릴리스가 저장된 디렉터리
+          DEPLOY_DIRECTORY: /home/ubuntu/puppyrun/releases/${{ env.RELEASE_TAG }}
+
+          # EC2 릴리스 상태 파일에 저장할 GitHub Actions 실행 태그
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+
+          # 빌드한 경우에는 SHA 태그, 빌드를 생략한 경우에는 마지막 성공 버전을 재배포
+          DEPLOY_IMAGE_TAG: ${{ (github.event_name == 'push' || github.event.inputs.build_required == true) && github.sha || '__CURRENT__' }}
+
+        # SSM SendCommand를 실행하는 스크립트 (S3 다운로드 및 배포 실행)
+        run: bash .github/workflows/github-actions/send-ssm-command.sh
+
+
+      # ----------------------------------------
+      # 11. SSM 배포 결과 대기
+      # ----------------------------------------
+      - name: Wait for SSM deployment
+
+        env:
+
+          # 이전 Step에서 전달받은 SSM Command ID
+          # -> 어떤 배포 명령의 결과를 확인할지 식별
+          COMMAND_ID: ${{ steps.ssm_send.outputs.command_id }}
+
+          # 결과를 확인할 EC2 Instance ID
+          INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+
+        # SSM 명령이 완료될 때까지 기다리는 스크립트 실행
+        # -> EC2의 deploy.sh / health-check.sh 결과를 기다림
+        run: bash .github/workflows/github-actions/wait-for-ssm-command.sh
+
+
+      # ----------------------------------------
+      # 12. 검증된 이미지를 latest로 승격
+      # ----------------------------------------
+      - name: Promote verified image to latest
+
+        # 새 이미지를 빌드한 배포가 SSM 검증까지 통과한 경우에만 latest를 변경
+        if: github.event_name == 'push' || github.event.inputs.build_required == true
+
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          DEPLOY_IMAGE_TAG: ${{ github.sha }}
+
+        run: bash .github/workflows/github-actions/promote-ecr-image.sh
+
+
+      # ----------------------------------------
+      # 13. SSM 실패 상세 정보 출력
+      # ----------------------------------------
+      - name: Show failed SSM deployment details
+
+        # 앞 단계 중 하나라도 실패했고
+        # SSM Command ID가 존재하는 경우에만 실행
+        if: failure() && steps.ssm_send.outputs.command_id != ''
+
+        env:
+
+          # 실패한 SSM 명령 ID
+          COMMAND_ID: ${{ steps.ssm_send.outputs.command_id }}
+
+          # 실패한 EC2 Instance ID
+          INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+
+        # SSM의 stdout / stderr 등 상세 결과 출력
+        # -> GitHub Actions 로그에서 EC2 배포 실패 원인을 확인하기 위함
+        run: bash .github/workflows/github-actions/show-ssm-command-result.sh
