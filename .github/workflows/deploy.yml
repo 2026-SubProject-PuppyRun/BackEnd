@@ -210,6 +210,10 @@ jobs:
           # S3 아티팩트를 업로드한 S3 버킷명
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
 
+          # ECR 로그인 시 필요한 AWS 계정 ID 및 리전
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
           # EC2에서 이번 릴리스가 저장된 디렉터리
           DEPLOY_DIRECTORY: /home/ubuntu/puppyrun/releases/${{ env.RELEASE_TAG }}
 

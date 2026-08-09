@@ -32,6 +32,17 @@ deploy_release() {
   local compose_file="$release_directory/docker-compose.deploy.yml"
   local env_file="$release_directory/.env"
 
+  echo "===== ECR Login ====="
+
+  aws ecr get-login-password \
+    --region "$AWS_REGION" \
+    | docker login \
+        --username AWS \
+        --password-stdin \
+        "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com" \
+    || return 1
+
+
   echo "===== Deploy image: $image_tag ====="
   IMAGE_TAG="$image_tag" docker compose -p puppyrun --env-file "$env_file" -f "$compose_file" pull "$SERVICE_NAME" || return 1
   IMAGE_TAG="$image_tag" docker compose -p puppyrun --env-file "$env_file" -f "$compose_file" up -d --force-recreate "$SERVICE_NAME" || return 1
