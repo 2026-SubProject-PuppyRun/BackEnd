@@ -33,7 +33,7 @@ services:
 
 
   backend:
-    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/puppyrun-backend:${IMAGE_TAG}
+    image: ${BACKEND_IMAGE}
 
     container_name: puppyrun-backend
 

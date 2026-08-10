@@ -2,314 +2,140 @@
 
 set -euo pipefail
 
+# 역할: EC2 releases/<release-tag> 후보 디렉터리에서 실행되어 새 이미지를 기동한다.
+# 흐름: 후보 구성 검증 → digest 고정 → backend 교체 → health check → current/previous 승격.
+# 실패: current 릴리스의 이미지·.env·Compose로 즉시 복구하고 링크는 변경하지 않는다.
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+ROOT_DIRECTORY="${ROOT_DIRECTORY:-/home/ubuntu/puppyrun}"
+RELEASES_DIRECTORY="$ROOT_DIRECTORY/releases"
+NEW_LINK="$ROOT_DIRECTORY/new"
+CURRENT_LINK="$ROOT_DIRECTORY/current"
+PREVIOUS_LINK="$ROOT_DIRECTORY/previous"
+ENV_FILE="$SCRIPT_DIR/.env"
+COMPOSE_FILE="$SCRIPT_DIR/docker-compose.deploy.yml"
+HEALTH_CHECK_SCRIPT="$SCRIPT_DIR/health-check.sh"
+METADATA_FILE="$SCRIPT_DIR/metadata.env"
 SERVICE_NAME="backend"
-CONTAINER_NAME="puppyrun-backend"
-RELEASES_DIRECTORY="/home/ubuntu/puppyrun/releases"
-CURRENT_LINK="/home/ubuntu/puppyrun/current"
-PREVIOUS_LINK="/home/ubuntu/puppyrun/previous"
-RELEASE_ENV_FILE="$SCRIPT_DIR/.env"
-IMAGE_TAG_FILE="$SCRIPT_DIR/image-tag"
-RELEASE_TAG_FILE="$SCRIPT_DIR/release-tag"
-CONTAINER_VERSIONS_FILE="$SCRIPT_DIR/container-versions.env"
 
+# GitHub Actions/SSM이 전달한 후보 릴리스 식별자와 AWS/ECR 연결 정보다.
 : "${RELEASE_TAG:?RELEASE_TAG is required}"
-: "${DEPLOY_IMAGE_TAG:?DEPLOY_IMAGE_TAG is required}"
 : "${AWS_REGION:?AWS_REGION is required}"
 : "${AWS_ACCOUNT_ID:?AWS_ACCOUNT_ID is required}"
 
-
-prepare_release() {
-  if [ ! -f "$RELEASE_ENV_FILE" ]; then
-    echo "Release environment file not found: $RELEASE_ENV_FILE"
-    return 1
-  fi
-
-  chmod 600 "$RELEASE_ENV_FILE"
-  printf '%s\n' "$RELEASE_TAG" > "$RELEASE_TAG_FILE"
-  printf '%s\n' "$DEPLOY_IMAGE_TAG" > "$IMAGE_TAG_FILE"
-}
-
-
-deploy_release() {
-  local release_directory="$1"
-  local image_tag="$2"
-  local compose_file="$release_directory/docker-compose.deploy.yml"
-  local env_file="$release_directory/.env"
-
-  echo "===== ECR Login ====="
-
-  # ECR 로그인 실패 시 AWS/Docker가 출력하는 원본 에러를 그대로 전달
-  aws ecr get-login-password \
-    --region "$AWS_REGION" |
-    docker login \
-      --username AWS \
-      --password-stdin \
-      "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-
-  echo "===== Deploy image: $image_tag ====="
-
-  # Docker Compose Pull 실패 시 원본 stderr를 그대로 출력
-  IMAGE_TAG="$image_tag" \
-    docker compose \
-      -p puppyrun \
-      --env-file "$env_file" \
-      -f "$compose_file" \
-      pull "$SERVICE_NAME"
-
-  # Docker Compose Up 실패 시 원본 stderr를 그대로 출력
-  IMAGE_TAG="$image_tag" \
-    docker compose \
-      -p puppyrun \
-      --env-file "$env_file" \
-      -f "$compose_file" \
-      up -d --force-recreate "$SERVICE_NAME"
-}
-
-
-health_check_release() {
-  local release_directory="${1:-$SCRIPT_DIR}"
-
-  bash "$release_directory/health-check.sh"
-}
-
-
-write_container_version() {
-  local prefix="$1"
-  local container_name="$2"
-  local configured_image
-  local image_id
-  local image_digest
-
-  configured_image=$(
-    docker inspect \
-      --format '{{.Config.Image}}' \
-      "$container_name"
-  ) || return 1
-
-  image_id=$(
-    docker inspect \
-      --format '{{.Image}}' \
-      "$container_name"
-  ) || return 1
-
-  # 원본 Docker 에러를 숨기지 않음
-  image_digest=$(
-    docker image inspect \
-      --format '{{index .RepoDigests 0}}' \
-      "$configured_image"
-  ) || true
-
-  printf '%s_CONTAINER=%s\n' "$prefix" "$container_name"
-  printf '%s_IMAGE=%s\n' "$prefix" "$configured_image"
-  printf '%s_IMAGE_ID=%s\n' "$prefix" "$image_id"
-  printf '%s_IMAGE_DIGEST=%s\n' "$prefix" "$image_digest"
-}
-
-
-write_container_versions() {
-  local temporary_file="$CONTAINER_VERSIONS_FILE.tmp"
-
-  {
-    printf '# Generated after liveness/readiness verification.\n'
-    printf 'RELEASE_TAG=%s\n' "$RELEASE_TAG"
-    printf 'DEPLOYED_AT_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    printf 'ENVIRONMENT_FILE=.env\n'
-
-    write_container_version BACKEND puppyrun-backend
-    write_container_version MYSQL puppyrun-mysql
-    write_container_version RABBITMQ puppyrun-rabbitmq
-
-  } > "$temporary_file" || {
-    rm -f -- "$temporary_file"
-    return 1
-  }
-
-  chmod 600 "$temporary_file" || return 1
-  mv -f "$temporary_file" "$CONTAINER_VERSIONS_FILE"
-
-  if [ -n "${AWS_S3_BUCKET:-}" ]; then
-    echo "===== Syncing Container Versions to S3 ====="
-
-    aws s3 cp \
-      "$CONTAINER_VERSIONS_FILE" \
-      "s3://${AWS_S3_BUCKET}/puppyrun/releases/${RELEASE_TAG}/container-versions.env" \
-      || true
-
-    aws s3 cp \
-      "$CONTAINER_VERSIONS_FILE" \
-      "s3://${AWS_S3_BUCKET}/puppyrun/current/container-versions.env" \
-      || true
-  fi
-}
-
-
-rollback_current_release() {
-  if [ ! -L "$CURRENT_LINK" ]; then
-    echo "No current release registered. Rollback unavailable."
-    return 1
-  fi
-
-  local current_release
-  current_release=$(readlink -f "$CURRENT_LINK")
-
-  local current_image_tag
-  current_image_tag=$(<"$current_release/image-tag")
-
-  echo "===== Rollback to release: $(<"$current_release/release-tag") ====="
-  echo "===== Rollback image: $current_image_tag ====="
-
-  # rollback 과정에서 발생하는 Docker/ECR/Compose 원본 에러를 그대로 출력
-  if deploy_release "$current_release" "$current_image_tag"; then
-
-    echo "===== Rollback Health Check ====="
-
-    if health_check_release "$current_release"; then
-      echo "Rollback completed successfully."
-      return 0
-    fi
-
-    echo "Rollback health check failed."
-    return 1
-  fi
-
-  echo "Rollback Docker Compose deployment failed."
-  return 1
-}
-
-
-activate_release() {
-  if [ -L "$CURRENT_LINK" ]; then
-    ln -sfn \
-      "$(readlink "$CURRENT_LINK")" \
-      "$PREVIOUS_LINK.next" \
-      || return 1
-
-    mv -Tf \
-      "$PREVIOUS_LINK.next" \
-      "$PREVIOUS_LINK" \
-      || return 1
-  fi
-
-  ln -sfn \
-    "$SCRIPT_DIR" \
-    "$CURRENT_LINK.next" \
-    || return 1
-
-  mv -Tf \
-    "$CURRENT_LINK.next" \
-    "$CURRENT_LINK" \
-    || return 1
-}
-
-
-cleanup_failed_release() {
-  if [ "$(dirname "$SCRIPT_DIR")" != "$RELEASES_DIRECTORY" ]; then
-    echo "Refusing to remove unexpected directory: $SCRIPT_DIR"
-    return 1
-  fi
-
-  rm -rf -- "$SCRIPT_DIR"
-}
-
-
-fail_deployment() {
-  local reason="$1"
-
-  echo "=========================================="
-  echo "===== Deployment Failed: $reason ====="
-  echo "=========================================="
-
-  echo "===== Container Logs on Failure ($CONTAINER_NAME) ====="
-
-  # 컨테이너가 존재하지 않는 경우에도 전체 배포 실패 처리는 계속 진행
-  docker logs \
-    --tail 100 \
-    "$CONTAINER_NAME" \
-    || true
-
-  echo "===== Rollback ====="
-
-  # Rollback 과정에서 발생하는 원본 에러는 그대로 출력
-  if rollback_current_release; then
-    echo "===== Rollback Completed ====="
-  else
-    echo "===== Rollback Failed ====="
-  fi
-
-  echo "===== Cleanup Failed Release ====="
-
-  cleanup_failed_release || true
-
-  exit 1
-}
-
-
-echo "===== Deployment Start ====="
-
-
-if [ "$SCRIPT_DIR" != "$RELEASES_DIRECTORY/$RELEASE_TAG" ]; then
-  echo "Release directory does not match release tag: $SCRIPT_DIR"
-  exit 1
+IMAGE_TAG="${1:-${DEPLOY_IMAGE_TAG:-}}"
+if [ -z "$IMAGE_TAG" ]; then
+  echo "Usage: RELEASE_TAG=... AWS_REGION=... AWS_ACCOUNT_ID=... $0 <immutable-image-tag>"
+  exit 2
 fi
 
-
-if [ "$DEPLOY_IMAGE_TAG" = "__CURRENT__" ]; then
-
-  if [ ! -L "$CURRENT_LINK" ]; then
-    echo "No previously successful image registered."
+# 예상한 EC2 위치와 new 링크만 허용해 잘못된 경로에서의 배포·삭제를 방지한다.
+if [ "$ROOT_DIRECTORY" != "/home/ubuntu/puppyrun" ] || [ "$SCRIPT_DIR" != "$RELEASES_DIRECTORY/$RELEASE_TAG" ]; then
+  echo "Unexpected deployment directory."
+  exit 1
+fi
+if [ ! -L "$NEW_LINK" ] || [ "$(readlink -f "$NEW_LINK")" != "$SCRIPT_DIR" ]; then
+  echo "New release link does not point to this candidate."
+  exit 1
+fi
+for required_file in "$ENV_FILE" "$COMPOSE_FILE" "$HEALTH_CHECK_SCRIPT"; do
+  if [ ! -f "$required_file" ]; then
+    echo "Candidate release is incomplete: $required_file"
     exit 1
   fi
+done
 
-  DEPLOY_IMAGE_TAG=$(
-    <"$(readlink -f "$CURRENT_LINK")/image-tag"
-  )
+ECR_REPOSITORY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/puppyrun-backend"
+REQUESTED_IMAGE="$ECR_REPOSITORY:$IMAGE_TAG"
 
-  echo "Re-deploying registered image: $DEPLOY_IMAGE_TAG"
+restore_current_release() {
+  # 후보 기동 또는 health check 실패 시, 포인터를 건드리지 않고 기존 current를 재기동한다.
+  if [ ! -L "$CURRENT_LINK" ]; then
+    echo "No current release is registered; restoration is unavailable."
+    return 1
+  fi
+
+  local current_release current_image
+  current_release=$(readlink -f "$CURRENT_LINK")
+  current_image=$(sed -n 's/^BACKEND_IMAGE=//p' "$current_release/metadata.env")
+  if [ -z "$current_image" ] || [ ! -f "$current_release/.env" ] || [ ! -f "$current_release/docker-compose.deploy.yml" ] || [ ! -f "$current_release/health-check.sh" ]; then
+    echo "Current release is incomplete; restoration is unavailable."
+    return 1
+  fi
+
+  docker pull "$current_image"
+  BACKEND_IMAGE="$current_image" docker compose \
+    -p puppyrun \
+    --env-file "$current_release/.env" \
+    -f "$current_release/docker-compose.deploy.yml" \
+    up -d --force-recreate "$SERVICE_NAME"
+  bash "$current_release/health-check.sh"
+}
+
+activate_candidate() {
+  # 후보 검증이 끝난 뒤에만 previous ← current, current ← candidate 순으로 원자적으로 갱신한다.
+  local old_previous=""
+  if [ -L "$PREVIOUS_LINK" ]; then
+    old_previous=$(readlink -f "$PREVIOUS_LINK")
+  fi
+  if [ -L "$CURRENT_LINK" ]; then
+    ln -sfn "$(readlink -f "$CURRENT_LINK")" "$PREVIOUS_LINK.next"
+    mv -Tf "$PREVIOUS_LINK.next" "$PREVIOUS_LINK"
+  fi
+  ln -sfn "$SCRIPT_DIR" "$CURRENT_LINK.next"
+  mv -Tf "$CURRENT_LINK.next" "$CURRENT_LINK"
+
+  # current/previous 이외의 과거 성공 릴리스 하나만 정리한다.
+  if [ -n "$old_previous" ] && [ "$old_previous" != "$SCRIPT_DIR" ]; then
+    rm -rf -- "$old_previous"
+  fi
+}
+
+# SSM이 이미 pull한 경우는 중복 다운로드를 건너뛰고, 수동 실행은 직접 ECR에서 pull한다.
+if [ "${SKIP_IMAGE_PULL:-false}" != "true" ]; then
+  aws ecr get-login-password --region "$AWS_REGION" |
+    docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+  docker pull "$REQUESTED_IMAGE"
 fi
 
-
-echo "===== Prepare Release ====="
-
-if ! prepare_release; then
-  fail_deployment "Failed to prepare release files."
+# 태그 대신 실제 RepoDigest를 기록·실행해 이후 태그 값이 바뀌어도 같은 이미지를 보장한다.
+BACKEND_IMAGE=$(docker image inspect --format '{{index .RepoDigests 0}}' "$REQUESTED_IMAGE")
+if [ -z "$BACKEND_IMAGE" ] || [ "$BACKEND_IMAGE" = "<no value>" ]; then
+  echo "Unable to resolve ECR digest for: $REQUESTED_IMAGE"
+  exit 1
 fi
 
+# 후보의 이미지·환경·Compose 체크섬을 남긴다. rollback은 이 릴리스 디렉터리를 그대로 사용한다.
+IMAGE_DIGEST="${BACKEND_IMAGE##*@}"
+{
+  printf 'RELEASE_TAG=%s\n' "$RELEASE_TAG"
+  printf 'REQUESTED_IMAGE=%s\n' "$REQUESTED_IMAGE"
+  printf 'BACKEND_IMAGE=%s\n' "$BACKEND_IMAGE"
+  printf 'IMAGE_DIGEST=%s\n' "$IMAGE_DIGEST"
+  printf 'DEPLOYED_AT_UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  printf 'ENV_SHA256=%s\n' "$(sha256sum "$ENV_FILE" | awk '{print $1}')"
+  printf 'COMPOSE_SHA256=%s\n' "$(sha256sum "$COMPOSE_FILE" | awk '{print $1}')"
+  printf 'STATUS=candidate\n'
+} > "$METADATA_FILE"
+chmod 600 "$METADATA_FILE" "$ENV_FILE"
 
-echo "===== Deploy Release ====="
-
-if ! deploy_release "$SCRIPT_DIR" "$DEPLOY_IMAGE_TAG"; then
-  fail_deployment "Docker Compose deployment failed."
+# 기존 backend를 새 후보로 교체 기동한다. Compose의 다른 서비스·볼륨은 내리지 않는다.
+if ! BACKEND_IMAGE="$BACKEND_IMAGE" docker compose \
+  -p puppyrun \
+  --env-file "$ENV_FILE" \
+  -f "$COMPOSE_FILE" \
+  up -d --force-recreate "$SERVICE_NAME"; then
+  printf 'STATUS=failed-to-start\n' >> "$METADATA_FILE"
+  restore_current_release || true
+  exit 1
 fi
 
-
-echo "===== Health Check ====="
-
-if ! health_check_release "$SCRIPT_DIR"; then
-  fail_deployment "Application health check failed."
+# liveness와 readiness가 모두 통과해야만 후보를 성공 릴리스로 승격한다.
+if ! bash "$HEALTH_CHECK_SCRIPT"; then
+  printf 'STATUS=failed-health-check\n' >> "$METADATA_FILE"
+  restore_current_release || true
+  exit 1
 fi
 
-
-echo "===== Record Container Versions ====="
-
-if ! write_container_versions; then
-  fail_deployment "Failed to record container version information."
-fi
-
-
-echo "===== Activate Release ====="
-
-if ! activate_release; then
-  fail_deployment "Failed to activate new release."
-fi
-
-
-echo "Registered successful release: $RELEASE_TAG"
-
-
-echo "===== Remove Old Images ====="
-
-docker image prune -f || true
-
-
-echo "===== Deployment Success ====="
+printf 'STATUS=active\n' >> "$METADATA_FILE"
+activate_candidate
+echo "Deployment succeeded: $RELEASE_TAG"
