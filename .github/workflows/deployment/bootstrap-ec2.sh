@@ -13,6 +13,7 @@ install -m 755 "$SOURCE_DIRECTORY/rollback.sh" "$ROOT/scripts/rollback.sh"
 install -m 755 "$SOURCE_DIRECTORY/health-check.sh" "$ROOT/scripts/health-check.sh"
 install -m 755 "$SOURCE_DIRECTORY/cleanup-images.sh" "$ROOT/scripts/cleanup-images.sh"
 install -m 640 "$SOURCE_DIRECTORY/docker-compose.deploy.yml" "$ROOT/compose/docker-compose.yml"
+install -m 600 "$SOURCE_DIRECTORY/config/firebase-service-account.json"
 
 if [[ ! -f "$ROOT/config/deploy.env" ]]; then
   install -m 640 "$SOURCE_DIRECTORY/deploy.env.example" "$ROOT/config/deploy.env"

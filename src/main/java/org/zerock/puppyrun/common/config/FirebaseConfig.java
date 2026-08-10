@@ -9,7 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.zerock.puppyrun.common.exception.BusinessException;
 import org.zerock.puppyrun.common.exception.ErrorCode;
 
@@ -18,14 +19,28 @@ import org.zerock.puppyrun.common.exception.ErrorCode;
 @Profile("!test")
 public class FirebaseConfig {
 
-    @Value("${firebase.account-path}")
-    private String FIREBASE_ACCOUNT_PATH;
+    private final ResourceLoader resourceLoader;
+    private final String FIREBASE_ACCOUNT_PATH;
+
+    public FirebaseConfig(
+            ResourceLoader resourceLoader,
+            @Value("${firebase.account-path}") String firebase
+
+    ) {
+        this.FIREBASE_ACCOUNT_PATH = firebase;
+        this.resourceLoader = resourceLoader;
+    }
 
     @PostConstruct
     public void init() {
-        try {
+        String resourceLocation =
+                FIREBASE_ACCOUNT_PATH.startsWith("classpath:") || FIREBASE_ACCOUNT_PATH.startsWith("file:")
+                        ? FIREBASE_ACCOUNT_PATH
+                        : "classpath:" + FIREBASE_ACCOUNT_PATH;
+        Resource serviceAccountResource = resourceLoader.getResource(resourceLocation);
+
+        try (InputStream serviceAccount = serviceAccountResource.getInputStream()) {
             log.info("Firebase 초기화 시작");
-            InputStream serviceAccount = new ClassPathResource(FIREBASE_ACCOUNT_PATH).getInputStream();
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
