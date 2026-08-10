@@ -47,6 +47,7 @@ fi
 
 
 SSM_COMMANDS=$(cat <<EOF
+bash -s <<'REMOTE_DEPLOY_SCRIPT'
 set -eu
 
 test ! -e "$NEW_DIRECTORY"
@@ -111,6 +112,7 @@ bash "$NEW_DIRECTORY/deploy.sh" "$DEPLOY_IMAGE_TAG" || {
   exit "\$deploy_status"
 }
 
+REMOTE_DEPLOY_SCRIPT
 EOF
 )
 
