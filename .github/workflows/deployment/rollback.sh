@@ -7,20 +7,21 @@ set -euo pipefail
 # 실패: previous 후보가 건강하지 않으면 기존 current를 다시 기동하고 링크는 유지한다.
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 ROOT_DIRECTORY="${ROOT_DIRECTORY:-/home/ubuntu/puppyrun}"
-CURRENT_LINK="$ROOT_DIRECTORY/current"
-PREVIOUS_LINK="$ROOT_DIRECTORY/previous"
+CURRENT_DIRECTORY="$ROOT_DIRECTORY/current"
+PREVIOUS_DIRECTORY="$ROOT_DIRECTORY/previous"
+NEW_DIRECTORY="$ROOT_DIRECTORY/new"
 
 : "${AWS_REGION:?AWS_REGION is required}"
 : "${AWS_ACCOUNT_ID:?AWS_ACCOUNT_ID is required}"
 
 # 두 성공 릴리스가 모두 있어야만 자동 롤백을 허용한다.
-if [ "$ROOT_DIRECTORY" != "/home/ubuntu/puppyrun" ] || [ ! -L "$CURRENT_LINK" ] || [ ! -L "$PREVIOUS_LINK" ]; then
+if [ "$ROOT_DIRECTORY" != "/home/ubuntu/puppyrun" ] || [ ! -d "$CURRENT_DIRECTORY" ] || [ ! -d "$PREVIOUS_DIRECTORY" ] || [ -e "$NEW_DIRECTORY" ]; then
   echo "Current or previous release is not registered. Rollback is unavailable."
   exit 1
 fi
 
-CURRENT_RELEASE=$(readlink -f "$CURRENT_LINK")
-PREVIOUS_RELEASE=$(readlink -f "$PREVIOUS_LINK")
+CURRENT_RELEASE="$CURRENT_DIRECTORY"
+PREVIOUS_RELEASE="$PREVIOUS_DIRECTORY"
 PREVIOUS_IMAGE=$(sed -n 's/^BACKEND_IMAGE=//p' "$PREVIOUS_RELEASE/metadata.env")
 for required_file in "$PREVIOUS_RELEASE/.env" "$PREVIOUS_RELEASE/docker-compose.deploy.yml" "$PREVIOUS_RELEASE/health-check.sh"; do
   if [ ! -f "$required_file" ]; then
@@ -55,10 +56,9 @@ if ! bash "$PREVIOUS_RELEASE/health-check.sh"; then
   exit 1
 fi
 
-# 정상 검증 후에만 current와 previous를 원자적으로 교환한다.
-ln -sfn "$CURRENT_RELEASE" "$PREVIOUS_LINK.next"
-ln -sfn "$PREVIOUS_RELEASE" "$CURRENT_LINK.next"
-mv -Tf "$PREVIOUS_LINK.next" "$PREVIOUS_LINK"
-mv -Tf "$CURRENT_LINK.next" "$CURRENT_LINK"
+# 정상 검증 후에만 new를 임시 경로로 사용해 current와 previous를 교환한다.
+mv "$CURRENT_DIRECTORY" "$NEW_DIRECTORY"
+mv "$PREVIOUS_DIRECTORY" "$CURRENT_DIRECTORY"
+mv "$NEW_DIRECTORY" "$PREVIOUS_DIRECTORY"
 
 echo "Rollback succeeded: $(basename "$PREVIOUS_RELEASE")"

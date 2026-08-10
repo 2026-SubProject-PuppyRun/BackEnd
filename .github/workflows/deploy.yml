@@ -55,22 +55,16 @@ jobs:
           docker push \
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:${{ github.sha }}
 
-      - name: Upload non-secret release bundle to S3
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          RELEASE_BUNDLE_DIRECTORY: .github/workflows/deployment
-        run: bash .github/workflows/github-actions/upload-release-to-s3.sh
-
-      # EC2에서 pull → new 후보 릴리스 생성 → deploy.sh 실행까지 수행한다.
+      # S3를 거치지 않고 SSM으로 안전한 배포 파일을 EC2 new 폴더에 전달한다.
       - name: Create candidate release and deploy on EC2
         id: ssm_deploy
         env:
           INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           RELEASE_TAG: ${{ env.RELEASE_TAG }}
           DEPLOY_IMAGE_TAG: ${{ github.event_name == 'push' && github.sha || github.event.inputs.image_tag }}
+          RELEASE_BUNDLE_DIRECTORY: .github/workflows/deployment
         run: bash .github/workflows/github-actions/send-ssm-command.sh
 
       - name: Wait for EC2 deployment

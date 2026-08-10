@@ -2,15 +2,14 @@
 
 set -euo pipefail
 
-# 역할: EC2 releases/<release-tag> 후보 디렉터리에서 실행되어 새 이미지를 기동한다.
+# 역할: EC2 new 후보 디렉터리에서 실행되어 새 이미지를 기동한다.
 # 흐름: 후보 구성 검증 → digest 고정 → backend 교체 → health check → current/previous 승격.
 # 실패: current 릴리스의 이미지·.env·Compose로 즉시 복구하고 링크는 변경하지 않는다.
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 ROOT_DIRECTORY="${ROOT_DIRECTORY:-/home/ubuntu/puppyrun}"
-RELEASES_DIRECTORY="$ROOT_DIRECTORY/releases"
-NEW_LINK="$ROOT_DIRECTORY/new"
-CURRENT_LINK="$ROOT_DIRECTORY/current"
-PREVIOUS_LINK="$ROOT_DIRECTORY/previous"
+NEW_DIRECTORY="$ROOT_DIRECTORY/new"
+CURRENT_DIRECTORY="$ROOT_DIRECTORY/current"
+PREVIOUS_DIRECTORY="$ROOT_DIRECTORY/previous"
 ENV_FILE="$SCRIPT_DIR/.env"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.deploy.yml"
 HEALTH_CHECK_SCRIPT="$SCRIPT_DIR/health-check.sh"
@@ -28,13 +27,9 @@ if [ -z "$IMAGE_TAG" ]; then
   exit 2
 fi
 
-# 예상한 EC2 위치와 new 링크만 허용해 잘못된 경로에서의 배포·삭제를 방지한다.
-if [ "$ROOT_DIRECTORY" != "/home/ubuntu/puppyrun" ] || [ "$SCRIPT_DIR" != "$RELEASES_DIRECTORY/$RELEASE_TAG" ]; then
+# 예상한 EC2 new 폴더에서만 실행해 잘못된 경로에서의 배포·삭제를 방지한다.
+if [ "$ROOT_DIRECTORY" != "/home/ubuntu/puppyrun" ] || [ "$SCRIPT_DIR" != "$NEW_DIRECTORY" ]; then
   echo "Unexpected deployment directory."
-  exit 1
-fi
-if [ ! -L "$NEW_LINK" ] || [ "$(readlink -f "$NEW_LINK")" != "$SCRIPT_DIR" ]; then
-  echo "New release link does not point to this candidate."
   exit 1
 fi
 for required_file in "$ENV_FILE" "$COMPOSE_FILE" "$HEALTH_CHECK_SCRIPT"; do
@@ -49,13 +44,13 @@ REQUESTED_IMAGE="$ECR_REPOSITORY:$IMAGE_TAG"
 
 restore_current_release() {
   # 후보 기동 또는 health check 실패 시, 포인터를 건드리지 않고 기존 current를 재기동한다.
-  if [ ! -L "$CURRENT_LINK" ]; then
+  if [ ! -d "$CURRENT_DIRECTORY" ]; then
     echo "No current release is registered; restoration is unavailable."
     return 1
   fi
 
   local current_release current_image
-  current_release=$(readlink -f "$CURRENT_LINK")
+  current_release="$CURRENT_DIRECTORY"
   current_image=$(sed -n 's/^BACKEND_IMAGE=//p' "$current_release/metadata.env")
   if [ -z "$current_image" ] || [ ! -f "$current_release/.env" ] || [ ! -f "$current_release/docker-compose.deploy.yml" ] || [ ! -f "$current_release/health-check.sh" ]; then
     echo "Current release is incomplete; restoration is unavailable."
@@ -72,22 +67,13 @@ restore_current_release() {
 }
 
 activate_candidate() {
-  # 후보 검증이 끝난 뒤에만 previous ← current, current ← candidate 순으로 원자적으로 갱신한다.
-  local old_previous=""
-  if [ -L "$PREVIOUS_LINK" ]; then
-    old_previous=$(readlink -f "$PREVIOUS_LINK")
+  # 후보 검증 뒤에만 기존 previous를 지우고 current → previous, new → current로 이동한다.
+  # 세 폴더만 남기며 각 폴더 안에는 해당 릴리스의 .env·Compose·메타데이터가 독립 보존된다.
+  rm -rf -- "$PREVIOUS_DIRECTORY"
+  if [ -d "$CURRENT_DIRECTORY" ]; then
+    mv "$CURRENT_DIRECTORY" "$PREVIOUS_DIRECTORY"
   fi
-  if [ -L "$CURRENT_LINK" ]; then
-    ln -sfn "$(readlink -f "$CURRENT_LINK")" "$PREVIOUS_LINK.next"
-    mv -Tf "$PREVIOUS_LINK.next" "$PREVIOUS_LINK"
-  fi
-  ln -sfn "$SCRIPT_DIR" "$CURRENT_LINK.next"
-  mv -Tf "$CURRENT_LINK.next" "$CURRENT_LINK"
-
-  # current/previous 이외의 과거 성공 릴리스 하나만 정리한다.
-  if [ -n "$old_previous" ] && [ "$old_previous" != "$SCRIPT_DIR" ]; then
-    rm -rf -- "$old_previous"
-  fi
+  mv "$NEW_DIRECTORY" "$CURRENT_DIRECTORY"
 }
 
 # SSM이 이미 pull한 경우는 중복 다운로드를 건너뛰고, 수동 실행은 직접 ECR에서 pull한다.
