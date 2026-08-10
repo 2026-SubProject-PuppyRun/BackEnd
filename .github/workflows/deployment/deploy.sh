@@ -1,11 +1,11 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
-set -euo pipefail
+set -eu
 
 # 역할: EC2 new 후보 디렉터리에서 실행되어 새 이미지를 기동한다.
 # 흐름: 후보 구성 검증 → digest 고정 → backend 교체 → health check → current/previous 승격.
 # 실패: current 릴리스의 이미지·.env·Compose로 즉시 복구하고 링크는 변경하지 않는다.
-SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 ROOT_DIRECTORY="${ROOT_DIRECTORY:-/home/ubuntu/puppyrun}"
 NEW_DIRECTORY="$ROOT_DIRECTORY/new"
 CURRENT_DIRECTORY="$ROOT_DIRECTORY/current"
@@ -49,7 +49,6 @@ restore_current_release() {
     return 1
   fi
 
-  local current_release current_image
   current_release="$CURRENT_DIRECTORY"
   current_image=$(sed -n 's/^BACKEND_IMAGE=//p' "$current_release/metadata.env")
   if [ -z "$current_image" ] || [ ! -f "$current_release/.env" ] || [ ! -f "$current_release/docker-compose.deploy.yml" ] || [ ! -f "$current_release/health-check.sh" ]; then
@@ -63,7 +62,7 @@ restore_current_release() {
     --env-file "$current_release/.env" \
     -f "$current_release/docker-compose.deploy.yml" \
     up -d --force-recreate "$SERVICE_NAME"
-  bash "$current_release/health-check.sh"
+  sh "$current_release/health-check.sh"
 }
 
 activate_candidate() {
@@ -116,7 +115,7 @@ if ! BACKEND_IMAGE="$BACKEND_IMAGE" docker compose \
 fi
 
 # liveness와 readiness가 모두 통과해야만 후보를 성공 릴리스로 승격한다.
-if ! bash "$HEALTH_CHECK_SCRIPT"; then
+if ! sh "$HEALTH_CHECK_SCRIPT"; then
   printf 'STATUS=failed-health-check\n' >> "$METADATA_FILE"
   restore_current_release || true
   exit 1

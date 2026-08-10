@@ -47,7 +47,6 @@ fi
 
 
 SSM_COMMANDS=$(cat <<EOF
-bash -s <<'REMOTE_DEPLOY_SCRIPT'
 set -eu
 
 test ! -e "$NEW_DIRECTORY"
@@ -55,17 +54,12 @@ test ! -e "$NEW_DIRECTORY"
 mkdir -p "$NEW_DIRECTORY"
 
 # 다운로드·pull·기동 중 어느 단계에서 실패해도 다음 배포를 막지 않도록 후보 폴더만 정리한다.
-# 성공하면 deploy.sh가 new를 current로 이동하므로 이 정리 함수는 아무것도 삭제하지 않는다.
-cleanup_new() {
-  if [ -e "$NEW_DIRECTORY" ]; then
-    rm -rf -- "$NEW_DIRECTORY"
-  fi
-}
-trap cleanup_new 0 1 2 15
+# 성공하면 deploy.sh가 new를 current로 이동하므로 trap은 아무것도 삭제하지 않는다.
+trap 'if [ -e "$NEW_DIRECTORY" ]; then rm -rf -- "$NEW_DIRECTORY"; fi' 0 1 2 15
 
 echo "===== Receive release files from SSM ====="
 
-base64 --decode <<'RELEASE_ARCHIVE' | tar -xzf - -C "$NEW_DIRECTORY"
+base64 -d <<'RELEASE_ARCHIVE' | tar -xzf - -C "$NEW_DIRECTORY"
 $RELEASE_ARCHIVE_BASE64
 RELEASE_ARCHIVE
 
@@ -101,18 +95,18 @@ docker pull \
 
 echo "===== Deploy ====="
 
-AWS_REGION="$AWS_REGION" \
-AWS_ACCOUNT_ID="$AWS_ACCOUNT_ID" \
-RELEASE_TAG="$RELEASE_TAG" \
-SKIP_IMAGE_PULL=true \
-bash "$NEW_DIRECTORY/deploy.sh" "$DEPLOY_IMAGE_TAG" || {
+if AWS_REGION="$AWS_REGION" \
+  AWS_ACCOUNT_ID="$AWS_ACCOUNT_ID" \
+  RELEASE_TAG="$RELEASE_TAG" \
+  SKIP_IMAGE_PULL=true \
+  sh "$NEW_DIRECTORY/deploy.sh" "$DEPLOY_IMAGE_TAG"; then
+  :
+else
   deploy_status=\$?
   # deploy.sh가 current 복구를 마친 뒤 실패한 후보 파일만 정리한다.
   rm -rf -- "$NEW_DIRECTORY"
   exit "\$deploy_status"
-}
-
-REMOTE_DEPLOY_SCRIPT
+fi
 EOF
 )
 
