@@ -10,6 +10,7 @@ COMPOSE="$ROOT/compose/docker-compose.yml"
 APP_ENV="$CONFIG/app.env"
 DEPLOY_ENV="$CONFIG/deploy.env"
 HEALTH_CHECK="$ROOT/scripts/health-check.sh"
+CLEANUP_SCRIPT="$ROOT/scripts/cleanup-images.sh"
 
 IMAGE_TAG="${1:?Usage: deploy.sh <immutable-image-tag>}"
 [[ "$IMAGE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]] || { echo "Invalid image tag."; exit 2; }
@@ -43,12 +44,13 @@ write_state() {
 
 run_image() {
   BACKEND_IMAGE="$1" docker compose --project-name "$COMPOSE_PROJECT_NAME" \
-    --env-file "$APP_ENV" -f "$COMPOSE" up -d --force-recreate backend
+    --env-file "$APP_ENV" -f "$COMPOSE" up -d --no-deps --force-recreate backend
 }
 
 restore_current() {
   [[ -n "$CURRENT_IMAGE" ]] || return 1
   echo "Restoring $CURRENT_IMAGE"
+  docker pull "$CURRENT_IMAGE"
   run_image "$CURRENT_IMAGE"
   "$HEALTH_CHECK" "$HEALTH_URL"
 }
@@ -68,4 +70,5 @@ fi
 
 [[ -n "$CURRENT_IMAGE" ]] && write_state previous-image "$CURRENT_IMAGE"
 write_state current-image "$CANDIDATE_IMAGE"
+"$CLEANUP_SCRIPT" || echo "Image cleanup failed; deployment remains successful."
 echo "Deployment succeeded: $CANDIDATE_IMAGE"

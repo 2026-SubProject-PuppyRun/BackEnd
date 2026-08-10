@@ -18,11 +18,11 @@ aws ecr get-login-password --region "$AWS_REGION" |
 docker pull "$PREVIOUS_IMAGE"
 
 BACKEND_IMAGE="$PREVIOUS_IMAGE" docker compose --project-name "$COMPOSE_PROJECT_NAME" \
-  --env-file "$CONFIG/app.env" -f "$COMPOSE" up -d --force-recreate backend
+  --env-file "$CONFIG/app.env" -f "$COMPOSE" up -d --no-deps --force-recreate backend
 
 if ! "$ROOT/scripts/health-check.sh" "$HEALTH_URL"; then
   BACKEND_IMAGE="$CURRENT_IMAGE" docker compose --project-name "$COMPOSE_PROJECT_NAME" \
-    --env-file "$CONFIG/app.env" -f "$COMPOSE" up -d --force-recreate backend || true
+    --env-file "$CONFIG/app.env" -f "$COMPOSE" up -d --no-deps --force-recreate backend || true
   exit 1
 fi
 

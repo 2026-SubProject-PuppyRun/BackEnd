@@ -11,6 +11,7 @@ install -d -o root -g ubuntu -m 750 \
 install -m 755 "$SOURCE_DIRECTORY/deploy.sh" "$ROOT/scripts/deploy.sh"
 install -m 755 "$SOURCE_DIRECTORY/rollback.sh" "$ROOT/scripts/rollback.sh"
 install -m 755 "$SOURCE_DIRECTORY/health-check.sh" "$ROOT/scripts/health-check.sh"
+install -m 755 "$SOURCE_DIRECTORY/cleanup-images.sh" "$ROOT/scripts/cleanup-images.sh"
 install -m 640 "$SOURCE_DIRECTORY/docker-compose.deploy.yml" "$ROOT/compose/docker-compose.yml"
 
 if [[ ! -f "$ROOT/config/deploy.env" ]]; then
