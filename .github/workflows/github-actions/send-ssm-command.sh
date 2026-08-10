@@ -36,7 +36,13 @@ install -m 600 $ROOT_DIRECTORY/config/.env $CANDIDATE_DIRECTORY/.env
 ln -sfn $CANDIDATE_DIRECTORY $ROOT_DIRECTORY/new.next
 mv -Tf $ROOT_DIRECTORY/new.next $ROOT_DIRECTORY/new
 # 이미지 pull이 성공한 경우에만 후보 deploy.sh가 서버 교체와 health check를 수행한다.
-aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+echo "===== Verify EC2 IAM identity ====="
+aws sts get-caller-identity --query 'Arn' --output text
+echo "===== Login to ECR ====="
+if ! aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com; then
+  echo "ECR login failed. Check the EC2 instance profile permissions and AWS region/account settings."
+  exit 1
+fi
 docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/puppyrun-backend:$DEPLOY_IMAGE_TAG
 AWS_REGION=$AWS_REGION AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID RELEASE_TAG=$RELEASE_TAG SKIP_IMAGE_PULL=true bash $CANDIDATE_DIRECTORY/deploy.sh $DEPLOY_IMAGE_TAG
 EOF

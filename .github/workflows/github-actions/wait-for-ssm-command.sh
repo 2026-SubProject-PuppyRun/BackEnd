@@ -9,6 +9,15 @@ set -euo pipefail
 
 MAX_WAITER_CYCLES="${MAX_WAITER_CYCLES:-6}"
 
+show_ssm_output() {
+  # ECR 인증·pull·deploy 실패를 기다린 직후 바로 출력해 GitHub Actions 로그에서 원인을 확인한다.
+  aws ssm get-command-invocation \
+    --command-id "$COMMAND_ID" \
+    --instance-id "$INSTANCE_ID" \
+    --query '{Status:Status,ResponseCode:ResponseCode,StandardOutput:StandardOutputContent,StandardError:StandardErrorContent}' \
+    --output json || true
+}
+
 # AWS waiter가 일시적으로 Pending/InProgress를 반환할 수 있으므로 제한 횟수만큼 재확인한다.
 for attempt in $(seq 1 "$MAX_WAITER_CYCLES"); do
   if aws ssm wait command-executed \
@@ -34,10 +43,12 @@ for attempt in $(seq 1 "$MAX_WAITER_CYCLES"); do
       ;;
     *)
       echo "EC2 pull or deploy command failed with status: $STATUS"
+      show_ssm_output
       exit 1
       ;;
   esac
 done
 
 echo "EC2 pull or deploy command did not finish within ${MAX_WAITER_CYCLES} waiter cycles."
+show_ssm_output
 exit 1
