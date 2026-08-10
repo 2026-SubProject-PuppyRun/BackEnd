@@ -35,7 +35,13 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
 
     env_file:
-      - .env
+      - /home/ubuntu/puppyrun/config/app.env
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 
 

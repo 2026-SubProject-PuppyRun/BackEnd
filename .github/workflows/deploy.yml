@@ -55,30 +55,17 @@ jobs:
           docker push \
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:${{ github.sha }}
 
-      # 배포 폴더 전체(.env 제외)를 new에 적재하고, 이 단계의 성공 여부는 GitHub Actions에서 확인한다.
-      - name: Sync deployment files to EC2
-        id: ssm_sync
+      # SSM에는 EC2에 고정 설치된 deploy.sh 실행 요청만 전달한다.
+      - name: Trigger EC2 deployment
         env:
           INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          RELEASE_TAG: ${{ env.RELEASE_TAG }}
           DEPLOY_IMAGE_TAG: ${{ github.event_name == 'push' && github.sha || github.event.inputs.image_tag }}
-          RELEASE_BUNDLE_DIRECTORY: .github/workflows/deployment
-        run: bash .github/workflows/github-actions/send-ssm-command.sh
-
-      - name: Verify deployment files on EC2
-        env:
-          COMMAND_ID: ${{ steps.ssm_sync.outputs.command_id }}
-          INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
-        run: bash .github/workflows/github-actions/wait-for-ssm-command.sh
-
-      # 파일 적재가 확인된 뒤에만 EC2의 기존 파일을 실행한다. 이 실행 결과는 기다리지 않는다.
-      - name: Start EC2 deployment asynchronously
-        env:
-          INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          RELEASE_TAG: ${{ env.RELEASE_TAG }}
-          DEPLOY_IMAGE_TAG: ${{ github.event_name == 'push' && github.sha || github.event.inputs.image_tag }}
-        run: bash .github/workflows/github-actions/start-ec2-deploy.sh
+        run: |
+          command="sudo /home/ubuntu/puppyrun/scripts/deploy.sh $DEPLOY_IMAGE_TAG"
+          aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "Deploy Puppyrun $DEPLOY_IMAGE_TAG" \
+            --parameters "commands=$(jq -n --arg command "$command" '[ $command ]')" \
+            --query 'Command.CommandId' \
+            --output text
