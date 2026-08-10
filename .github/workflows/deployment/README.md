@@ -15,3 +15,9 @@ sudoedit /home/ubuntu/puppyrun/config/app.env
 ```
 
 배포 로그는 `/home/ubuntu/puppyrun/logs/latest-deploy.log`에서 확인한다. EC2 인스턴스 프로파일에는 ECR pull 권한이 필요하다.
+
+배포 성공 후에는 `current-image`, `previous-image`를 제외한 Puppyrun backend 이미지를 자동 정리한다. 수동 정리가 필요하면 아래를 실행한다.
+
+```bash
+sudo /home/ubuntu/puppyrun/scripts/cleanup-images.sh
+```
