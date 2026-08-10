@@ -26,7 +26,7 @@ services:
     volumes:
       - backend_data:/var/lib/backend
       # Firebase 서비스 계정은 EC2에만 보관하고 컨테이너에는 읽기 전용으로 주입한다.
-      - /home/ubuntu/puppyrun/config/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+      - /home/ubuntu/puppyrun/config/firebase-service-account.json:firebase-service-account.json:ro
 
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
