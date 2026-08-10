@@ -1,11 +1,10 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
-set -euo pipefail
+set -eu
 
 # 역할: Grafana Cloud 알림이 Lambda/SSM을 통해 호출하는 런타임 롤백이다.
 # 흐름: previous의 digest·.env·Compose로 기동 → health check → current/previous 링크 교환.
 # 실패: previous 후보가 건강하지 않으면 기존 current를 다시 기동하고 링크는 유지한다.
-SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 ROOT_DIRECTORY="${ROOT_DIRECTORY:-/home/ubuntu/puppyrun}"
 CURRENT_DIRECTORY="$ROOT_DIRECTORY/current"
 PREVIOUS_DIRECTORY="$ROOT_DIRECTORY/previous"
@@ -45,14 +44,14 @@ BACKEND_IMAGE="$PREVIOUS_IMAGE" docker compose \
   up -d --force-recreate backend
 
 # 롤백 후보가 실패하면 현재 릴리스를 재기동한다. 포인터 교환은 이 이후에만 일어난다.
-if ! bash "$PREVIOUS_RELEASE/health-check.sh"; then
+if ! sh "$PREVIOUS_RELEASE/health-check.sh"; then
   CURRENT_IMAGE=$(sed -n 's/^BACKEND_IMAGE=//p' "$CURRENT_RELEASE/metadata.env")
   BACKEND_IMAGE="$CURRENT_IMAGE" docker compose \
     -p puppyrun \
     --env-file "$CURRENT_RELEASE/.env" \
     -f "$CURRENT_RELEASE/docker-compose.deploy.yml" \
     up -d --force-recreate backend || true
-  bash "$CURRENT_RELEASE/health-check.sh" || true
+  sh "$CURRENT_RELEASE/health-check.sh" || true
   exit 1
 fi
 

@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
-set -euo pipefail
+set -eu
 
 # 역할: deploy.sh와 rollback.sh가 backend 교체 뒤 호출하는 로컬 readiness 검증이다.
 # 관리 포트는 Docker Compose에서 EC2 loopback에만 바인딩되어 외부에 노출되지 않는다.
