@@ -1,27 +1,9 @@
 services:
 
-  mysql:
-    image: mysql:8.0
-    container_name: puppyrun-mysql
-    restart: "no"
-
-    environment:
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-
-    ports:
-      - "${DB_PORT}:3306"
-
-    volumes:
-      - mysql_data:/var/lib/mysql
-
-
   rabbitmq:
     image: rabbitmq:3-management
     container_name: puppyrun-rabbitmq
-    restart: "no"
+    restart: "unless-stopped"
 
     ports:
       - "${RABBITMQ_AMQP_PORT}:5672"
@@ -37,10 +19,9 @@ services:
 
     container_name: puppyrun-backend
 
-    restart: "no"
+    restart: "unless-stopped"
 
     depends_on:
-      - mysql
       - rabbitmq
 
     ports:
@@ -60,5 +41,4 @@ services:
 
 
 volumes:
-  mysql_data:
   backend_data:
