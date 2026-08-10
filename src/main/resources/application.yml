@@ -47,7 +47,17 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus
+
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${SPRING_PROFILES_ACTIVE:default}
+
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 
 app:
