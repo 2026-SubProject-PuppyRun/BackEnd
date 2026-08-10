@@ -16,7 +16,7 @@ HEALTH_CHECK_SCRIPT="$SCRIPT_DIR/health-check.sh"
 METADATA_FILE="$SCRIPT_DIR/metadata.env"
 SERVICE_NAME="backend"
 
-# GitHub Actions/SSM이 전달한 후보 릴리스 식별자와 AWS/ECR 연결 정보다.
+# GitHub Actions가 전달한 후보 릴리스 식별자와 AWS/ECR 연결 정보다.
 : "${RELEASE_TAG:?RELEASE_TAG is required}"
 : "${AWS_REGION:?AWS_REGION is required}"
 : "${AWS_ACCOUNT_ID:?AWS_ACCOUNT_ID is required}"
@@ -32,6 +32,14 @@ if [ "$ROOT_DIRECTORY" != "/home/ubuntu/puppyrun" ] || [ "$SCRIPT_DIR" != "$NEW_
   echo "Unexpected deployment directory."
   exit 1
 fi
+
+# .env 원본은 EC2에만 둔다. 새 후보에 독립 복사해 이후 previous 롤백도 당시 환경으로 실행한다.
+if [ ! -f "/home/ubuntu/.env" ]; then
+  echo "EC2 environment file is missing: /home/ubuntu/.env"
+  exit 1
+fi
+install -m 600 "/home/ubuntu/.env" "$ENV_FILE"
+
 for required_file in "$ENV_FILE" "$COMPOSE_FILE" "$HEALTH_CHECK_SCRIPT"; do
   if [ ! -f "$required_file" ]; then
     echo "Candidate release is incomplete: $required_file"
@@ -75,7 +83,7 @@ activate_candidate() {
   mv "$NEW_DIRECTORY" "$CURRENT_DIRECTORY"
 }
 
-# SSM이 이미 pull한 경우는 중복 다운로드를 건너뛰고, 수동 실행은 직접 ECR에서 pull한다.
+# EC2 인스턴스 프로파일로 ECR 로그인 후 후보 이미지를 직접 pull한다.
 if [ "${SKIP_IMAGE_PULL:-false}" != "true" ]; then
   aws ecr get-login-password --region "$AWS_REGION" |
     docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
