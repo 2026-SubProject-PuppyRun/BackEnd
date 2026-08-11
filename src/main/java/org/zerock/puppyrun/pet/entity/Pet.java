@@ -36,7 +36,7 @@ public class Pet extends BaseEntity {
     @Column(nullable = false, length = 50)
     private String name;
 
-    @Column(name = "birth_year", nullable = false)
+    @Column(name = "birth_year")
     private LocalDate birthYear; // 출생년도
 
     @Enumerated(EnumType.STRING)

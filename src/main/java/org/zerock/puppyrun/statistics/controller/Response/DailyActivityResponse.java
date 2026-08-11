@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
+import org.zerock.puppyrun.common.s3.support.S3Url;
 import org.zerock.puppyrun.statistics.DTO.DailyPetTracking;
 import org.zerock.puppyrun.tracking.util.PaceConverter;
 
@@ -67,6 +68,8 @@ public record DailyActivityResponse(
             Integer durationMin,        // 산책 시간 (분)
             String averagePace,         // 산책 페이스
             DiaryDetail diary,          // 일기 작성 여부 (UI 뱃지용)
+
+            @S3Url
             List<String> trackingImages, // 산책 중 찍은 사진 리스트 (썸네일용)
             List<ParticipatingPet> participatingPets // 참여한 펫 목록
     ) {
@@ -107,6 +110,7 @@ public record DailyActivityResponse(
     public record ParticipatingPet(
             UUID petId,                 // 펫 고유 ID
             String name,                // 펫 이름
+            @S3Url
             String profileImageUrl,     // 펫 프로필 이미지
             String themeColor           // 펫 고유 색상 (UI 테두리 등에 활용)
     ) {

@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
+import org.zerock.puppyrun.common.s3.support.S3Url;
 import org.zerock.puppyrun.statistics.DTO.WeeklyActivityChart;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
 
@@ -58,6 +59,7 @@ public record WeeklyActivityResponse(
     public record DogRadar(
             UUID dogId,
             String dogName,
+            @S3Url
             String profileImageUrl,
             String themeColor,
             List<RadarDataPoint> dataPoints
@@ -152,6 +154,7 @@ public record WeeklyActivityResponse(
     public record DogStat(
             UUID dogId,
             String name,
+            @S3Url
             String profileImageUrl,
             String themeColor,
             Double distanceKm,
