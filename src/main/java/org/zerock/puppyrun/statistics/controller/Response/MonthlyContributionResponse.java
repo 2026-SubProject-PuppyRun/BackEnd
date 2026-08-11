@@ -13,9 +13,6 @@ public record MonthlyContributionResponse(
 
 ) {
 
-    private static final double METERS_TO_KM = 1000.0;
-    private static final int SECONDS_TO_MINUTES = 60;
-
     @Builder
     public record Period(
             String type,
@@ -33,15 +30,15 @@ public record MonthlyContributionResponse(
     @Builder
     public record ActivityChart(
             LocalDate label,
-            Double distanceKm,
-            Integer durationMin,
+            Integer distanceM,
+            Integer durationSec,
             Integer trackingCount
     ) {
         private static ActivityChart from(MonthlyActivity.ActivityChart ac) {
             return ActivityChart.builder()
                     .label(ac.date())
-                    .distanceKm(Math.round(ac.totalDistance() / METERS_TO_KM * 10) / 10.0)
-                    .durationMin(ac.totalDuration() / SECONDS_TO_MINUTES)
+                    .distanceM(ac.totalDistance())
+                    .durationSec(ac.totalDuration())
                     .trackingCount(ac.trackingCount())
                     .build();
         }

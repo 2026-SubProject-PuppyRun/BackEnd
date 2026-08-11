@@ -13,8 +13,6 @@ public record MonthlyActivityResponse(
         List<MonthlySummary> monthlySummary, // 월 전체 산책 요약
         List<ContributionChart> contributionChart // 지난 15주의 산책 요약
 ) {
-    private static final double METERS_TO_KM = 1000.0;
-    private static final int SECONDS_TO_MINUTES = 60;
 
     @Builder
     public record Period(
@@ -32,15 +30,15 @@ public record MonthlyActivityResponse(
     @Builder
     public record MonthlySummary(
             String label, // 월 표시
-            Double totalDistanceKm,
-            Integer totalDurationMin,
+            Integer totalDistanceM,
+            Integer totalDurationSec,
             Integer totalCount
     ) {
         private static MonthlySummary from(MonthlyActivity activity) {
             return MonthlySummary.builder()
                     .label(activity.month().name())
-                    .totalDistanceKm(Math.round(activity.totalDistance() / METERS_TO_KM * 10) / 10.0)
-                    .totalDurationMin(activity.totalDuration() / SECONDS_TO_MINUTES)
+                    .totalDistanceM(activity.totalDistance())
+                    .totalDurationSec(activity.totalDuration())
                     .totalCount(activity.trackingCount())
                     .build();
         }
@@ -56,15 +54,15 @@ public record MonthlyActivityResponse(
     @Builder
     public record ContributionChart(
             LocalDate label,
-            Double distanceKm,
-            Integer durationMin,
+            Integer distanceM,
+            Integer durationSec,
             Integer trackingCount
     ) {
         private static ContributionChart from(DailyTrackingSummary ac) {
             return ContributionChart.builder()
                     .label(ac.date())
-                    .distanceKm(Math.round(ac.distance() / METERS_TO_KM * 10) / 10.0)
-                    .durationMin(ac.duration() / SECONDS_TO_MINUTES)
+                    .distanceM(ac.distance())
+                    .durationSec(ac.duration())
                     .trackingCount(ac.trackingCount())
                     .build();
         }

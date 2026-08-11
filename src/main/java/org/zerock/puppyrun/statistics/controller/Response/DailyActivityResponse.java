@@ -36,21 +36,21 @@ public record DailyActivityResponse(
      */
     @Builder
     public record DailySummary(
-            Double totalDistanceKm,     // 하루 총 산책 거리 (km)
-            Integer totalDurationMin,   // 하루 총 산책 시간 (분)
+            Integer totalDistanceM,     // 하루 총 산책 거리 (m)
+            Integer totalDurationSec,   // 하루 총 산책 시간 (초)
             Integer walkCount           // 하루 총 산책 횟수
     ) {
         public static DailySummary of(List<DailyPetTracking> dailyPetTrackings) {
-            double totalDistance = dailyPetTrackings.stream()
-                    .mapToDouble(DailyPetTracking::distance) // Integer를 Double로 캐스팅
+            int totalDistance = dailyPetTrackings.stream()
+                    .mapToInt(DailyPetTracking::distance)
                     .sum();
             int totalDuration = dailyPetTrackings.stream()
-                    .mapToInt(DailyPetTracking::durationMin)
+                    .mapToInt(DailyPetTracking::duration)
                     .sum();
 
             return DailySummary.builder()
-                    .totalDistanceKm(totalDistance)
-                    .totalDurationMin(totalDuration)
+                    .totalDistanceM(totalDistance)
+                    .totalDurationSec(totalDuration)
                     .walkCount(dailyPetTrackings.size())
                     .build();
         }
@@ -64,8 +64,8 @@ public record DailyActivityResponse(
             UUID trackingId,            // 산책 고유 ID (상세 페이지 이동용)
             LocalDateTime startedAt,    // 산책 시작 시간
             LocalDateTime endedAt,      // 산책 종료 시간
-            Double distanceKm,          // 산책 거리 (km)
-            Integer durationMin,        // 산책 시간 (분)
+            Integer distanceM,          // 산책 거리 (m)
+            Integer durationSec,        // 산책 시간 (초)
             String averagePace,         // 산책 페이스
             DiaryDetail diary,          // 일기 작성 여부 (UI 뱃지용)
 
@@ -78,8 +78,8 @@ public record DailyActivityResponse(
                     .trackingId(dpt.trackingId())
                     .startedAt(dpt.startedAt())
                     .endedAt(dpt.endedAt())
-                    .distanceKm((double) dpt.distance()) // Integer -> Double 변환
-                    .durationMin(dpt.durationMin())
+                    .distanceM(dpt.distance())
+                    .durationSec(dpt.duration())
                     .averagePace(PaceConverter.toString(dpt.averagePace()))
                     .diary(DiaryDetail.from(dpt.diary()))
                     .trackingImages(dpt.trackingImages())

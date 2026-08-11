@@ -17,8 +17,6 @@ public record WeeklyActivityResponse(
         FamilyReport familyReport,
         List<DogRadar> dogRadars // 강아지별 방사형 데이터 리스트로 변경
 ) {
-    private static final double METERS_TO_KM = 1000.0;
-    private static final int SECONDS_TO_MINUTES = 60;
 
     @Builder
     public record Period(
@@ -37,18 +35,18 @@ public record WeeklyActivityResponse(
 
     @Builder
     public record Summary(
-            Double totalDistanceKm,
-            Integer totalDurationMin,
+            Integer totalDistanceM,
+            Integer totalDurationSec,
             Integer totalCount
     ) {
         public static Summary of(List<ActivityChart> activityCharts) {
-            double totalDistanceKm = activityCharts.stream().mapToDouble(ActivityChart::distanceKm).sum();
-            int totalDurationMin = activityCharts.stream().mapToInt(ActivityChart::durationMin).sum();
-            int totalCount = activityCharts.stream().mapToInt(ac -> ac.durationMin() > 0 ? 1 : 0).sum();
+            int totalDistanceM = activityCharts.stream().mapToInt(ActivityChart::distanceM).sum();
+            int totalDurationSec = activityCharts.stream().mapToInt(ActivityChart::durationSec).sum();
+            int totalCount = activityCharts.stream().mapToInt(ac -> ac.durationSec() > 0 ? 1 : 0).sum();
 
             return Summary.builder()
-                    .totalDistanceKm(Math.round(totalDistanceKm * 10) / 10.0)
-                    .totalDurationMin(totalDurationMin)
+                    .totalDistanceM(totalDistanceM)
+                    .totalDurationSec(totalDurationSec)
                     .totalCount(totalCount)
                     .build();
         }
@@ -67,7 +65,7 @@ public record WeeklyActivityResponse(
         @Builder
         public record RadarDataPoint(
                 String metricCode,    // "DISTANCE"
-                String label,         // "총 이동 거리 (km)"
+                String label,         // "총 이동 거리 (m)"
                 Double thisWeekValue, // 이번 주 값
                 Double lastWeekValue, // 저번 주 값
                 Double maxScore       // 만점 기준 (차트 렌더링용)
@@ -108,8 +106,8 @@ public record WeeklyActivityResponse(
     public record ActivityChart(
             LocalDate date,
             String label,
-            Double distanceKm,
-            Integer durationMin
+            Integer distanceM,
+            Integer durationSec
     ) {
         public static List<ActivityChart> listOf(List<WeeklyActivityChart.ActivityChart> charts, LocalDate targetDate) {
             LocalDate thisWeekStart = targetDate.minusDays(6);
@@ -123,8 +121,8 @@ public record WeeklyActivityResponse(
             return ActivityChart.builder()
                     .date(ac.date())
                     .label(ac.label())
-                    .distanceKm(Math.round(((ac.distance() == null ? 0 : ac.distance()) / METERS_TO_KM) * 10) / 10.0)
-                    .durationMin((ac.duration() == null ? 0 : ac.duration()) / SECONDS_TO_MINUTES)
+                    .distanceM(ac.distance() == null ? 0 : ac.distance())
+                    .durationSec(ac.duration() == null ? 0 : ac.duration())
                     .build();
         }
     }
@@ -157,14 +155,13 @@ public record WeeklyActivityResponse(
             @S3Url
             String profileImageUrl,
             String themeColor,
-            Double distanceKm,
-            Integer durationMin,
+            Integer distanceM,
+            Integer durationSec,
             Double sharePercentage,
             Integer totalCount,
             String badge
     ) {
         public static DogStat of(TotalPetTracking ps, double allDogsTotalDistance) {
-            double distanceKm = ps.totalDistance() / METERS_TO_KM;
             double sharePercentage = allDogsTotalDistance > 0
                     ? (ps.totalDistance() / allDogsTotalDistance) * 100
                     : 0.0;
@@ -174,8 +171,8 @@ public record WeeklyActivityResponse(
                     .name(ps.name())
                     .profileImageUrl(ps.profileImageUrl())
                     .themeColor(ps.themeColor())
-                    .distanceKm(Math.round(distanceKm * 10) / 10.0)
-                    .durationMin(ps.totalDuration() / 60)
+                    .distanceM(ps.totalDistance())
+                    .durationSec(ps.totalDuration())
                     .sharePercentage(Math.round(sharePercentage * 10) / 10.0)
                     .totalCount(ps.totalCount().intValue())
                     .badge(ps.badge() != null ? ps.badge().getCode() : null)

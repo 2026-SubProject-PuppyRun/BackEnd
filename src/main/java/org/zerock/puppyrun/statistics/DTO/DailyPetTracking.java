@@ -12,8 +12,8 @@ public record DailyPetTracking(
         UUID trackingId,            // 산책 고유 ID (상세 페이지 이동용)
         LocalDateTime startedAt,    // 산책 시작 시간
         LocalDateTime endedAt,      // 산책 종료 시간
-        Integer distance,           // 산책 거리 (km)
-        Integer durationMin,        // 산책 시간 (분)
+        Integer distance,           // 산책 거리 (m)
+        Integer duration,           // 산책 시간 (초)
         Double averagePace,         // 산책 페이스
 
         DiaryDetail diary,          // 일기 작성 여부 (UI 뱃지용)
@@ -36,8 +36,8 @@ public record DailyPetTracking(
                 tracking.trackingId(),
                 tracking.startedAt(),
                 tracking.endedAt(),
-                (int) Math.round(tracking.distance() / 1000.0), // m -> km 단위 변환 후 반올림
-                tracking.duration() / 60,                       // 초 -> 분 단위 변환
+                tracking.distance(),
+                tracking.duration(),
                 tracking.averagePace(),
                 DiaryDetail.from(tracking.diaryId()),
                 tracking.trackingImages() != null ? tracking.trackingImages() : Collections.emptyList(),
