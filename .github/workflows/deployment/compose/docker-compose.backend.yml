@@ -12,6 +12,7 @@ services:
       - ../config/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
+      TZ: Asia/Seoul
     env_file:
       - ../config/app.env
     networks:

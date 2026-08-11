@@ -6,13 +6,21 @@ spring:
     name: PuppyRun
 
   datasource:
-    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    # DB 세션도 KST(UTC+09:00)로 고정한다. TIMESTAMP 컬럼의 조회 조건과 반환값이
+    # 컨테이너/JVM 시간대와 달라져 날짜 경계가 밀리는 것을 방지한다.
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&connectionTimeZone=Asia/Seoul&forceConnectionTimeZoneToSession=true
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jackson:
     property-naming-strategy: SNAKE_CASE
+
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Asia/Seoul
 
 
   cloud:
