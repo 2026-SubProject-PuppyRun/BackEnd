@@ -1,0 +1,37 @@
+services:
+  backend:
+    # deploy.sh가 ECR digest를 BACKEND_IMAGE로 전달한다.
+    image: ${BACKEND_IMAGE}
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT}:8080"
+      # Alloy만 metrics를 수집하므로 외부에는 노출하지 않는다.
+      - "127.0.0.1:8081:8081"
+    volumes:
+      - backend_data:/var/lib/backend
+      - /home/ubuntu/puppyrun/config/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
+    env_file:
+      - /home/ubuntu/puppyrun/config/app.env
+    networks:
+      - app
+      - observability
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  backend_data:
+
+networks:
+  # RabbitMQ가 있는 infra Compose와 연결하는 애플리케이션 네트워크다.
+  app:
+    external: true
+    name: puppyrun-app
+  # Alloy가 backend:8081을 이름으로 수집하는 관측 전용 네트워크다.
+  observability:
+    external: true
+    name: puppyrun-observability

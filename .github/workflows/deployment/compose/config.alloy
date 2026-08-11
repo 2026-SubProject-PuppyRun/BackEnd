@@ -1,0 +1,32 @@
+// Spring Boot Actuator metrics와 EC2 host metrics를 Grafana Cloud Prometheus로 전송한다.
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = env("GRAFANA_CLOUD_PROMETHEUS_URL")
+    basic_auth {
+      username = env("GRAFANA_CLOUD_PROMETHEUS_USERNAME")
+      password = env("GRAFANA_CLOUD_API_KEY")
+    }
+  }
+}
+
+prometheus.scrape "backend" {
+  targets = [{
+    "__address__" = "backend:8081",
+    "job"         = "puppyrun-backend",
+  }]
+  scrape_interval = "15s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.exporter.unix "ec2" {
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  rootfs_path = "/rootfs"
+}
+
+prometheus.scrape "ec2" {
+  targets         = prometheus.exporter.unix.ec2.targets
+  job_name        = "puppyrun-ec2"
+  scrape_interval = "15s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
