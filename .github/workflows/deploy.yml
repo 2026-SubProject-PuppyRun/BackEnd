@@ -3,6 +3,9 @@ name: Deploy to EC2
 on:
   push:
     branches: [dev, cd-test]
+    paths-ignore:
+      - '.github/workflows/deployment/compose/**'
+      - '.github/workflows/deployment/scripts/**'
   workflow_dispatch:
     inputs:
       image_tag:
@@ -59,9 +62,14 @@ jobs:
       - name: Trigger EC2 deployment
         env:
           INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+          DEPLOY_ROOT: puppyrun
           DEPLOY_IMAGE_TAG: ${{ github.event_name == 'push' && github.sha || github.event.inputs.image_tag }}
         run: |
-          command="sudo /home/ubuntu/puppyrun/scripts/deploy.sh $DEPLOY_IMAGE_TAG"
+          set -euo pipefail
+          : "${DEPLOY_ROOT:?DEPLOY_ROOT is required.}"
+          printf -v quoted_root '%q' "$DEPLOY_ROOT"
+          printf -v quoted_image_tag '%q' "$DEPLOY_IMAGE_TAG"
+          command="cd $quoted_root && ./scripts/deploy.sh $quoted_image_tag"
           aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name AWS-RunShellScript \
