@@ -13,6 +13,10 @@ for attempt in $(seq 1 "$MAX_RETRIES"); do
   sleep "$SLEEP_SECONDS"
 done
 
-docker logs --tail 200 puppyrun-backend || true
+# container_name을 사용하지 않으므로 Compose 서비스 기준으로 최근 로그를 남긴다.
+ROOT="${ROOT:-/home/ubuntu/puppyrun}"
+COMPOSE_PROJECT_NAME="${BACKEND_COMPOSE_PROJECT_NAME:-puppyrun}"
+docker compose --project-name "$COMPOSE_PROJECT_NAME" \
+  -f "$ROOT/compose/docker-compose.backend.yml" logs --tail 200 backend || true
 echo "Health check failed: $HEALTH_URL"
 exit 1
