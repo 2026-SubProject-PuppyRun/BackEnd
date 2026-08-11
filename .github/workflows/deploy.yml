@@ -3,6 +3,14 @@ name: Deploy to EC2
 on:
   push:
     branches: [dev, cd-test]
+    paths:
+      - 'src/main/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle/**'
+      - 'gradlew'
+      - 'gradlew.bat'
+      - 'Dockerfile'
   workflow_dispatch:
     inputs:
       image_tag:
