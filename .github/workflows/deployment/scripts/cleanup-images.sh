@@ -2,11 +2,10 @@
 
 set -euo pipefail
 
-# 역할: current/previous digest를 제외한 Puppyrun backend 로컬 이미지만 정리한다.
+# 역할: local current/previous가 아닌 Puppyrun backend 이미지만 정리한다.
 # Docker 전체 prune이나 volume 삭제는 수행하지 않는다.
 ROOT=/home/ubuntu/puppyrun
 CONFIG="$ROOT/config"
-STATE="$ROOT/state"
 
 source "$CONFIG/deploy.env"
 : "${AWS_REGION:?AWS_REGION is required}"
@@ -16,17 +15,13 @@ source "$CONFIG/deploy.env"
 ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY"
 declare -A retained_image_ids=()
 
-# rollback에 필요한 current/previous digest가 가리키는 Docker image ID를 보존한다.
-for state_file in current-image previous-image; do
-  state_path="$STATE/$state_file"
-  [[ -f "$state_path" ]] || continue
-
-  image_reference=$(<"$state_path")
-  image_id=$(docker image inspect --format '{{.Id}}' "$image_reference" 2>/dev/null || true)
+# rollback에 필요한 local current/previous image ID만 보존한다.
+for runtime_tag in puppyrun-runtime:current puppyrun-runtime:previous; do
+  image_id=$(docker image inspect --format '{{.Id}}' "$runtime_tag" 2>/dev/null || true)
   [[ -n "$image_id" ]] && retained_image_ids["$image_id"]=1
 done
 
-# backend 리포지터리에 속한 이미지 중 상태 파일이 참조하지 않는 것만 제거한다.
+# backend ECR 리포지터리 이미지 중 current/previous가 아닌 것만 제거한다.
 while IFS= read -r image_id; do
   [[ -n "$image_id" ]] || continue
   if [[ -n "${retained_image_ids[$image_id]:-}" ]]; then
