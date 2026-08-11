@@ -23,20 +23,11 @@ cd BackEnd
 sudo bash .github/workflows/deployment/bootstrap-ec2.sh
 ```
 
-bootstrap은 EC2 운영 디렉터리, Git 저장소와 공유 네트워크만 초기화한다. 운영 Compose와
-스크립트는 설치하지 않으며, 설정 파일도 생성하거나 덮어쓰지 않는다.
+bootstrap은 EC2 운영 디렉터리와 공유 네트워크만 초기화한다. 설정 파일은 생성하거나
+덮어쓰지 않는다.
 
-`deployment/compose/` 또는 `deployment/scripts/`가 변경된 `dev`·`cd-test` push는
-별도 GitHub Actions를 실행한다. 이 작업은 deployment 폴더의 `compose`와 `scripts`만으로
-만든 `ec2-deployment` 브랜치를 갱신한다. EC2의
-`puppyrun` 디렉터리는 이 브랜치를 직접 pull한 작업 트리이므로 파일별 설치나 복사가
-필요 없다. `config/`, `locks/`, `logs/`, `state/`와 환경변수·Firebase 서비스 계정 파일은
-Git 추적 대상이 아니므로 EC2에서만 관리한다.
-
-최초 설치 후에는 GitHub Actions의 **Sync deployment configuration to EC2**를 한 번
-수동 실행해 `ec2-deployment` 브랜치를 만들고 EC2에 checkout한다.
-
-배포 디렉터리는 `puppyrun`으로 고정하며, 최초 동기화 때 자동 생성된다.
+`config/`, `locks/`, `logs/`, `state/`와 환경변수·Firebase 서비스 계정 파일은 EC2에서만
+관리한다. GitHub Actions는 애플리케이션 이미지를 빌드하고 배포만 수행한다.
 
 ```text
 .github/workflows/deployment/

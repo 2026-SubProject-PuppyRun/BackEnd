@@ -3,9 +3,6 @@ name: Deploy to EC2
 on:
   push:
     branches: [dev, cd-test]
-    paths-ignore:
-      - '.github/workflows/deployment/compose/**'
-      - '.github/workflows/deployment/scripts/**'
   workflow_dispatch:
     inputs:
       image_tag:
