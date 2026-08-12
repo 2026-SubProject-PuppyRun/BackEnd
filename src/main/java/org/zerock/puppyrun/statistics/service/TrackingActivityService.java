@@ -1,7 +1,9 @@
 package org.zerock.puppyrun.statistics.service;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
@@ -10,10 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
+import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.statistics.DTO.DailyPetTracking;
 import org.zerock.puppyrun.statistics.DTO.MonthlyActivity;
-import org.zerock.puppyrun.statistics.DTO.TodayPetActivityTracking;
+import org.zerock.puppyrun.statistics.DTO.PetActivityTracking;
 import org.zerock.puppyrun.statistics.controller.Response.DailyActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyContributionResponse;
@@ -40,15 +43,39 @@ public class TrackingActivityService {
         return DailyActivityResponse.of(targetDay, dailyPetTracking);
     }
 
-    public PetActivityResponse getPetActivity(UserPrincipal principal, LocalDate startDate) {
-        LocalDate endDate = startDate.plusDays(1);
+    /**
+     * 펫을 기준으로 마지막 활동량 조회
+     *
+     * @param principal
+     * @return
+     */
+    public PetActivityResponse getPetLastActivity(UserPrincipal principal, LocalDate startDate, LocalDate endDate) {
+
+        List<Pet> petList = petRepository.findAllByMemberId(principal.id());
+        if (petList.isEmpty()) {
+            throw new ResourceNotFoundException("펫이 존재하지 않습니다.");
+        }
 
         // 해당 날짜를 기준으로 강아지 산책 리스트 조회
-        List<TodayPetActivityTracking> activityTrackings =
-                trackingRepository.getPetActivities(principal.id(), startDate, endDate);
+        Map<Pet, PetActivityTracking> latestActivities = new HashMap<>();
 
-        return PetActivityResponse.of(activityTrackings);
+        for (Pet pet : petList) {
+            List<PetActivityTracking> activities =
+                    trackingRepository.getPetActivitiesAsc(
+                            principal.id(),
+                            pet.getId(),
+                            startDate,
+                            endDate
+                    );
 
+            if (!activities.isEmpty()) {
+                latestActivities.put(pet, activities.getLast());
+            } else {
+                latestActivities.put(pet, null);
+            }
+        }
+
+        return PetActivityResponse.of(petList, latestActivities);
     }
 
     public WeeklyActivityResponse getWeeklyTracking(UserPrincipal principal, LocalDate targetDay) {

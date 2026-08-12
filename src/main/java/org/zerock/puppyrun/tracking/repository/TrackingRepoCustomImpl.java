@@ -15,12 +15,13 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
-import org.zerock.puppyrun.statistics.DTO.TodayPetActivityTracking;
+import org.zerock.puppyrun.statistics.DTO.PetActivityTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.MainTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.TrackingDetailSummary;
+import org.zerock.puppyrun.tracking.entity.RoutePoint;
 import org.zerock.puppyrun.tracking.entity.Tracking;
 import org.zerock.puppyrun.tracking.entity.TrackingRoute;
 
@@ -39,12 +40,12 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<MainTrackingSummary> findMainTrackingSummaries(UUID memberId) {
-        return queryFactory
+    public MainTrackingSummary findMainTrackingSummaries(UUID memberId, Pageable pageable) {
+        List<Tuple> result = queryFactory
                 .select(
                         tracking.id,
                         trackingImage.imageUrl,
-                        trackingRoute
+                        trackingRoute.rawPath
                 )
                 .from(tracking)
                 .leftJoin(trackingImage).on(
@@ -57,17 +58,27 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
                         tracking.startedAt.desc(),
                         tracking.id.asc()
                 )
-                .fetch()
-                .stream()
-                .map(row -> {
-                    TrackingRoute route = row.get(trackingRoute);
-                    return new MainTrackingSummary(
-                            row.get(tracking.id),
-                            row.get(trackingImage.imageUrl),
-                            route != null ? route.getOriginalPath() : List.of()
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize() + 1L)
+                .fetch();
+
+        boolean hasNext = result.size() > pageable.getPageSize();
+        if (hasNext) {
+            result.remove(pageable.getPageSize()); // 안전하게 마지막 항목 제거
+        }
+
+        List<MainTrackingSummary.TrackingSummary> summaries = result.stream()
+                .map(r -> {
+                    List<RoutePoint> path = r.get(trackingRoute.rawPath); // originalPath 직접 추출
+                    return new MainTrackingSummary.TrackingSummary(
+                            r.get(tracking.id),
+                            r.get(trackingImage.imageUrl),
+                            path != null ? path : List.of()
                     );
                 })
                 .toList();
+
+        return new MainTrackingSummary(summaries, hasNext);
     }
 
     @Override
@@ -262,10 +273,15 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
     }
 
     @Override
-    public List<TodayPetActivityTracking> getPetActivities(UUID memberId, LocalDate startDate, LocalDate endDate) {
+    public List<PetActivityTracking> getPetActivitiesAsc(
+            UUID memberId,
+            UUID petId,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
         return queryFactory
                 .select(Projections.constructor(
-                        TodayPetActivityTracking.class,
+                        PetActivityTracking.class,
                         pet.id,
                         pet.name,
                         pet.profileImageUrl,
@@ -281,14 +297,19 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
                 .join(petTracking.pet, pet)
                 .join(petTracking.tracking, tracking)
                 .where(
+                        pet.id.eq(petId),
                         pet.member.id.eq(memberId),
                         tracking.member.id.eq(memberId),
                         tracking.startedAt.goe(startDate.atStartOfDay()),
                         tracking.startedAt.lt(endDate.atStartOfDay())
                 )
-                .orderBy(petTracking.pet.id.asc(), tracking.startedAt.asc(), tracking.id.asc())
+                .orderBy(
+                        tracking.startedAt.asc(),
+                        tracking.id.asc()
+                )
                 .fetch();
     }
+
 
     @Override
     public List<DailyTracking> getDailyActivities(UUID memberId, LocalDate targetDate) {

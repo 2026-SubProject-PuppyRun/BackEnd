@@ -3,6 +3,8 @@ package org.zerock.puppyrun.tracking.service;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
@@ -22,8 +24,8 @@ public class TrackingQueryService {
     /**
      * 산책 리스트 조회
      */
-    public MainTrackingResponse getTrackingListResponse(UUID memberId) {
-        List<MainTrackingSummary> summaries = trackingRepository.findMainTrackingSummaries(memberId);
+    public MainTrackingResponse getTrackingListResponse(UUID memberId, Pageable pageable) {
+        MainTrackingSummary summaries = trackingRepository.findMainTrackingSummaries(memberId, pageable);
         return MainTrackingResponse.from(summaries);
     }
 

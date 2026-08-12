@@ -5,12 +5,14 @@ import java.util.UUID;
 import org.zerock.puppyrun.tracking.entity.RoutePoint;
 
 public record MainTrackingSummary(
-        UUID trackingId,
-        String featuredImage,
-        List<RoutePoint> path
+        List<TrackingSummary> trackingSummaries,
+        boolean hasNext
 ) {
-
-    public MainTrackingSummary {
-        path = List.copyOf(path);
+    public record TrackingSummary(
+            UUID trackingId,
+            String featuredImage,
+            List<RoutePoint> path
+    ) {
     }
+
 }
