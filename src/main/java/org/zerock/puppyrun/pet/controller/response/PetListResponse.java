@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
+import org.zerock.puppyrun.common.s3.support.S3Url;
 import org.zerock.puppyrun.pet.entity.Pet;
 
 public record PetListResponse(
@@ -28,9 +29,12 @@ public record PetListResponse(
             LocalDate birthYear,
             Double weight,
             String color,
+
+            @S3Url
             String profileImageUrl,
             String breedCode,
             String gender,
+            String mbti,
             boolean isNeutered
     ) {
         public static PetSummary from(Pet pet) {
@@ -43,6 +47,7 @@ public record PetListResponse(
                     .profileImageUrl(pet.getProfileImageUrl())
                     .breedCode(pet.getBreed().getCode())
                     .gender(pet.getGender())
+                    .mbti(pet.getMbti())
                     .isNeutered(pet.getIsNeutered())
                     .build();
         }

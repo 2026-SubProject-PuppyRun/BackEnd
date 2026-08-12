@@ -3,6 +3,7 @@ package org.zerock.puppyrun.pet.controller.response;
 import java.time.LocalDate;
 import java.util.UUID;
 import lombok.Builder;
+import org.zerock.puppyrun.common.s3.support.S3Url;
 import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.entity.PetBadge;
 
@@ -17,6 +18,8 @@ public record PetDetailResponse(
         Double weight,
         String color,
         String breedCode,
+        
+        @S3Url
         String profileImageUrl,
         Boolean isNeutered,
         String gender,

@@ -7,7 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -97,6 +99,43 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(errorCode.getHttpStatus())
                 .body(errorResponse);
+    }
+
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingRequestParameter(
+            MissingServletRequestParameterException e,
+            HttpServletRequest request
+    ) {
+        ErrorCode errorCode = ErrorCode.INVALID_REQUEST;
+
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(
+                        errorCode.getCode(),
+                        errorCode.getDescription(),
+                        "'" + e.getParameterName() + "' 파라미터는 필수입니다.",
+                        request.getRequestURI()
+                ));
+    }
+
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException e,
+            HttpServletRequest request
+    ) {
+        ErrorCode errorCode = ErrorCode.INVALID_REQUEST;
+
+        String detailMessage = String.format("'%s' 파라미터의 값('%s') 형식이 올바르지 않습니다.",
+                e.getName(), e.getValue());
+
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(
+                        errorCode.getCode(),
+                        errorCode.getDescription(),
+                        detailMessage,
+                        request.getRequestURI()
+                ));
     }
 
 

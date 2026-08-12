@@ -13,9 +13,11 @@ import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.statistics.DTO.DailyPetTracking;
 import org.zerock.puppyrun.statistics.DTO.MonthlyActivity;
+import org.zerock.puppyrun.statistics.DTO.TodayPetActivityTracking;
 import org.zerock.puppyrun.statistics.controller.Response.DailyActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyContributionResponse;
+import org.zerock.puppyrun.statistics.controller.Response.PetActivityResponse;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
 import org.zerock.puppyrun.statistics.DTO.WeeklyActivityChart;
@@ -36,6 +38,17 @@ public class TrackingActivityService {
     public DailyActivityResponse getDailyTracking(UserPrincipal principal, LocalDate targetDay) {
         List<DailyPetTracking> dailyPetTracking = trackingStatistics.getDayActivity(principal.id(), targetDay);
         return DailyActivityResponse.of(targetDay, dailyPetTracking);
+    }
+
+    public PetActivityResponse getPetActivity(UserPrincipal principal, LocalDate startDate) {
+        LocalDate endDate = startDate.plusDays(1);
+
+        // 해당 날짜를 기준으로 강아지 산책 리스트 조회
+        List<TodayPetActivityTracking> activityTrackings =
+                trackingRepository.getPetActivities(principal.id(), startDate, endDate);
+
+        return PetActivityResponse.of(activityTrackings);
+
     }
 
     public WeeklyActivityResponse getWeeklyTracking(UserPrincipal principal, LocalDate targetDay) {

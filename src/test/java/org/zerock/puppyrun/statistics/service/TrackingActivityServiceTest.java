@@ -1,6 +1,7 @@
 package org.zerock.puppyrun.statistics.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.BDDMockito.given;
 
 import java.time.LocalDate;
@@ -26,6 +27,7 @@ import org.zerock.puppyrun.statistics.controller.Response.MonthlyActivityRespons
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyContributionResponse;
 import org.zerock.puppyrun.statistics.controller.Response.WeeklyActivityResponse;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
+import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
 import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 
@@ -71,13 +73,17 @@ class TrackingActivityServiceTest {
 
         // then
         assertThat(response.date()).isEqualTo(targetDay);
-        assertThat(response.summary().totalDistanceKm()).isEqualTo(3.0);
-        assertThat(response.summary().totalDurationMin()).isEqualTo(60);
+        assertThat(response.summary().totalDistanceM()).isEqualTo(3_000);
+        assertThat(response.summary().totalDurationSec()).isEqualTo(3_600);
         assertThat(response.summary().walkCount()).isEqualTo(1);
         assertThat(response.tracking())
                 .singleElement()
                 .extracting(DailyActivityResponse.TrackingDetails::trackingId)
                 .isEqualTo(trackingId);
+        assertThat(response.tracking().getFirst().trackingImages())
+                .extracting(DailyActivityResponse.TrackingImage::order,
+                        DailyActivityResponse.TrackingImage::image)
+                .containsExactly(tuple(0, "image1.jpg"));
     }
 
     @Test
@@ -90,8 +96,8 @@ class TrackingActivityServiceTest {
         DailyActivityResponse response = trackingActivityService.getDailyTracking(principal, targetDay);
 
         // then
-        assertThat(response.summary().totalDistanceKm()).isZero();
-        assertThat(response.summary().totalDurationMin()).isZero();
+        assertThat(response.summary().totalDistanceM()).isZero();
+        assertThat(response.summary().totalDurationSec()).isZero();
         assertThat(response.summary().walkCount()).isZero();
         assertThat(response.tracking()).isEmpty();
     }
@@ -133,12 +139,12 @@ class TrackingActivityServiceTest {
         assertThat(response.period().type()).isEqualTo("weekly");
         assertThat(response.period().startDate()).isEqualTo(weekStart);
         assertThat(response.period().endDate()).isEqualTo(targetDay);
-        assertThat(response.summary().totalDistanceKm()).isEqualTo(3.5);
-        assertThat(response.summary().totalDurationMin()).isEqualTo(75);
+        assertThat(response.summary().totalDistanceM()).isEqualTo(3_500);
+        assertThat(response.summary().totalDurationSec()).isEqualTo(4_500);
         assertThat(response.summary().totalCount()).isEqualTo(2);
         assertThat(response.activityChart())
-                .extracting(WeeklyActivityResponse.ActivityChart::distanceKm)
-                .containsExactly(1.2, 0.0, 2.3);
+                .extracting(WeeklyActivityResponse.ActivityChart::distanceM)
+                .containsExactly(1_200, 0, 2_300);
         assertThat(response.familyReport().totalDogs()).isEqualTo(2);
         assertThat(response.familyReport().dogStats())
                 .extracting(WeeklyActivityResponse.DogStat::sharePercentage)
@@ -147,8 +153,8 @@ class TrackingActivityServiceTest {
         WeeklyActivityResponse.DogRadar firstDogRadar = response.dogRadars().getFirst();
         assertThat(firstDogRadar.dogId()).isEqualTo(firstPetId);
         assertThat(firstDogRadar.dataPoints().getFirst().metricCode()).isEqualTo("DISTANCE");
-        assertThat(firstDogRadar.dataPoints().getFirst().thisWeekValue()).isEqualTo(3.0);
-        assertThat(firstDogRadar.dataPoints().getFirst().lastWeekValue()).isEqualTo(2.0);
+        assertThat(firstDogRadar.dataPoints().getFirst().thisWeekValue()).isEqualTo(3_000.0);
+        assertThat(firstDogRadar.dataPoints().getFirst().lastWeekValue()).isEqualTo(2_000.0);
     }
 
     @Test
@@ -215,23 +221,23 @@ class TrackingActivityServiceTest {
         assertThat(overview.period().year()).isEqualTo("2026");
         assertThat(overview.monthlySummary()).hasSize(2);
         assertThat(overview.monthlySummary().getFirst().label()).isEqualTo("JANUARY");
-        assertThat(overview.monthlySummary().getFirst().totalDistanceKm()).isEqualTo(1.3);
-        assertThat(overview.monthlySummary().getFirst().totalDurationMin()).isEqualTo(30);
+        assertThat(overview.monthlySummary().getFirst().totalDistanceM()).isEqualTo(1_250);
+        assertThat(overview.monthlySummary().getFirst().totalDurationSec()).isEqualTo(1_800);
         assertThat(overview.monthlySummary().getFirst().totalCount()).isEqualTo(2);
         assertThat(overview.monthlySummary().get(1).label()).isEqualTo("MARCH");
-        assertThat(overview.monthlySummary().get(1).totalDistanceKm()).isEqualTo(2.8);
-        assertThat(overview.monthlySummary().get(1).totalDurationMin()).isEqualTo(60);
+        assertThat(overview.monthlySummary().get(1).totalDistanceM()).isEqualTo(2_750);
+        assertThat(overview.monthlySummary().get(1).totalDurationSec()).isEqualTo(3_600);
         assertThat(overview.monthlySummary().get(1).totalCount()).isEqualTo(3);
         assertThat(overview.contributionChart())
-                .extracting(MonthlyActivityResponse.ContributionChart::distanceKm)
-                .containsExactly(1.2, 1.6);
+                .extracting(MonthlyActivityResponse.ContributionChart::distanceM)
+                .containsExactly(1_200, 1_550);
 
         assertThat(daily.period().type()).isEqualTo("contributions");
         assertThat(daily.period().month()).isEqualTo("MARCH");
         assertThat(daily.activityChart()).hasSize(2);
         assertThat(daily.activityChart().getFirst().label()).isEqualTo(firstDay);
-        assertThat(daily.activityChart().getFirst().distanceKm()).isEqualTo(1.2);
-        assertThat(daily.activityChart().getFirst().durationMin()).isEqualTo(30);
+        assertThat(daily.activityChart().getFirst().distanceM()).isEqualTo(1_200);
+        assertThat(daily.activityChart().getFirst().durationSec()).isEqualTo(1_800);
         assertThat(daily.activityChart().getFirst().trackingCount()).isEqualTo(1);
     }
 
@@ -251,11 +257,11 @@ class TrackingActivityServiceTest {
                 trackingId,
                 targetDay.atTime(10, 0),
                 targetDay.atTime(11, 0),
-                3,
-                60,
+                3_000,
+                3_600,
                 12000.0,
                 diary,
-                List.of("image1.jpg"),
+                List.of(new DailyPetTracking.TrackingImageSummary(0, "image1.jpg")),
                 List.of(pet)
         );
     }

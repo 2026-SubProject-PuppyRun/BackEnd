@@ -12,7 +12,6 @@ public record RegisterPetRequest(
         @Size(max = 50, message = "이름은 50자를 초과할 수 없습니다.")
         String name,
 
-        @NotNull(message = "출생일은 필수입니다.")
         LocalDate birthYear,
 
         @NotBlank(message = "견종 코드는 필수입니다.")

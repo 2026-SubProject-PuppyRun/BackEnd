@@ -13,6 +13,7 @@ import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.statistics.controller.Response.DailyActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyContributionResponse;
+import org.zerock.puppyrun.statistics.controller.Response.PetActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.WeeklyActivityResponse;
 import org.zerock.puppyrun.statistics.service.TrackingActivityService;
 
@@ -21,6 +22,21 @@ import org.zerock.puppyrun.statistics.service.TrackingActivityService;
 @RequestMapping("/api/activity-tracking/statistics")
 public class ActivitySummaryController {
     private final TrackingActivityService trackingActivityService;
+
+    /**
+     * 펫을 기준으로 활동량 통계를 조회합니다.
+     *
+     * @param targetDay 조회 날짜
+     */
+    @GetMapping("/pet")
+    public ResponseEntity<PetActivityResponse> getLastTracking(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam("date") LocalDate targetDay
+    ) {
+        PetActivityResponse response = trackingActivityService.getPetActivity(principal, targetDay);
+        return ResponseEntity.ok(response);
+    }
+
 
     @GetMapping("/daily")
     public ResponseEntity<DailyActivityResponse> getDailyTracking(

@@ -13,7 +13,12 @@ public record DailyTracking(
         Double averagePace,         // 산책 페이스
 
         UUID diaryId,          // 일기 작성 여부 (UI 뱃지용)
-        List<String> trackingImages // 산책 중 찍은 사진 리스트 (썸네일용)
+        List<TrackingImageSummary> trackingImages // 산책 중 찍은 사진 리스트 (썸네일용)
 ) {
 
+    public record TrackingImageSummary(
+            Integer order,
+            String image
+    ) {
+    }
 }
