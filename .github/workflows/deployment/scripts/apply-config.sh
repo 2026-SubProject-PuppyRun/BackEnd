@@ -3,8 +3,7 @@ set -euo pipefail
 
 # 이미지 변경 없이 app.env/infra.env 변경을 적용한다.
 # Compose 파일은 분리돼 있지만, 운영자는 이 명령 하나로 공통 설정을 반영할 수 있다.
-SCRIPT_DIRECTORY=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-ROOT=$(cd -- "$SCRIPT_DIRECTORY/.." && pwd)
+ROOT="/home/ubuntu/puppyrun"
 CONFIG="$ROOT/config"
 STATE="$ROOT/state"
 BACKEND_COMPOSE="$ROOT/compose/docker-compose.backend.yml"
@@ -18,9 +17,11 @@ source "$CONFIG/deploy.env"
 : "${BACKEND_COMPOSE_PROJECT_NAME:=puppyrun}"
 : "${HEALTH_URL:=http://127.0.0.1:8081/actuator/health/readiness}"
 CURRENT_IMAGE=$(<"$STATE/current-image")
+CURRENT_VERSION="unknown"
+[[ -f "$STATE/current-version" ]] && CURRENT_VERSION=$(<"$STATE/current-version")
 
 restart_backend() {
-  BACKEND_IMAGE="$CURRENT_IMAGE" docker compose --project-name "$BACKEND_COMPOSE_PROJECT_NAME" \
+  BACKEND_IMAGE="$CURRENT_IMAGE" APP_VERSION="$CURRENT_VERSION" docker compose --project-name "$BACKEND_COMPOSE_PROJECT_NAME" \
     --env-file "$APP_ENV" -f "$BACKEND_COMPOSE" up -d --force-recreate backend
   "$ROOT/scripts/health-check.sh" "$HEALTH_URL"
 }
@@ -33,7 +34,7 @@ restore_last_success() {
   restart_backend
 }
 
-docker compose --project-name "$BACKEND_COMPOSE_PROJECT_NAME" \
+BACKEND_IMAGE="$CURRENT_IMAGE" APP_VERSION="$CURRENT_VERSION" docker compose --project-name "$BACKEND_COMPOSE_PROJECT_NAME" \
   --env-file "$APP_ENV" -f "$BACKEND_COMPOSE" config -q
 
 if ! "$ROOT/scripts/infra.sh" up || ! restart_backend; then

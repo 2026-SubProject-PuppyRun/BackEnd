@@ -23,7 +23,7 @@ services:
       GRAFANA_CLOUD_PROMETHEUS_USERNAME: ${GRAFANA_CLOUD_PROMETHEUS_USERNAME}
       GRAFANA_CLOUD_API_KEY: ${GRAFANA_CLOUD_API_KEY}
     volumes:
-      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - /home/ubuntu/puppyrun/compose/config.alloy:/etc/alloy/config.alloy:ro
       # EC2 CPU, memory, disk metric 수집용 host filesystem mount다.
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro

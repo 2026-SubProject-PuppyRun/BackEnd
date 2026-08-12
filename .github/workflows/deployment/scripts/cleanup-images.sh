@@ -4,8 +4,7 @@ set -euo pipefail
 
 # 역할: local current/previous가 아닌 Puppyrun backend 이미지만 정리한다.
 # Docker 전체 prune이나 volume 삭제는 수행하지 않는다.
-SCRIPT_DIRECTORY=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-ROOT=$(cd -- "$SCRIPT_DIRECTORY/.." && pwd)
+ROOT="/home/ubuntu/puppyrun"
 CONFIG="$ROOT/config"
 
 source "$CONFIG/deploy.env"

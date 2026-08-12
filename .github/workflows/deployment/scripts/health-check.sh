@@ -14,8 +14,7 @@ for attempt in $(seq 1 "$MAX_RETRIES"); do
 done
 
 # container_name을 사용하지 않으므로 Compose 서비스 기준으로 최근 로그를 남긴다.
-SCRIPT_DIRECTORY=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-ROOT="${ROOT:-$(cd -- "$SCRIPT_DIRECTORY/.." && pwd)}"
+ROOT="/home/ubuntu/puppyrun"
 COMPOSE_PROJECT_NAME="${BACKEND_COMPOSE_PROJECT_NAME:-puppyrun}"
 docker compose --project-name "$COMPOSE_PROJECT_NAME" \
   -f "$ROOT/compose/docker-compose.backend.yml" logs --tail 200 backend || true

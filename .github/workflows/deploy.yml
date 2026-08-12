@@ -67,14 +67,11 @@ jobs:
       - name: Trigger EC2 deployment
         env:
           INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
-          DEPLOY_ROOT: puppyrun
           DEPLOY_IMAGE_TAG: ${{ github.event_name == 'push' && github.sha || github.event.inputs.image_tag }}
         run: |
           set -euo pipefail
-          : "${DEPLOY_ROOT:?DEPLOY_ROOT is required.}"
-          printf -v quoted_root '%q' "$DEPLOY_ROOT"
           printf -v quoted_image_tag '%q' "$DEPLOY_IMAGE_TAG"
-          command="cd $quoted_root && ./scripts/deploy.sh $quoted_image_tag"
+          command="/home/ubuntu/puppyrun/scripts/deploy.sh $quoted_image_tag"
           aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name AWS-RunShellScript \

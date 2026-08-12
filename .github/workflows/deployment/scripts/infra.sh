@@ -2,8 +2,7 @@
 set -euo pipefail
 
 # RabbitMQ와 Alloy만 독립적으로 관리한다. backend 이미지는 이 스크립트가 교체하지 않는다.
-SCRIPT_DIRECTORY=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-ROOT=$(cd -- "$SCRIPT_DIRECTORY/.." && pwd)
+ROOT="/home/ubuntu/puppyrun"
 CONFIG="$ROOT/config"
 COMPOSE="$ROOT/compose/docker-compose.infra.yml"
 ACTION="${1:-up}"

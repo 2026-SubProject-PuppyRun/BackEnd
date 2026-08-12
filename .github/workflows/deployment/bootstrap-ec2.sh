@@ -3,10 +3,10 @@ set -euo pipefail
 
 # EC2 운영 디렉터리와 공유 네트워크만 초기화한다.
 [[ "${EUID}" -eq 0 ]] || { echo "Run with sudo."; exit 1; }
-SOURCE_DIRECTORY=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+SOURCE_DIRECTORY="/home/ubuntu/BackEnd/.github/workflows/deployment"
 SCRIPTS_SOURCE="$SOURCE_DIRECTORY/scripts"
 COMPOSE_SOURCE="$SOURCE_DIRECTORY/compose"
-ROOT="${DEPLOY_ROOT:-puppyrun}"
+ROOT="/home/ubuntu/puppyrun"
 
 install -d -o root -g ubuntu -m 750 \
   "$ROOT/scripts" "$ROOT/compose" "$ROOT/config" "$ROOT/state" "$ROOT/logs" "$ROOT/locks"
