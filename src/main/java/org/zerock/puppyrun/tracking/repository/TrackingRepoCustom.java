@@ -19,7 +19,7 @@ public interface TrackingRepoCustom {
     /**
      * 회원의 산책 목록을 대표 이미지, 경로와 함께 조회합니다.
      */
-    List<MainTrackingSummary> findMainTrackingSummaries(UUID memberId);
+    MainTrackingSummary findMainTrackingSummaries(UUID memberId, Pageable pageable);
 
     /**
      * 산책 상세 기본 정보와 경로 및 일기를 조회합니다.

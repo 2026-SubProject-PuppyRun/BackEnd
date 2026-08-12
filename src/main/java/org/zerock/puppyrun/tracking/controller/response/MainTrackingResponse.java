@@ -7,18 +7,20 @@ import org.zerock.puppyrun.tracking.DTO.MainTrackingSummary;
 import org.zerock.puppyrun.tracking.entity.RoutePoint;
 
 public record MainTrackingResponse(
-        List<TrackingDetail> trackingList
+        List<TrackingDetail> trackingList,
+        boolean hasNext,
+        int pageSize
 ) {
 
     /**
      * 산책 목록 조회 결과를 API 응답으로 변환합니다.
      */
-    public static MainTrackingResponse from(List<MainTrackingSummary> summaries) {
-        List<TrackingDetail> details = summaries.stream()
+    public static MainTrackingResponse from(MainTrackingSummary summaries) {
+        List<TrackingDetail> details = summaries.trackingSummaries().stream()
                 .map(TrackingDetail::from)
                 .toList();
 
-        return new MainTrackingResponse(details);
+        return new MainTrackingResponse(details, summaries.hasNext(), details.size());
     }
 
     public record TrackingDetail(
@@ -27,7 +29,7 @@ public record MainTrackingResponse(
             List<TrackingPoint> path     // 산책 경로
     ) {
 
-        private static TrackingDetail from(MainTrackingSummary summary) {
+        private static TrackingDetail from(MainTrackingSummary.TrackingSummary summary) {
             return new TrackingDetail(
                     summary.trackingId(),
                     summary.featuredImage(),
