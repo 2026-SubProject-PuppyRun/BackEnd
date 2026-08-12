@@ -21,10 +21,12 @@ import org.zerock.puppyrun.member.entity.UserRole;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.statistics.DTO.DailyPetTracking;
 import org.zerock.puppyrun.statistics.DTO.MonthlyActivity;
+import org.zerock.puppyrun.statistics.DTO.PetActivityTracking;
 import org.zerock.puppyrun.statistics.DTO.WeeklyActivityChart;
 import org.zerock.puppyrun.statistics.controller.Response.DailyActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyContributionResponse;
+import org.zerock.puppyrun.statistics.controller.Response.PetActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.WeeklyActivityResponse;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
@@ -100,6 +102,45 @@ class TrackingActivityServiceTest {
         assertThat(response.summary().totalDurationSec()).isZero();
         assertThat(response.summary().walkCount()).isZero();
         assertThat(response.tracking()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("기간 내 산책 기록이 있는 반려견의 마지막 산책만 반환한다")
+    void getPetLastActivitySkipsPetsWithoutTrackingInPeriod() {
+        // given
+        LocalDate startDate = LocalDate.of(2026, 3, 1);
+        LocalDate endDate = LocalDate.of(2026, 3, 31);
+        UUID petWithoutTrackingId = UUID.randomUUID();
+        UUID petWithTrackingId = UUID.randomUUID();
+        UUID latestTrackingId = UUID.randomUUID();
+        given(petRepository.findPetIdsByMemberId(memberId))
+                .willReturn(List.of(petWithoutTrackingId, petWithTrackingId));
+        given(trackingRepository.getPetActivitiesAsc(
+                memberId,
+                petWithoutTrackingId,
+                startDate,
+                endDate
+        )).willReturn(List.of());
+        given(trackingRepository.getPetActivitiesAsc(
+                memberId,
+                petWithTrackingId,
+                startDate,
+                endDate
+        )).willReturn(List.of(
+                petActivityTracking(petWithTrackingId, UUID.randomUUID(), startDate.atTime(9, 0)),
+                petActivityTracking(petWithTrackingId, latestTrackingId, endDate.atTime(18, 0))
+        ));
+
+        // when
+        PetActivityResponse response = trackingActivityService.getPetLastActivity(principal, startDate, endDate);
+
+        // then
+        assertThat(response)
+                .extracting("activities")
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.LIST)
+                .singleElement()
+                .extracting("trackingId")
+                .isEqualTo(latestTrackingId);
     }
 
     @Test
@@ -263,6 +304,20 @@ class TrackingActivityServiceTest {
                 diary,
                 List.of(new DailyPetTracking.TrackingImageSummary(0, "image1.jpg")),
                 List.of(pet)
+        );
+    }
+
+    private PetActivityTracking petActivityTracking(UUID petId, UUID trackingId, java.time.LocalDateTime startedAt) {
+        return new PetActivityTracking(
+                petId,
+                "보리",
+                "pets/bori.jpg",
+                trackingId,
+                390.0,
+                startedAt,
+                startedAt.plusMinutes(30),
+                2_000,
+                1_800
         );
     }
 
