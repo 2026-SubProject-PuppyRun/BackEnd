@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
-import org.zerock.puppyrun.statistics.DTO.TodayPetActivityTracking;
+import org.zerock.puppyrun.statistics.DTO.PetActivityTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
@@ -262,10 +262,15 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
     }
 
     @Override
-    public List<TodayPetActivityTracking> getPetActivities(UUID memberId, LocalDate startDate, LocalDate endDate) {
+    public List<PetActivityTracking> getPetActivitiesAsc(
+            UUID memberId,
+            UUID petId,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
         return queryFactory
                 .select(Projections.constructor(
-                        TodayPetActivityTracking.class,
+                        PetActivityTracking.class,
                         pet.id,
                         pet.name,
                         pet.profileImageUrl,
@@ -281,14 +286,19 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
                 .join(petTracking.pet, pet)
                 .join(petTracking.tracking, tracking)
                 .where(
+                        pet.id.eq(petId),
                         pet.member.id.eq(memberId),
                         tracking.member.id.eq(memberId),
                         tracking.startedAt.goe(startDate.atStartOfDay()),
                         tracking.startedAt.lt(endDate.atStartOfDay())
                 )
-                .orderBy(petTracking.pet.id.asc(), tracking.startedAt.asc(), tracking.id.asc())
+                .orderBy(
+                        tracking.startedAt.asc(),
+                        tracking.id.asc()
+                )
                 .fetch();
     }
+
 
     @Override
     public List<DailyTracking> getDailyActivities(UUID memberId, LocalDate targetDate) {

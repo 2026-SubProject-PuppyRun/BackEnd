@@ -2,54 +2,70 @@ package org.zerock.puppyrun.statistics.controller.Response;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.UUID;
 import org.zerock.puppyrun.common.s3.support.S3Url;
-import org.zerock.puppyrun.statistics.DTO.TodayPetActivityTracking;
+import org.zerock.puppyrun.pet.entity.Pet;
+import org.zerock.puppyrun.statistics.DTO.PetActivityTracking;
 import org.zerock.puppyrun.tracking.util.PaceConverter;
 
 public record PetActivityResponse(
         List<PetActivity> activities
 ) {
-    record PetActivity(
-            UUID petId,                 // 강아지 고유 ID
-            String petName,             // 강아지 이름
-            @S3Url String PetProfileUrl, // 강아지 프로파일 이미지
 
-            UUID trackingId,            // 산책 고유 ID (상세 페이지 이동용)
-            LocalDateTime startedAt,    // 산책 시작 시간
-            LocalDateTime endedAt,      // 산책 종료 시간
-            Integer distanceM,          // 산책 거리 (m)
-            Integer durationSec,        // 산책 시간 (초)
-            String averagePace          // 산책 페이스
-
+    public record PetActivity(
+            UUID petId,
+            String petName,
+            @S3Url String petProfileUrl,
+            LatestActivity latestActivity
     ) {
-        public static PetActivity from(TodayPetActivityTracking activityTrackings) {
+
+        private static PetActivity from(Pet pet, PetActivityTracking activity) {
             return new PetActivity(
-                    activityTrackings.petId(),
-                    activityTrackings.petName(),
-                    activityTrackings.PetProfileUrl(),
-                    activityTrackings.trackingId(),
-                    activityTrackings.startedAt(),
-                    activityTrackings.endedAt(),
-                    activityTrackings.distance(),
-                    activityTrackings.duration(),
-                    PaceConverter.toString(activityTrackings.averagePace())
+                    pet.getId(),
+                    pet.getName(),
+                    pet.getProfileImageUrl(),
+                    LatestActivity.from(activity)
             );
         }
     }
 
-    public static PetActivityResponse of(List<TodayPetActivityTracking> activityTrackings) {
-        // 리스트가 비었거나 null 일경우
-        if (Objects.isNull(activityTrackings) || activityTrackings.isEmpty()) {
-            return new PetActivityResponse(List.of());
+    public record LatestActivity(
+            UUID trackingId,
+            LocalDateTime startedAt,
+            LocalDateTime endedAt,
+            Integer distanceM,
+            Integer durationSec,
+            String averagePace
+    ) {
+
+        private static LatestActivity from(PetActivityTracking activity) {
+            if (activity == null) {
+                return null;
+            }
+
+            return new LatestActivity(
+                    activity.trackingId(),
+                    activity.startedAt(),
+                    activity.endedAt(),
+                    activity.distance(),
+                    activity.duration(),
+                    PaceConverter.toString(activity.averagePace())
+            );
         }
-
-        List<PetActivity> activityList = activityTrackings.stream()
-                .map(PetActivity::from)
-                .toList();
-
-        return new PetActivityResponse(activityList);
     }
 
+    public static PetActivityResponse of(
+            List<Pet> petList,
+            Map<Pet, PetActivityTracking> latestActivities
+    ) {
+        List<PetActivity> activities = petList.stream()
+                .map(pet -> PetActivity.from(
+                        pet,
+                        latestActivities.get(pet)
+                ))
+                .toList();
+
+        return new PetActivityResponse(activities);
+    }
 }

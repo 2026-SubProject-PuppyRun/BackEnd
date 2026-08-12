@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
+import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.statistics.controller.Response.DailyActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyActivityResponse;
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyContributionResponse;
@@ -24,16 +25,22 @@ public class ActivitySummaryController {
     private final TrackingActivityService trackingActivityService;
 
     /**
-     * 펫을 기준으로 활동량 통계를 조회합니다.
-     *
-     * @param targetDay 조회 날짜
+     * 펫을 기준으로 마지막 활동량 통계를 조회합니다.
      */
-    @GetMapping("/pet")
+    @GetMapping("/pet/last-tracking")
     public ResponseEntity<PetActivityResponse> getLastTracking(
             @AuthenticationPrincipal UserPrincipal principal,
-            @RequestParam("date") LocalDate targetDay
+            @RequestParam("startDate") LocalDate startDate,
+            @RequestParam("endDate") LocalDate endDate
     ) {
-        PetActivityResponse response = trackingActivityService.getPetActivity(principal, targetDay);
+        if (endDate.isBefore(startDate)) {
+            throw new InvalidValueException("종료일은 시작일보다 빠를 수 없습니다.");
+        }
+        if (!endDate.isBefore(startDate.plusMonths(3))) {
+            throw new InvalidValueException("3달 이상 조회는 불가능합니다.");
+        }
+
+        PetActivityResponse response = trackingActivityService.getPetLastActivity(principal, startDate, endDate);
         return ResponseEntity.ok(response);
     }
 
