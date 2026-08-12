@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
+import org.zerock.puppyrun.statistics.DTO.TodayPetActivityTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
@@ -50,6 +51,8 @@ public interface TrackingRepoCustom {
      */
     List<DailyTrackingSummary> getTrackingSummaryDateAsc(UUID memberId, LocalDate startDate, LocalDate endDate);
 
+
+    List<TodayPetActivityTracking> getPetActivities(UUID memberId, LocalDate startDate, LocalDate endDate);
 
     List<DailyTracking> getDailyActivities(UUID memberId, LocalDate targetDate);
 

@@ -1,6 +1,7 @@
 package org.zerock.puppyrun.statistics.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.BDDMockito.given;
 
 import java.time.LocalDate;
@@ -26,6 +27,7 @@ import org.zerock.puppyrun.statistics.controller.Response.MonthlyActivityRespons
 import org.zerock.puppyrun.statistics.controller.Response.MonthlyContributionResponse;
 import org.zerock.puppyrun.statistics.controller.Response.WeeklyActivityResponse;
 import org.zerock.puppyrun.tracking.DTO.DailyTrackingSummary;
+import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
 import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 
@@ -78,6 +80,10 @@ class TrackingActivityServiceTest {
                 .singleElement()
                 .extracting(DailyActivityResponse.TrackingDetails::trackingId)
                 .isEqualTo(trackingId);
+        assertThat(response.tracking().getFirst().trackingImages())
+                .extracting(DailyActivityResponse.TrackingImage::order,
+                        DailyActivityResponse.TrackingImage::image)
+                .containsExactly(tuple(0, "image1.jpg"));
     }
 
     @Test
@@ -255,7 +261,7 @@ class TrackingActivityServiceTest {
                 3_600,
                 12000.0,
                 diary,
-                List.of("image1.jpg"),
+                List.of(new DailyPetTracking.TrackingImageSummary(0, "image1.jpg")),
                 List.of(pet)
         );
     }

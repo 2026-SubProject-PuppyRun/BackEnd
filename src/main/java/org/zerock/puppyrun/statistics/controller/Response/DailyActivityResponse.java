@@ -7,6 +7,7 @@ import java.util.UUID;
 import lombok.Builder;
 import org.zerock.puppyrun.common.s3.support.S3Url;
 import org.zerock.puppyrun.statistics.DTO.DailyPetTracking;
+import org.zerock.puppyrun.tracking.DTO.DailyTracking;
 import org.zerock.puppyrun.tracking.util.PaceConverter;
 
 @Builder
@@ -68,9 +69,7 @@ public record DailyActivityResponse(
             Integer durationSec,        // 산책 시간 (초)
             String averagePace,         // 산책 페이스
             DiaryDetail diary,          // 일기 작성 여부 (UI 뱃지용)
-
-            @S3Url
-            List<String> trackingImages, // 산책 중 찍은 사진 리스트 (썸네일용)
+            List<TrackingImage> trackingImages, // 산책 중 찍은 사진 리스트 (썸네일용)
             List<ParticipatingPet> participatingPets // 참여한 펫 목록
     ) {
         public static TrackingDetails from(DailyPetTracking dpt) {
@@ -82,11 +81,22 @@ public record DailyActivityResponse(
                     .durationSec(dpt.duration())
                     .averagePace(PaceConverter.toString(dpt.averagePace()))
                     .diary(DiaryDetail.from(dpt.diary()))
-                    .trackingImages(dpt.trackingImages())
+                    .trackingImages(dpt.trackingImages().stream()
+                            .map(TrackingImage::from)
+                            .toList())
                     .participatingPets(dpt.participatingPets().stream()
                             .map(ParticipatingPet::from)
                             .toList())
                     .build();
+        }
+    }
+
+    public record TrackingImage(
+            Integer order,
+            @S3Url String image
+    ) {
+        private static TrackingImage from(DailyPetTracking.TrackingImageSummary image) {
+            return new TrackingImage(image.order(), image.image());
         }
     }
 
