@@ -18,9 +18,11 @@ source "$CONFIG/deploy.env"
 : "${BACKEND_COMPOSE_PROJECT_NAME:=puppyrun}"
 : "${HEALTH_URL:=http://127.0.0.1:8081/actuator/health/readiness}"
 CURRENT_IMAGE=$(<"$STATE/current-image")
+CURRENT_VERSION="unknown"
+[[ -f "$STATE/current-version" ]] && CURRENT_VERSION=$(<"$STATE/current-version")
 
 restart_backend() {
-  BACKEND_IMAGE="$CURRENT_IMAGE" docker compose --project-name "$BACKEND_COMPOSE_PROJECT_NAME" \
+  BACKEND_IMAGE="$CURRENT_IMAGE" APP_VERSION="$CURRENT_VERSION" docker compose --project-name "$BACKEND_COMPOSE_PROJECT_NAME" \
     --env-file "$APP_ENV" -f "$BACKEND_COMPOSE" up -d --force-recreate backend
   "$ROOT/scripts/health-check.sh" "$HEALTH_URL"
 }
@@ -33,7 +35,7 @@ restore_last_success() {
   restart_backend
 }
 
-docker compose --project-name "$BACKEND_COMPOSE_PROJECT_NAME" \
+BACKEND_IMAGE="$CURRENT_IMAGE" APP_VERSION="$CURRENT_VERSION" docker compose --project-name "$BACKEND_COMPOSE_PROJECT_NAME" \
   --env-file "$APP_ENV" -f "$BACKEND_COMPOSE" config -q
 
 if ! "$ROOT/scripts/infra.sh" up || ! restart_backend; then

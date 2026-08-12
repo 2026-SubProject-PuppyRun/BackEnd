@@ -61,6 +61,7 @@ management:
     tags:
       application: ${spring.application.name}
       environment: ${SPRING_PROFILES_ACTIVE:default}
+      version: ${APP_VERSION:unknown}
 
   prometheus:
     metrics:

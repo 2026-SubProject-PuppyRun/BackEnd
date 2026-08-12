@@ -18,8 +18,8 @@ docker ps --filter name=puppyrun-rabbitmq
 ## 최초 1회 설정
 
 ```bash
-git clone --branch dev https://github.com/2026-SubProject-PuppyRun/BackEnd.git
-cd BackEnd
+git clone --branch dev https://github.com/2026-SubProject-PuppyRun/BackEnd.git /opt/puppyrun-source
+cd /opt/puppyrun-source
 sudo bash .github/workflows/deployment/bootstrap-ec2.sh
 ```
 
@@ -38,9 +38,9 @@ bootstrap은 EC2 운영 디렉터리와 공유 네트워크만 초기화한다. 
 ```
 
 ```bash
-sudoedit puppyrun/config/deploy.env  # AWS/ECR와 Compose 프로젝트 이름
-sudoedit puppyrun/config/app.env     # Spring Boot와 RabbitMQ 설정
-sudoedit puppyrun/config/infra.env   # Grafana Cloud remote_write 인증값
+sudoedit /opt/puppyrun/config/deploy.env  # AWS/ECR와 Compose 프로젝트 이름
+sudoedit /opt/puppyrun/config/app.env     # Spring Boot와 RabbitMQ 설정
+sudoedit /opt/puppyrun/config/infra.env   # Grafana Cloud remote_write 인증값
 ```
 
 Firebase 서비스 계정 JSON도 EC2에만 저장한다.
@@ -48,7 +48,7 @@ Firebase 서비스 계정 JSON도 EC2에만 저장한다.
 ```bash
 sudo install -o root -g ubuntu -m 640 \
   ./firebase-service-account.json \
-  puppyrun/config/firebase-service-account.json
+  /opt/puppyrun/config/firebase-service-account.json
 ```
 
 `app.env`에는 다음을 유지한다.
@@ -62,8 +62,8 @@ FCM_ACCOUNT_PATH=file:/run/secrets/firebase-service-account.json
 처음에는 infra를 한 번 올린 후 GitHub Actions 배포를 실행한다.
 
 ```bash
-sudo puppyrun/scripts/infra.sh up
-sudo puppyrun/scripts/infra.sh status
+sudo /opt/puppyrun/scripts/infra.sh up
+sudo /opt/puppyrun/scripts/infra.sh status
 ```
 
 이후 GitHub Actions는 ECR push 후 backend 배포만 실행한다. 수동 배포와 rollback도 backend에만 영향을 준다.
@@ -71,8 +71,8 @@ sudo puppyrun/scripts/infra.sh status
 실패하면 ECR에서 다시 받지 않고 로컬 `current` 이미지로 즉시 복구한다. `previous`는 수동 rollback용으로 보관한다.
 
 ```bash
-sudo puppyrun/scripts/deploy.sh <github-sha>
-sudo puppyrun/scripts/rollback.sh
+sudo /opt/puppyrun/scripts/deploy.sh <github-sha>
+sudo /opt/puppyrun/scripts/rollback.sh
 ```
 
 ## 설정 변경
@@ -80,10 +80,12 @@ sudo puppyrun/scripts/rollback.sh
 - `app.env` 또는 `infra.env`를 수정한 뒤에는 아래 한 명령으로 두 Compose에 반영한다. backend 이미지는 바뀌지 않는다.
 
   ```bash
-  sudo puppyrun/scripts/apply-config.sh
+  sudo /opt/puppyrun/scripts/apply-config.sh
   ```
 
   backend health check가 실패하면 마지막으로 성공한 `app.env`로 자동 복원한다.
 - backend 배포·rollback: RabbitMQ 데이터 volume과 Alloy 컨테이너는 유지된다.
 
-배포 로그는 `puppyrun/logs/latest-deploy.log`에서 확인한다. infra 로그는 `sudo puppyrun/scripts/infra.sh logs`로 확인한다.
+배포 로그는 `/opt/puppyrun/logs/latest-deploy.log`에서 확인한다. infra 로그는 `sudo /opt/puppyrun/scripts/infra.sh logs`로 확인한다.
+
+배포 루트는 `/opt/puppyrun`으로 고정되어 있으며, GitHub Actions Secret으로 경로를 전달하지 않는다.

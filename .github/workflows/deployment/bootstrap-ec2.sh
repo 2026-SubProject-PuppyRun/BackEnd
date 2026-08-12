@@ -6,7 +6,7 @@ set -euo pipefail
 SOURCE_DIRECTORY=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SCRIPTS_SOURCE="$SOURCE_DIRECTORY/scripts"
 COMPOSE_SOURCE="$SOURCE_DIRECTORY/compose"
-ROOT="${DEPLOY_ROOT:-puppyrun}"
+ROOT="/opt/puppyrun"
 
 install -d -o root -g ubuntu -m 750 \
   "$ROOT/scripts" "$ROOT/compose" "$ROOT/config" "$ROOT/state" "$ROOT/logs" "$ROOT/locks"

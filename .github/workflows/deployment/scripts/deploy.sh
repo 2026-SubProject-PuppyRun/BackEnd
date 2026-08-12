@@ -39,6 +39,8 @@ flock -n 9 || { echo "Another deployment is already running."; exit 1; }
 ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY"
 CURRENT_IMAGE=""
 [[ -f "$STATE/current-image" ]] && CURRENT_IMAGE=$(<"$STATE/current-image")
+CURRENT_VERSION="unknown"
+[[ -f "$STATE/current-version" ]] && CURRENT_VERSION=$(<"$STATE/current-version")
 
 write_state() {
   local name="$1" value="$2" temporary
@@ -48,7 +50,8 @@ write_state() {
 }
 
 run_image() {
-  BACKEND_IMAGE="$1" docker compose --project-name "$BACKEND_COMPOSE_PROJECT_NAME" \
+  local image_reference="$1" app_version="${2:-unknown}"
+  BACKEND_IMAGE="$image_reference" APP_VERSION="$app_version" docker compose --project-name "$BACKEND_COMPOSE_PROJECT_NAME" \
     --env-file "$APP_ENV" -f "$COMPOSE" up -d --no-deps --force-recreate backend
 }
 
@@ -65,7 +68,7 @@ restore_current() {
     return 1
   }
   echo "Restoring local image: $CURRENT_TAG"
-  run_image "$CURRENT_TAG"
+  run_image "$CURRENT_TAG" "$CURRENT_VERSION"
   "$HEALTH_CHECK" "$HEALTH_URL"
 }
 
@@ -89,7 +92,7 @@ CANDIDATE_IMAGE=$(docker image inspect --format '{{index .RepoDigests 0}}' "$ECR
 docker image rm -f "$CANDIDATE_TAG" >/dev/null 2>&1 || true
 docker tag "$CANDIDATE_IMAGE" "$CANDIDATE_TAG"
 
-if ! run_image "$CANDIDATE_TAG" || ! "$HEALTH_CHECK" "$HEALTH_URL"; then
+if ! run_image "$CANDIDATE_TAG" "$IMAGE_TAG" || ! "$HEALTH_CHECK" "$HEALTH_URL"; then
   echo "Candidate failed; restoring current image."
   restore_current || true
   docker image rm -f "$CANDIDATE_TAG" >/dev/null 2>&1 || true
@@ -97,8 +100,12 @@ if ! run_image "$CANDIDATE_TAG" || ! "$HEALTH_CHECK" "$HEALTH_URL"; then
 fi
 
 promote_candidate
-[[ -n "$CURRENT_IMAGE" ]] && write_state previous-image "$CURRENT_IMAGE"
+if [[ -n "$CURRENT_IMAGE" ]]; then
+  write_state previous-image "$CURRENT_IMAGE"
+  write_state previous-version "$CURRENT_VERSION"
+fi
 write_state current-image "$CANDIDATE_IMAGE"
+write_state current-version "$IMAGE_TAG"
 # 이후 app.env만 변경했을 때 실패하면 이 시점의 정상 설정으로 복구할 수 있다.
 install -m 640 "$APP_ENV" "$CONFIG/app.env.last-success"
 "$CLEANUP_SCRIPT" || echo "Image cleanup failed; deployment remains successful."
