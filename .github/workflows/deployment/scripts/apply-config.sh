@@ -3,8 +3,7 @@ set -euo pipefail
 
 # 이미지 변경 없이 app.env/infra.env 변경을 적용한다.
 # Compose 파일은 분리돼 있지만, 운영자는 이 명령 하나로 공통 설정을 반영할 수 있다.
-SCRIPT_DIRECTORY=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-ROOT=$(cd -- "$SCRIPT_DIRECTORY/.." && pwd)
+ROOT="/home/ubuntu/puppyrun"
 CONFIG="$ROOT/config"
 STATE="$ROOT/state"
 BACKEND_COMPOSE="$ROOT/compose/docker-compose.backend.yml"

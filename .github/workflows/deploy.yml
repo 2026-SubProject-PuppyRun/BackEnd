@@ -71,7 +71,7 @@ jobs:
         run: |
           set -euo pipefail
           printf -v quoted_image_tag '%q' "$DEPLOY_IMAGE_TAG"
-          command="/opt/puppyrun/scripts/deploy.sh $quoted_image_tag"
+          command="/home/ubuntu/puppyrun/scripts/deploy.sh $quoted_image_tag"
           aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
             --document-name AWS-RunShellScript \

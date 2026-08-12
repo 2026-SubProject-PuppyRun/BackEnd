@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIRECTORY=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-ROOT=$(cd -- "$SCRIPT_DIRECTORY/.." && pwd)
+ROOT="/home/ubuntu/puppyrun"
 CONFIG="$ROOT/config"
 STATE="$ROOT/state"
 LOGS="$ROOT/logs"
