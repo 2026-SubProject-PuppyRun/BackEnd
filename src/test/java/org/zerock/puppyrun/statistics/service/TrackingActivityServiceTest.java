@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.member.entity.UserRole;
+import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.repository.PetRepository;
 import org.zerock.puppyrun.statistics.DTO.DailyPetTracking;
 import org.zerock.puppyrun.statistics.DTO.MonthlyActivity;
@@ -112,9 +113,15 @@ class TrackingActivityServiceTest {
         LocalDate endDate = LocalDate.of(2026, 3, 31);
         UUID petWithoutTrackingId = UUID.randomUUID();
         UUID petWithTrackingId = UUID.randomUUID();
+        Pet petWithoutTracking = org.mockito.Mockito.mock(Pet.class);
+        given(petWithoutTracking.getId()).willReturn(petWithoutTrackingId);
+        given(petWithoutTracking.getName()).willReturn("콩이");
+        Pet petWithTracking = org.mockito.Mockito.mock(Pet.class);
+        given(petWithTracking.getId()).willReturn(petWithTrackingId);
+        given(petWithTracking.getName()).willReturn("보리");
         UUID latestTrackingId = UUID.randomUUID();
-        given(petRepository.findPetIdsByMemberId(memberId))
-                .willReturn(List.of(petWithoutTrackingId, petWithTrackingId));
+        given(petRepository.findAllByMemberId(memberId))
+                .willReturn(List.of(petWithoutTracking, petWithTracking));
         given(trackingRepository.getPetActivitiesAsc(
                 memberId,
                 petWithoutTrackingId,
@@ -135,10 +142,11 @@ class TrackingActivityServiceTest {
         PetActivityResponse response = trackingActivityService.getPetLastActivity(principal, startDate, endDate);
 
         // then
-        assertThat(response)
-                .extracting("activities")
-                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.LIST)
+        assertThat(response.activities()).hasSize(2);
+        assertThat(response.activities())
+                .filteredOn(activity -> activity.petId().equals(petWithTrackingId))
                 .singleElement()
+                .extracting("latestActivity")
                 .extracting("trackingId")
                 .isEqualTo(latestTrackingId);
     }

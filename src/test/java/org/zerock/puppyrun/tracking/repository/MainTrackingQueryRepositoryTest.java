@@ -62,18 +62,20 @@ class MainTrackingQueryRepositoryTest extends TestContainerConfig {
         statistics.clear();
 
         // when
-        List<MainTrackingSummary> summaries = trackingRepository.findMainTrackingSummaries(member.getId());
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        MainTrackingSummary summaryResult = trackingRepository.findMainTrackingSummaries(member.getId(), pageable);
+        List<MainTrackingSummary.TrackingSummary> summaries = summaryResult.trackingSummaries();
 
         // then
         assertThat(statistics.getPrepareStatementCount()).isEqualTo(1L);
         assertThat(summaries).hasSize(2);
 
-        MainTrackingSummary latestSummary = summaries.getFirst();
+        MainTrackingSummary.TrackingSummary latestSummary = summaries.getFirst();
         assertThat(latestSummary.trackingId()).isEqualTo(latestTracking.getId());
         assertThat(latestSummary.featuredImage()).isEqualTo("tracking/featured.jpg");
         assertThat(latestSummary.path()).containsExactlyElementsOf(latestPath);
 
-        MainTrackingSummary olderSummary = summaries.getLast();
+        MainTrackingSummary.TrackingSummary olderSummary = summaries.getLast();
         assertThat(olderSummary.trackingId()).isEqualTo(olderTracking.getId());
         assertThat(olderSummary.featuredImage()).isNull();
         assertThat(olderSummary.path())
