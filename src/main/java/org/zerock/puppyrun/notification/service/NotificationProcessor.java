@@ -40,10 +40,8 @@ public class NotificationProcessor {
             // 마지막으로 본 시간 이후의 1000명을 조회
             memberSettings = notificationRepository.findNextMembers(lastCreatedAt, limitOnly, type);
             if (memberSettings.isEmpty()) {
-                log.info("알림 가능한 멤버가 없습니다.");
                 break; // 더 이상 데이터가 없으면 탈출
             }
-
             // 메세지를 다르게 만드는 분기
             List<PushTask> pushTasks = sender.setPushTasks(memberSettings);
 

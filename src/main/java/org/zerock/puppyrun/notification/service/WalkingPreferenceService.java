@@ -12,11 +12,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.zerock.puppyrun.common.logging.LogExecutionTime;
 import org.zerock.puppyrun.notification.entity.WalkingPreference;
 import org.zerock.puppyrun.notification.repository.WalkingPreferenceRepository;
 import org.zerock.puppyrun.tracking.entity.Tracking;
@@ -27,7 +27,6 @@ import org.zerock.puppyrun.tracking.repository.TrackingRepository;
  */
 @Service
 @RequiredArgsConstructor
-@Slf4j
 @Transactional
 public class WalkingPreferenceService {
 
@@ -41,6 +40,7 @@ public class WalkingPreferenceService {
     /**
      * 최근 30일 내 산책 회원을 청크 단위로 조회해 평일·주말 선호 시간을 갱신합니다.
      */
+    @LogExecutionTime
     public void updateAllMemberPreferences() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDateTime = now.minusDays(ANALYSIS_WINDOW_DAYS);
@@ -53,7 +53,6 @@ public class WalkingPreferenceService {
             if (memberIds.isEmpty()) {
                 break;
             }
-
             List<Tracking> trackings = trackingRepository
                     .findAllByMemberIdsAndDateRange(memberIds, startDateTime);
             Map<UUID, List<Tracking>> trackingMap = trackings.stream()
@@ -78,8 +77,6 @@ public class WalkingPreferenceService {
             walkingPreferenceRepository.saveAll(updates);
             pageNumber++;
         } while (memberIds.size() == CHUNK_SIZE);
-
-        log.info("회원 산책 선호도 분석을 완료했습니다.");
     }
 
     private void updatePreference(

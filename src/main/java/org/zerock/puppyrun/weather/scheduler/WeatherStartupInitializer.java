@@ -46,7 +46,6 @@ public class WeatherStartupInitializer {
 
         LocalDateTime requestTime = LocalDateTime.now(WEATHER_ZONE);
         log.info("[weather 초기화] 서버 가동 시작 1회 초기 수집 실행 (시각={})", requestTime);
-
         WeatherForecast forecast = new ShortTerm(requestTime);
 
         // DB 조회 후 존재 격자 목록 반환

@@ -26,8 +26,14 @@ public class GlobalExceptionHandler {
             BusinessException e,
             HttpServletRequest request) {
 
-        log.warn("Business Exception: {}", e.getMessage());
-        log.warn("Cause: ", e);
+        log.warn(
+                "exceptionType={}, errorCode={}, status={}, uri={}, message={}",
+                e.getClass().getSimpleName(),
+                e.getErrorCode().getCode(),
+                e.getErrorCode().getHttpStatus().value(),
+                request.getRequestURI(),
+                e.getMessage()
+        );
 
         ErrorResponse errorResponse = ErrorResponse.of(
                 e.getErrorCode().getCode(),
@@ -48,8 +54,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(
             MethodArgumentNotValidException e,
             HttpServletRequest request) {
-        log.warn("MethodArgumentNotValidException: {}", e.getMessage());
-
         // 첫 번째 validation 오류 메시지 추출
         String errorMessage = e.getBindingResult()
                 .getFieldErrors()
@@ -80,8 +84,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleConstraintViolationException(
             ConstraintViolationException e,
             HttpServletRequest request) {
-        log.warn("ConstraintViolationException: {}", e.getMessage());
-
         String errorMessage = e.getConstraintViolations()
                 .stream()
                 .findFirst()
@@ -146,8 +148,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
             HttpMessageNotReadableException e,
             HttpServletRequest request) {
-
-        log.warn("JSON Parsing Error: {}", e.getMessage());
 
         ErrorCode errorCode = ErrorCode.INVALID_REQUEST;
 
