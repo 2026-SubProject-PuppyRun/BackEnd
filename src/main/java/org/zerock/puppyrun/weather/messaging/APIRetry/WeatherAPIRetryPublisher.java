@@ -36,8 +36,11 @@ public class WeatherAPIRetryPublisher {
             WeatherAPIRetryMessage message = WeatherAPIRetryMessage.from(failedResult);
 
             rabbitTemplate.convertAndSend(exchange, routingKey, message);
-            log.info("API 실패 응답 RabbitMQ 10분 지연 큐 발송 완료: nx={}, ny={}",
-                    failedResult.gridPoint().nx(), failedResult.gridPoint().ny());
+            log.warn("[weather API 재시도 큐] RabbitMQ 10분 지연 큐 발송 완료: type={} nx={}, ny={}",
+                    failedResult.forecast().getType(),
+                    failedResult.gridPoint().nx(),
+                    failedResult.gridPoint().ny()
+            );
         }
     }
 }
