@@ -43,10 +43,10 @@ public class WeatherUpdateResultHandler {
     public void processRetry(WeatherUpdateResult result) {
         if (result == null || !result.success()) {
             if (result == null) {
-                log.error("[API 최종 실패] 재시도 결과가 없습니다.");
+                log.error("[weather API 재시도 큐] 재시도 결과가 없습니다.");
             } else {
                 log.error(
-                        "[API 최종 실패] type={}, nx={}, ny={} | 재발행하지 않고 실패 캐시 기록을 유지합니다.",
+                        "[weather API 재시도 큐] 최종 실패 type={}, nx={}, ny={} | 재발행하지 않고 실패 캐시 기록을 유지합니다.",
                         result.forecast().getType(),
                         result.gridPoint().nx(),
                         result.gridPoint().ny()
@@ -62,7 +62,7 @@ public class WeatherUpdateResultHandler {
         }
 
         log.info(
-                "[API 재시도 성공] type={}, nx={}, ny={} | 후속 저장 완료",
+                "[weather API 재시도 큐] 재시도 성공 type={}, nx={}, ny={} | 후속 저장 완료",
                 result.forecast().getType(),
                 result.gridPoint().nx(),
                 result.gridPoint().ny()
@@ -78,7 +78,8 @@ public class WeatherUpdateResultHandler {
                 .toList();
 
         log.info(
-                "[1차 수집 분류 완료] 총 {}건 (성공 {}건, API 실패 {}건)",
+                "[weather 1차 수집 분류 완료] type={}, 총 {}건 (성공 {}건, API 실패 {}건)",
+                results.getFirst().forecast().getType(),
                 results.size(),
                 successes.size(),
                 failures.size()
@@ -119,7 +120,7 @@ public class WeatherUpdateResultHandler {
             weatherCommandService.save(commands);
         } catch (Exception saveException) {
             log.warn(
-                    "[DB 저장 실패] 총 {}건 저장 실패: {} | 10초 지연 큐 발송",
+                    "[weather DB 재시도 큐] 저장 실패 총 {}건 저장 실패: {} | 10초 지연 큐 발송",
                     commands.size(),
                     saveException.getMessage(),
                     saveException
@@ -129,7 +130,7 @@ public class WeatherUpdateResultHandler {
                 dbRetryPublisher.publish(commands);
             } catch (Exception publishException) {
                 log.error(
-                        "[DB 재시도 발행 실패] 총 {}건을 지연 큐에 발행하지 못했습니다: {}",
+                        "[weather DB 재시도 큐] 재시도 발행 실패 총 {}건을 지연 큐에 발행하지 못했습니다: {}",
                         commands.size(),
                         publishException.getMessage(),
                         publishException
@@ -147,7 +148,7 @@ public class WeatherUpdateResultHandler {
             apiRetryPublisher.publish(failures);
         } catch (Exception exception) {
             log.error(
-                    "[API 재시도 발행 실패] 총 {}건을 지연 큐에 발행하지 못했습니다: {}",
+                    "[weather API 재시도 큐] 재시도 발행 실패 총 {}건을 지연 큐에 발행하지 못했습니다: {}",
                     failures.size(),
                     exception.getMessage(),
                     exception

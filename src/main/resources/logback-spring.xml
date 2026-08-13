@@ -7,7 +7,7 @@
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <!-- 가독성을 위해 색상 패턴 적용 -->
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) %magenta([%thread]) %cyan(%logger{36}) - %msg%n
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) %magenta([%thread]) %cyan(%logger{36}) [traceId=%X{traceId:-}] - %msg%n
             </pattern>
         </encoder>
     </appender>
@@ -24,7 +24,7 @@
         </rollingPolicy>
 
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId:-}] - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -39,6 +39,7 @@
                     > **Time:** `%d{yyyy-MM-dd HH:mm:ss}`
                     > **Logger:** `%logger{36}`
                     > **Level:** `%-5level`
+                    > **Trace ID:** `%X{traceId:-}`
 
                     **📌 Error Message:**
                     ```text
@@ -64,6 +65,16 @@
     </springProfile>
 
     <springProfile name="prod">
+        <logger name="org.zerock.puppyrun.common.exception.GlobalExceptionHandler" level="WARN" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ASYNC_DISCORD"/>
+        </logger>
+        <logger name="org.zerock.puppyrun.common.logging.ExecutionTimeAspect" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+
         <root level="ERROR">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="FILE"/>

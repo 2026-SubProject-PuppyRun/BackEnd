@@ -61,8 +61,8 @@ public class WeatherForecastCollector {
         }
 
         log.info(
-                "기상청 날씨 예보 수집 시작: 예보종류={}, 총 {}개 격자 좌표",
-                forecast.getClass().getSimpleName(),
+                "[weather 수집] 기상청 날씨 예보 수집 시작: type={}, 총 {}개 격자 좌표",
+                forecast.getType(),
                 gridPoints.size()
         );
 
@@ -73,8 +73,8 @@ public class WeatherForecastCollector {
                 )
                 .doOnComplete(() ->
                         log.info(
-                                "기상청 날씨 예보 수집 완료: 예보종류={}",
-                                forecast.getClass().getSimpleName()
+                                "[weather 수집] 기상청 날씨 예보 수집 완료: type={}",
+                                forecast.getType()
                         )
                 );
     }
@@ -108,6 +108,10 @@ public class WeatherForecastCollector {
             WeatherForecast forecast,
             GridPoint gridPoint
     ) {
+        log.info("[weather API 요청] type={}, nx={}, ny={}",
+                forecast.getType(), gridPoint.nx(), gridPoint.ny()
+        );
+
         return weatherApiClient.fetchWeather(forecast.getPara(gridPoint))
                 .timeout(API_REQUEST_TIMEOUT)
                 .map(response -> {
@@ -136,7 +140,7 @@ public class WeatherForecastCollector {
             Throwable error
     ) {
         if (error instanceof WeatherApiResponseException apiEx) {
-            log.warn(
+            log.error(
                     "기상청 API 응답 오류: nx={}, ny={}, code={}, message={}",
                     gridPoint.nx(),
                     gridPoint.ny(),
@@ -145,10 +149,10 @@ public class WeatherForecastCollector {
             );
         } else {
             log.error(
-                    "기상청 API 호출 또는 응답 변환 실패: nx={}, ny={}, 예보종류={}, error={}",
+                    "기상청 API 호출 또는 응답 변환 실패: type={}, nx={}, ny={}, reason={}",
+                    forecast.getType(),
                     gridPoint.nx(),
                     gridPoint.ny(),
-                    forecast.getClass().getSimpleName(),
                     Objects.toString(
                             error.getMessage(),
                             error.getClass().getSimpleName()

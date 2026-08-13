@@ -24,17 +24,18 @@ public class WeatherDBRetryConsumer {
     @RabbitListener(queues = "weather.retry.db.queue")
     public void process(WeatherDBRetryMessage message) {
         if (message == null || message.commands().isEmpty()) {
-            log.info("[DB 재시도 큐 수신] 수신된 메시지에 저장할 데이터가 없습니다.");
+            log.info("[weather DB 재시도 큐] 수신된 메시지에 저장할 데이터가 없습니다.");
             return;
         }
 
-        log.info("[DB 재시도 큐 수신] 10초 지연 후 소비 시작 | 총 {}건", message.commands().size());
+        log.info("[weather DB 재시도 큐] 10초 지연 후 소비 시작 | 총 {}건", message.commands().size());
 
         try {
             weatherCommandService.save(message.commands());
-            log.info("[DB 재시도 성공] 총 {}건 DB 일괄 저장 완료", message.commands().size());
+            log.info("[weather DB 재시도 큐] 총 {}건 DB 일괄 저장 완료", message.commands().size());
         } catch (Exception e) {
-            log.error("[DB 최종 실패] 총 {}건 DB 저장 최종 실패: 원인={}", message.commands().size(), e.getMessage(), e);
+            log.error("[weather DB 재시도 큐] 최종 실패 총 {}건 DB 저장 최종 실패: 원인={}", message.commands().size(), e.getMessage(),
+                    e);
         }
     }
 }

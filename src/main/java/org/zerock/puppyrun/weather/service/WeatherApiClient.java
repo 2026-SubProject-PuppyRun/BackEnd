@@ -45,8 +45,6 @@ public class WeatherApiClient {
                 .build(true)
                 .toUri();
 
-        log.info("기상청 API 요청 URI: {}", uri);
-
         return webClient.get()
                 .uri(uri)
                 .retrieve()

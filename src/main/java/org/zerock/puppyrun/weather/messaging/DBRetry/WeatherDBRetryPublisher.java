@@ -35,6 +35,6 @@ public class WeatherDBRetryPublisher {
         WeatherDBRetryMessage message = new WeatherDBRetryMessage(commands);
 
         rabbitTemplate.convertAndSend(exchange, routingKey, message);
-        log.info("[DB 지연 큐 발송] 10초 지연 큐로 메시지 발송 완료 (총 {}건)", commands.size());
+        log.info("[weather DB 재시도 큐] 10초 지연 큐로 메시지 발송 완료 (총 {}건)", commands.size());
     }
 }

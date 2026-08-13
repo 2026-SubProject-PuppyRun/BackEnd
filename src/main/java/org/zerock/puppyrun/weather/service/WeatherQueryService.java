@@ -128,29 +128,31 @@ public class WeatherQueryService {
             );
         }
 
-        // 4. 시간 순서대로 최종 응답 생성
-        List<WeatherDTO.WeatherList> result =
-                createForecastList(
-                        forecasts,
-                        startTime,
-                        limit
-                );
+        List<LocalDateTime> failDateTime = new ArrayList<>();
+
+        for (int hour = 0; hour < limit; hour++) {
+            LocalDateTime requiredTime = startTime.plusHours(hour);
+
+            if (!forecasts.containsKey(requiredTime)) {
+                failDateTime.add(requiredTime);
+            }
+        }
 
         // 조회한 시간중 없는 시간대가 있으면 예외 처리
-        if (result.stream().anyMatch(Objects::isNull)) {
-            log.warn(
-                    "모든 데이터 출처 조회 후에도 날씨 정보가 누락되었습니다. nx={}, ny={}, start={}, end={}, availableTimes={}",
+        if (!failDateTime.isEmpty()) {
+            log.error(
+                    "모든 데이터 출처 조회 후에도 날씨 정보가 누락되었습니다. nx={}, ny={}, start={}, end={}, failDateTime={}",
                     gridPoint.nx(),
                     gridPoint.ny(),
                     startTime,
                     endTime,
-                    forecasts.keySet()
+                    failDateTime
             );
 
             throw new WeatherNotFoundException("요청한 시간대의 날씨 정보가 일부 누락되었습니다.");
         }
-
-        return new WeatherDTO(result);
+        // 4. 시간 순서대로 최종 응답 생성
+        return new WeatherDTO(createForecastList(forecasts, startTime, limit));
     }
 
     public List<WeatherForecastEntity> findAllByBaseDateTimeAndType(LocalDateTime baseDateTime, ForecastType type) {

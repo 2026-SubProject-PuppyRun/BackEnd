@@ -35,6 +35,7 @@ public class WeatherCommandService {
         if (commands == null || commands.isEmpty()) {
             return;
         }
+
         List<WeatherForecastEntity> entities = commands.stream()
                 .map(this::toEntity)
                 .toList();
@@ -42,7 +43,8 @@ public class WeatherCommandService {
         weatherForecastRepository.saveAllAndFlush(entities);
 
         log.info(
-                "전체 날씨 DB 저장 완료: 요청={}, 저장={}",
+                "전체 날씨 DB 저장 완료: type={} 요청={}, 저장={}",
+                commands.getFirst().forecastType(),
                 commands.size(),
                 entities.size()
         );
