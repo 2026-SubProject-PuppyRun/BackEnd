@@ -34,7 +34,7 @@ public class WeatherScheduler {
     )
     public void scheduledUltraShortForecastUpdate() {
         LocalDateTime requestTime = LocalDateTime.now(WEATHER_ZONE);
-        log.info("정기 초단기예보 수집 실행 (시각={})", requestTime);
+        log.info("[weather 스케줄러] 정기 초단기예보 수집 실행 (시각={})", requestTime);
 
         weatherForecastCollector.collectAll(new UltraShort(requestTime))
                 .collectList()
@@ -53,7 +53,7 @@ public class WeatherScheduler {
     )
     public void scheduledShortTermForecastUpdate() {
         LocalDateTime requestTime = LocalDateTime.now(WEATHER_ZONE);
-        log.info("정기 단기예보 수집 실행 (시각={})", requestTime);
+        log.info("[weather 스케줄러] 정기 단기예보 수집 실행 (시각={})", requestTime);
 
         weatherForecastCollector.collectAll(new ShortTerm(requestTime))
                 .collectList()

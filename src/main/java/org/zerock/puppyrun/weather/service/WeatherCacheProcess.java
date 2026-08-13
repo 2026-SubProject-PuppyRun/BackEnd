@@ -44,7 +44,7 @@ public class WeatherCacheProcess {
         cache.put(gridPoint, weather);
 
         log.info(
-                "성공 날씨 캐시 저장 완료. cache={}, nx={}, ny={}",
+                "[weather 캐시] 성공 날씨 캐시 저장 완료. cache={}, nx={}, ny={}",
                 cacheType.getCacheName(),
                 gridPoint.nx(),
                 gridPoint.ny()
@@ -67,7 +67,7 @@ public class WeatherCacheProcess {
         cache.put(key, result);
 
         log.info(
-                "실패 날씨 캐시 저장 완료. cache={}, type={}, nx={}, ny={}",
+                "[weather 캐시] 실패 날씨 캐시 저장 완료. cache={}, type={}, nx={}, ny={}",
                 CacheType.FAILED_WEATHER.getCacheName(),
                 result.forecast().getType(),
                 result.gridPoint().nx(),
@@ -117,7 +117,7 @@ public class WeatherCacheProcess {
         Cache cache = getRequiredCache(CacheType.FAILED_WEATHER);
 
         cache.clear();
-        log.info("실패 날씨 캐시 초기화 완료");
+        log.info("[weather 캐시] 실패 날씨 캐시 초기화 완료");
     }
 
     private Cache getRequiredCache(CacheType cacheType) {

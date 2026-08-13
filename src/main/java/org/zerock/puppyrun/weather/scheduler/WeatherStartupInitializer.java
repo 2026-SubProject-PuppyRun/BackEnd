@@ -40,12 +40,12 @@ public class WeatherStartupInitializer {
     @EventListener(ApplicationReadyEvent.class)
     public void initializeShortTermWeatherOnStartup() {
         if (!initializeOnStartup) {
-            log.info("서버 시작 시 날씨 초기 수집이 비활성화되어 있습니다.");
+            log.info("[weather 초기화] 서버 시작 시 날씨 초기 수집이 비활성화되어 있습니다.");
             return;
         }
 
         LocalDateTime requestTime = LocalDateTime.now(WEATHER_ZONE);
-        log.info("서버 가동 시작 1회 초기 수집 실행 (시각={})", requestTime);
+        log.info("[weather 초기화] 서버 가동 시작 1회 초기 수집 실행 (시각={})", requestTime);
 
         WeatherForecast forecast = new ShortTerm(requestTime);
 
