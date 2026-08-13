@@ -138,7 +138,7 @@ public class WeatherQueryService {
 
         // 조회한 시간중 없는 시간대가 있으면 예외 처리
         if (result.stream().anyMatch(Objects::isNull)) {
-            log.warn(
+            log.error(
                     "모든 데이터 출처 조회 후에도 날씨 정보가 누락되었습니다. nx={}, ny={}, start={}, end={}, availableTimes={}",
                     gridPoint.nx(),
                     gridPoint.ny(),
