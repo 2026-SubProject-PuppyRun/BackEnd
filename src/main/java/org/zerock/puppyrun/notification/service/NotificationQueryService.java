@@ -13,6 +13,9 @@ import org.zerock.puppyrun.notification.execption.FCMNotFoundException;
 import org.zerock.puppyrun.notification.repository.NotificationRepository;
 import org.zerock.puppyrun.notification.controller.response.NotificationOptionsResponse;
 
+/**
+ * 인증된 사용자의 푸시 알림 설정을 조회합니다.
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -25,6 +28,7 @@ public class NotificationQueryService {
      *
      * @param userPrincipal 현재 인증된 사용자의 정보
      * @return 전체 알림 동의 여부 및 카테고리별로 그룹화된 개별 알림 설정 상태 응답 객체
+     * @throws UserNotFoundException 사용자의 알림 설정을 찾을 수 없을 때 발생
      */
     public NotificationOptionsResponse getOptions(UserPrincipal userPrincipal) {
         NotificationSettings setting = notificationRepository.findByMemberId(userPrincipal.id())
