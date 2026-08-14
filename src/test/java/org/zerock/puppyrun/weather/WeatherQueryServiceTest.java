@@ -10,6 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -256,14 +257,14 @@ class WeatherQueryServiceTest {
     }
 
     private WeatherDTO weatherWithTemp(String date, String temp, String... times) {
-        List<WeatherDTO.WeatherList> forecasts = List.of(times).stream()
+        List<WeatherDTO.WeatherList> forecasts = Stream.of(times)
                 .map(time -> new WeatherDTO.WeatherList(
                         date,
                         time,
                         temp,
                         SkyType.SUNNY,
                         PrecipitationType.NONE,
-                        "강수없음"
+                        0.0
                 ))
                 .toList();
         return new WeatherDTO(forecasts);
@@ -276,7 +277,7 @@ class WeatherQueryServiceTest {
                 temp,
                 SkyType.SUNNY,
                 PrecipitationType.NONE,
-                "강수없음"
+                0.0
         );
     }
 }

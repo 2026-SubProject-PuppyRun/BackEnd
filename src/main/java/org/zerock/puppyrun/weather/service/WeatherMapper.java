@@ -116,7 +116,7 @@ public class WeatherMapper {
         if (baseItem == null) {
             throw new ExternalApiParsingException("기준 날씨 아이템이 존재하지 않습니다.");
         }
-        
+
         // 분류 코드를 키로 만들어 필요한 날씨 값을 빠르게 찾습니다.
         Map<String, String> valueMap = groupItems.stream()
                 .collect(Collectors.toMap(
@@ -125,35 +125,14 @@ public class WeatherMapper {
                         (existing, replacement) -> existing
                 ));
 
-        return buildWeatherDetail(
+        return WeatherDTO.WeatherList.fromString(
                 baseItem.fcstDate(),
                 baseItem.fcstTime(),
-                valueMap,
-                category
+                valueMap.get(category.temp()),
+                valueMap.get(category.sky()),
+                valueMap.get(category.pty()),
+                valueMap.get(category.pcp())
         );
     }
 
-    /**
-     * 분류 코드별 문자열 값을 도메인 Enum으로 변환해 상세 날씨 DTO를 생성합니다.
-     */
-    private WeatherDTO.WeatherList buildWeatherDetail(
-            String forecastDate,
-            String forecastTime,
-            Map<String, String> valueMap,
-            WeatherFilterCategory category
-    ) {
-        SkyType skyType = SkyType.fromCode(valueMap.getOrDefault(category.sky(), "-1"));
-        PrecipitationType ptyType = PrecipitationType.fromCode(valueMap.getOrDefault(category.pty(), "-1"));
-        String temp = valueMap.getOrDefault(category.temp(), "-1");
-        String precipitationAmount = valueMap.getOrDefault(category.precipitationAmount(), "-");
-
-        return WeatherDTO.WeatherList.builder()
-                .date(forecastDate)
-                .time(forecastTime)
-                .sky(skyType)
-                .pty(ptyType)
-                .temp(temp)
-                .pcp(precipitationAmount)
-                .build();
-    }
 }
