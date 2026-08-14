@@ -7,8 +7,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -64,11 +62,14 @@ public class NotificationSettings extends BaseEntity {
         this.id = id != null ? id : UUID.randomUUID();
         this.member = member;
         this.fcmToken = fcmToken;
-        this.isPushAgreed = isPushAgreed; // 할당
-        this.isActive = isPushAgreed; // 수신 동의 시 자동으로 활성화
+        this.isPushAgreed = isPushAgreed; // 수신 동의 시 자동으로 활성화
+        this.isActive = true;
         this.optOutTypes = new HashSet<>();
     }
 
+    public void disableActive() {
+        this.isActive = false;
+    }
 
     public void updateToken(String fcmToken) {
         this.fcmToken = fcmToken;

@@ -23,6 +23,12 @@ import org.zerock.puppyrun.notification.execption.FCMNotFoundException;
 import org.zerock.puppyrun.notification.repository.NotificationRepository;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
 
+/**
+ * 사용자의 푸시 알림 설정을 생성하거나 변경합니다.
+ *
+ * <p>알림 동의 상태와 FCM 토큰을 데이터베이스에 반영하고, 변경된 설정에 맞춰
+ * Firebase 토픽 구독 상태를 비동기적으로 동기화합니다.</p>
+ */
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -68,8 +74,22 @@ public class NotificationCommandService {
             setting.disableType(type);
             manageTopicSubscription(setting.getFcmToken(), type, false);
         } else {
-            log.info("알림 상태가 바꾸려는 상태와 동일합니다.");
+            log.debug(
+                    "event=notification_option_update, result=skipped, reason=unchanged, "
+                            + "memberId={}, type={}, enabled={}",
+                    userPrincipal.id(),
+                    type.name(),
+                    isEnable
+            );
+            return;
         }
+
+        log.info(
+                "event=notification_option_update, result=success, memberId={}, type={}, enabled={}",
+                userPrincipal.id(),
+                type.name(),
+                isEnable
+        );
     }
 
     /**
@@ -84,7 +104,12 @@ public class NotificationCommandService {
 
         // 현재 상태와 목표 상태가 같으면 불필요한 쿼리 및 FCM API 호출 방지
         if (setting.isPushAgreed() == isEnable) {
-            log.info("현재 알림 상태가 바꾸려는 상태와 동일합니다.");
+            log.debug(
+                    "event=notification_global_update, result=skipped, reason=unchanged, "
+                            + "memberId={}, enabled={}",
+                    userPrincipal.id(),
+                    isEnable
+            );
             return;
         }
 
@@ -97,6 +122,13 @@ public class NotificationCommandService {
         // 토픽 구독 상태 동기화
         allowedTypes.forEach(type ->
                 manageTopicSubscription(setting.getFcmToken(), type, isEnable));
+
+        log.info(
+                "event=notification_global_update, result=success, memberId={}, enabled={}, topicCount={}",
+                userPrincipal.id(),
+                isEnable,
+                allowedTypes.size()
+        );
 
     }
 
@@ -128,8 +160,25 @@ public class NotificationCommandService {
                     .forEach(type -> manageTopicSubscription(request.fcmToken(), type, true));
         }
 
+        log.info(
+                "event=notification_settings_created, result=success, memberId={}, pushAgreed={}",
+                userPrincipal.id(),
+                request.isPushAgreed()
+        );
+
     }
 
+    /**
+     * 사용자의 FCM 토큰을 검증한 뒤 새로운 토큰으로 교체하고 활성화합니다.
+     *
+     * <p>토큰이 변경되면 기존 토큰의 허용 토픽 구독을 해제하고, 전체 푸시 알림에
+     * 동의한 사용자에 한해 새 토큰으로 동일한 토픽을 다시 구독합니다.</p>
+     *
+     * @param userPrincipal 현재 인증된 사용자의 정보
+     * @param request       새로 등록할 FCM 토큰
+     * @throws UserNotFoundException 사용자의 알림 설정을 찾을 수 없을 때 발생
+     * @throws InvalidValueException 새 FCM 토큰이 유효하지 않을 때 발생
+     */
     public void updateToken(UserPrincipal userPrincipal, FcmTokenUpdateRequest request) {
         NotificationSettings settings = notificationRepository.findByMemberId(userPrincipal.id())
                 .orElseThrow(() -> new UserNotFoundException("해당 유저의 알림 설정을 찾을 수 없습니다."));
@@ -140,11 +189,13 @@ public class NotificationCommandService {
         String newToken = request.fcmToken();
         // 값이 같고 이미 활성화 상태라면 아무것도 하지 않음
         if (newToken.equals(currentToken) && settings.isActive()) {
-            log.info("기존과 동일한 토큰이며 활성 상태이므로 갱신을 생략합니다. (memberId: {})", userPrincipal.id());
+            log.debug(
+                    "event=notification_token_update, result=skipped, reason=unchanged, memberId={}",
+                    userPrincipal.id()
+            );
             return;
         }
         // 기존 토큰과 다르거나, 현재 비활성화(발송 실패 등) 상태일 때만 업데이트 수행
-        log.info("FCM 토큰을 갱신하고 활성화 상태로 변경합니다. (memberId: {})", userPrincipal.id());
         settings.updateToken(newToken);
         Set<NotificationType> allowedTypes = settings.getAllowedTypes();
         // 기존 토큰 토픽 제거
@@ -153,6 +204,12 @@ public class NotificationCommandService {
         if (settings.isPushAgreed()) {
             allowedTypes.forEach(type -> manageTopicSubscription(newToken, type, true));
         }
+
+        log.info(
+                "event=notification_token_update, result=success, memberId={}, topicCount={}",
+                userPrincipal.id(),
+                allowedTypes.size()
+        );
     }
 
     /**

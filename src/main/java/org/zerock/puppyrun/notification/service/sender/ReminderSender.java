@@ -1,4 +1,4 @@
-package org.zerock.puppyrun.notification.service;
+package org.zerock.puppyrun.notification.service.sender;
 
 
 import java.time.LocalDate;
@@ -11,19 +11,32 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.notification.entity.NotificationType;
-import org.zerock.puppyrun.notification.service.DTO.PushTask;
 import org.zerock.puppyrun.notification.repository.DTO.EnabledNotifications;
+import org.zerock.puppyrun.notification.client.DTO.PushTask;
+import org.zerock.puppyrun.notification.client.DTO.TokenPushTask;
 import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.repository.TrackingRepository;
 
+/**
+ * 당일 산책 통계에 따라 회원별 산책 리마인더 문구를 생성합니다.
+ *
+ * <p>산책하지 않은 회원, 3km 이상 산책한 회원, 그 외 회원을 구분해
+ * 각 FCM 토큰에 대응하는 개인화된 전송 작업을 반환합니다.</p>
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ReminderSender implements Sender {
     private final TrackingRepository trackingRepository;
 
+    /**
+     * 알림 수신 대상자의 당일 산책 통계를 일괄 조회해 개인별 토큰 전송 작업을 생성합니다.
+     *
+     * @param memberSettings 알림 유형과 FCM 토큰을 포함한 수신 대상자 목록
+     * @return 입력 대상자 순서에 대응하는 개인별 토큰 전송 작업 목록
+     */
     @Override
-    public List<PushTask> setPushTasks(List<EnabledNotifications> memberSettings) {
+    public List<PushTask> createPushTasks(List<EnabledNotifications> memberSettings) {
         // 오늘 날짜
         LocalDate today = LocalDate.now();
 
@@ -35,14 +48,14 @@ public class ReminderSender implements Sender {
                 .collect(Collectors.toMap(DailyMemberStat::memberId, stat -> stat));
 
         return memberSettings.stream()
-                .map(member -> {
+                .<PushTask>map(member -> {
                     DailyMemberStat stat = statMap.get(member.memberId());
-                    return setTask(member.type(), member.fcmToken(), stat);
+                    return createTask(member.type(), member.fcmToken(), stat);
                 })
                 .toList();
     }
 
-    private PushTask setTask(NotificationType type, String fcmToken, DailyMemberStat stat) {
+    private TokenPushTask createTask(NotificationType type, String fcmToken, DailyMemberStat stat) {
         String message;
         if (stat == null) {
             // Map에 없으면 산책을 아예 안 한 사람
@@ -53,11 +66,11 @@ public class ReminderSender implements Sender {
             message = "오늘도 잊지 않고 산책 완료! 훌륭한 보호자이십니다 🐾";
         }
 
-        return PushTask.builder()
-                .fcmToken(fcmToken)
-                .type(type)
-                .title("오늘도 산책할 시간이에요!")
-                .body(message)
-                .build();
+        return new TokenPushTask(
+                fcmToken,
+                type,
+                "오늘도 산책할 시간이에요!",
+                message
+        );
     }
 }
