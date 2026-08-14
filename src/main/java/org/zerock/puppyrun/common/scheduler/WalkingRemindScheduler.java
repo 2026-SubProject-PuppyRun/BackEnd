@@ -6,7 +6,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.zerock.puppyrun.notification.entity.NotificationType;
 import org.zerock.puppyrun.notification.service.NotificationProcessor;
-import org.zerock.puppyrun.notification.service.ReminderSender;
+import org.zerock.puppyrun.notification.service.sender.ReminderSender;
 
 @Component
 @Slf4j

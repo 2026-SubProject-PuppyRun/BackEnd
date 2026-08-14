@@ -1,10 +1,12 @@
 package org.zerock.puppyrun.notification.repository;
 
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
@@ -21,8 +23,12 @@ public class NotificationRepoCustomImpl implements NotificationRepoCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<EnabledNotifications> findNextMembers(LocalDateTime lastCreatedAt, Pageable pageable,
-                                                      NotificationType type) {
+    public List<EnabledNotifications> findNextMembers(
+            LocalDateTime lastCreatedAt,
+            UUID lastMemberId,
+            Pageable pageable,
+            NotificationType type
+    ) {
 
         return queryFactory
                 .select(Projections.constructor(EnabledNotifications.class,
@@ -38,13 +44,21 @@ public class NotificationRepoCustomImpl implements NotificationRepoCustom {
                         notificationSettings.isPushAgreed.eq(true),
                         notificationSettings.isActive.eq(true),
                         notificationSettings.optOutTypes.contains(type).not(),
-
-                        // 처음 조회할 때는 lastCreatedAt이 null일 수 있으므로 동적 쿼리 처리
-                        lastCreatedAt != null ? member.createdAt.gt(lastCreatedAt) : null
+                        afterCursor(lastCreatedAt, lastMemberId)
                 )
-                .orderBy(member.createdAt.asc())
-                .limit(pageable.getPageSize())
+                .orderBy(member.createdAt.asc(), member.id.asc())
+                .limit(pageable.getPageSize() + 1)
                 .fetch();
 
+    }
+
+    private BooleanExpression afterCursor(LocalDateTime lastCreatedAt, UUID lastMemberId) {
+        if (lastCreatedAt == null || lastMemberId == null) {
+            return null;
+        }
+
+        return member.createdAt.gt(lastCreatedAt)
+                .or(member.createdAt.eq(lastCreatedAt)
+                        .and(member.id.gt(lastMemberId)));
     }
 }
