@@ -23,8 +23,8 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class WeatherForecastCollector {
 
-    private static final int MAX_CONCURRENT_REQUESTS = 5;
-    private static final Duration API_REQUEST_TIMEOUT = Duration.ofSeconds(10);
+    private static final int MAX_CONCURRENT_REQUESTS = 3;
+    private static final Duration API_REQUEST_TIMEOUT = Duration.ofSeconds(15);
 
     private final WeatherApiClient weatherApiClient;
     private final WeatherRegionCatalog weatherRegionCatalog;
@@ -140,7 +140,7 @@ public class WeatherForecastCollector {
             Throwable error
     ) {
         if (error instanceof WeatherApiResponseException apiEx) {
-            log.error(
+            log.warn(
                     "기상청 API 응답 오류: nx={}, ny={}, code={}, message={}",
                     gridPoint.nx(),
                     gridPoint.ny(),
@@ -148,7 +148,7 @@ public class WeatherForecastCollector {
                     apiEx.getMessage()
             );
         } else {
-            log.error(
+            log.warn(
                     "기상청 API 호출 또는 응답 변환 실패: type={}, nx={}, ny={}, reason={}",
                     forecast.getType(),
                     gridPoint.nx(),
