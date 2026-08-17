@@ -39,12 +39,20 @@ public interface TrackingRepoCustom {
     /**
      * 기준 시각 이후 산책한 회원 ID를 페이지 단위로 조회합니다.
      */
-    List<UUID> findActiveMemberIds(LocalDateTime startDateTime, Pageable pageable);
+    List<UUID> findActiveMemberIds(
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime,
+            Pageable pageable
+    );
 
     /**
      * 여러 회원의 기준 시각 이후 산책 기록을 회원과 함께 조회합니다.
      */
-    List<Tracking> findAllByMemberIdsAndDateRange(List<UUID> memberIds, LocalDateTime startDateTime);
+    List<Tracking> findAllByMemberIdsAndDateRange(
+            List<UUID> memberIds,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    );
 
     /**
      * 멤버의 특정 기간 동안의 일별 산책 누적 거리, 누적 시간, 산책 횟수를 쿼리로 조회

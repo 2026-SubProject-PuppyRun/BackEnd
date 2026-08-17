@@ -181,12 +181,19 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
     }
 
     @Override
-    public List<UUID> findActiveMemberIds(LocalDateTime startDateTime, Pageable pageable) {
+    public List<UUID> findActiveMemberIds(
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime,
+            Pageable pageable
+    ) {
         return queryFactory
                 .select(tracking.member.id)
                 .distinct()
                 .from(tracking)
-                .where(tracking.startedAt.goe(startDateTime))
+                .where(
+                        tracking.startedAt.goe(startDateTime),
+                        tracking.startedAt.lt(endDateTime)
+                )
                 .orderBy(tracking.member.id.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -196,14 +203,16 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
     @Override
     public List<Tracking> findAllByMemberIdsAndDateRange(
             List<UUID> memberIds,
-            LocalDateTime startDateTime
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
     ) {
         return queryFactory
                 .selectFrom(tracking)
                 .join(tracking.member, member).fetchJoin()
                 .where(
                         tracking.member.id.in(memberIds),
-                        tracking.startedAt.goe(startDateTime)
+                        tracking.startedAt.goe(startDateTime),
+                        tracking.startedAt.lt(endDateTime)
                 )
                 .fetch();
     }

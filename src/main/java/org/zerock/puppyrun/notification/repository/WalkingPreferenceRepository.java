@@ -1,6 +1,8 @@
 package org.zerock.puppyrun.notification.repository;
 
-import java.util.Optional;
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.zerock.puppyrun.notification.entity.WalkingPreference;
@@ -10,5 +12,8 @@ import org.zerock.puppyrun.notification.entity.WalkingPreference;
  */
 public interface WalkingPreferenceRepository extends JpaRepository<WalkingPreference, UUID> {
 
-    Optional<WalkingPreference> findByMemberId(UUID memberId);
+    List<WalkingPreference> findAllByMemberIdInAndAnalysisDate(
+            Collection<UUID> memberIds,
+            LocalDate analysisDate
+    );
 }
