@@ -75,9 +75,6 @@ public class AllergyCommandService {
     }
 
     private AllergySeverity toSeverity(String severity) {
-        if (severity == null) {
-            return null;
-        }
         return AllergySeverity.from(severity);
     }
 }

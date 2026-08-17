@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
 import org.zerock.puppyrun.care.entity.AllergyRecord;
+import org.zerock.puppyrun.care.entity.AllergySeverity;
 import org.zerock.puppyrun.pet.entity.Pet;
 
 @Builder
@@ -42,7 +43,9 @@ public record AllergyListResponse(
                     .allergyId(allergyRecord.getId())
                     .allergenName(allergyRecord.getAllergenName())
                     .symptom(allergyRecord.getSymptom())
-                    .severity(allergyRecord.getSeverity() != null ? allergyRecord.getSeverity().name() : null)
+                    .severity(allergyRecord.getSeverity() != null
+                            ? allergyRecord.getSeverity().name()
+                            : AllergySeverity.NONE.name())
                     .identifiedAt(allergyRecord.getIdentifiedAt())
                     .isActive(allergyRecord.getIsActive())
                     .memo(allergyRecord.getMemo())

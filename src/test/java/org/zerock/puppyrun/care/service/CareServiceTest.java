@@ -23,6 +23,7 @@ import org.zerock.puppyrun.care.controller.response.MedicationRecordResponse;
 import org.zerock.puppyrun.care.controller.response.VaccinationListResponse;
 import org.zerock.puppyrun.care.controller.response.VaccinationRecordResponse;
 import org.zerock.puppyrun.care.entity.CareEventType;
+import org.zerock.puppyrun.care.entity.AllergySeverity;
 import org.zerock.puppyrun.care.repository.AllergyRecordRepository;
 import org.zerock.puppyrun.care.repository.MedicationRecordRepository;
 import org.zerock.puppyrun.care.repository.VaccinationRecordRepository;
@@ -135,6 +136,94 @@ class CareServiceTest extends TestContainerConfig {
         assertThat(updated.allergenName()).isEqualTo("소고기");
         assertThat(updated.severity()).isEqualTo("MILD");
         assertThat(updated.isActive()).isFalse();
+        assertThat(allergyRecordRepository.count()).isZero();
+    }
+
+    @Test
+    @DisplayName("알러지 심각도 미입력 시 NONE으로 저장하고 조회한다")
+    void registerAllergyWithoutSeverityStoresNone() {
+        // given
+        OwnerPetData fixture = new MemberPetTestData(
+                memberRegistrationService,
+                petCommandService
+        ).create(
+                MemberFixture.CARE_OWNER,
+                PetFixture.MALTESE,
+                3.5
+        );
+
+        // when
+        AllergyRecordResponse registered = allergyCommandService.registerAllergy(
+                fixture.ownerPrincipal(),
+                fixture.petId(),
+                new RegisterAllergyRequest("닭고기", null, null, null, true, null)
+        );
+        AllergyListResponse found = allergyQueryService.getAllergyList(
+                fixture.ownerPrincipal(),
+                fixture.petId()
+        );
+
+        // then
+        assertThat(registered.severity()).isEqualTo("NONE");
+        assertThat(found.allergyList().getFirst().severity()).isEqualTo("NONE");
+        assertThat(allergyRecordRepository.findById(registered.allergyId()).orElseThrow().getSeverity())
+                .isEqualTo(AllergySeverity.NONE);
+    }
+
+    @Test
+    @DisplayName("알러지 심각도는 수정 시 미입력하면 NONE으로 변경한다")
+    void updateAllergyWithoutSeverityStoresNone() {
+        // given
+        OwnerPetData fixture = new MemberPetTestData(
+                memberRegistrationService,
+                petCommandService
+        ).create(
+                MemberFixture.CARE_OWNER,
+                PetFixture.MALTESE,
+                3.5
+        );
+        AllergyRecordResponse registered = allergyCommandService.registerAllergy(
+                fixture.ownerPrincipal(),
+                fixture.petId(),
+                new RegisterAllergyRequest("닭고기", null, "SEVERE", null, true, null)
+        );
+
+        // when
+        AllergyRecordResponse updated = allergyCommandService.updateAllergy(
+                fixture.ownerPrincipal(),
+                fixture.petId(),
+                registered.allergyId(),
+                new UpdateAllergyRequest("닭고기", null, " ", null, true, null)
+        );
+
+        // then
+        assertThat(updated.severity()).isEqualTo("NONE");
+        assertThat(allergyRecordRepository.findById(registered.allergyId()).orElseThrow().getSeverity())
+                .isEqualTo(AllergySeverity.NONE);
+    }
+
+    @Test
+    @DisplayName("알러지 심각도는 정의되지 않은 값이면 예외를 발생시킨다")
+    void registerAllergyWithInvalidSeverityThrowsException() {
+        // given
+        OwnerPetData fixture = new MemberPetTestData(
+                memberRegistrationService,
+                petCommandService
+        ).create(
+                MemberFixture.CARE_OWNER,
+                PetFixture.MALTESE,
+                3.5
+        );
+
+        // when
+        Throwable thrown = catchThrowable(() -> allergyCommandService.registerAllergy(
+                fixture.ownerPrincipal(),
+                fixture.petId(),
+                new RegisterAllergyRequest("닭고기", null, "UNKNOWN", null, true, null)
+        ));
+
+        // then
+        assertThat(thrown).isInstanceOf(InvalidValueException.class);
         assertThat(allergyRecordRepository.count()).isZero();
     }
 
