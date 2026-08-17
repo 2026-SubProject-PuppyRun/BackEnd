@@ -22,8 +22,6 @@ logging:
   level:
     root: INFO
     org.zerock.puppyrun: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
 
 
 # 날씨 보상 재시도 지연 TTL

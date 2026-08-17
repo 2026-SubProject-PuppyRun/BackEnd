@@ -45,7 +45,7 @@ public record WeatherDTO(
         }
 
         return switch (raw) {
-            case "1.0mm 미만" -> 0.1;
+            case "1mm 미만" -> 0.1;
             case "30.0~50.0mm" -> 30.0;
             case "50.0mm 이상" -> 50.0;
             default -> Double.parseDouble(raw.replace("mm", ""));
