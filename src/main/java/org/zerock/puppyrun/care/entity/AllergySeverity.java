@@ -3,11 +3,16 @@ package org.zerock.puppyrun.care.entity;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
 
 public enum AllergySeverity {
+    NONE,
     MILD,
     MODERATE,
     SEVERE;
 
     public static AllergySeverity from(String severity) {
+        if (severity == null || severity.isBlank()) {
+            return NONE;
+        }
+
         try {
             return AllergySeverity.valueOf(severity);
         } catch (IllegalArgumentException e) {
