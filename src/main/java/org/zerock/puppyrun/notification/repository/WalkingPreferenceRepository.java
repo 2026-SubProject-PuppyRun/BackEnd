@@ -10,10 +10,11 @@ import org.zerock.puppyrun.notification.entity.WalkingPreference;
 /**
  * 회원별 산책 선호도 영속화를 담당합니다.
  */
-public interface WalkingPreferenceRepository extends JpaRepository<WalkingPreference, UUID> {
+public interface WalkingPreferenceRepository extends JpaRepository<WalkingPreference, UUID>, WalkingPreferenceRepoCustom {
 
     List<WalkingPreference> findAllByMemberIdInAndAnalysisDate(
             Collection<UUID> memberIds,
             LocalDate analysisDate
     );
+
 }
