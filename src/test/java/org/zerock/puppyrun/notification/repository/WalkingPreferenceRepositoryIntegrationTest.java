@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
@@ -51,6 +52,47 @@ class WalkingPreferenceRepositoryIntegrationTest extends TestContainerConfig {
                     assertThat(preference.getAnalysisDate()).isEqualTo(analysisDate);
                     assertThat(preference.getWeekdayTime()).isEqualTo(LocalTime.of(18, 0));
                     assertThat(preference.getWeekdayScore()).isEqualTo(10);
+                });
+    }
+
+    @Test
+    @DisplayName("회원 목록과 생성 시각 범위로 산책 선호도 스냅샷을 조회한다")
+    void findByMemberIdsAndCreatedAtBetween() {
+        // given
+        Member targetMember = Member.builder()
+                .email("walking-preference-target@test.com")
+                .nickName("walking-preference-target")
+                .password("encoded-password")
+                .build();
+        Member excludedMember = Member.builder()
+                .email("walking-preference-excluded@test.com")
+                .nickName("walking-preference-excluded")
+                .password("encoded-password")
+                .build();
+        entityManager.persist(targetMember);
+        entityManager.persist(excludedMember);
+        LocalDateTime from = LocalDateTime.now().minusMinutes(1);
+        walkingPreferenceRepository.saveAll(List.of(
+                preference(targetMember, LocalDate.of(2026, 8, 14), LocalTime.of(18, 0), 10),
+                preference(excludedMember, LocalDate.of(2026, 8, 14), LocalTime.of(8, 0), 4)
+        ));
+        entityManager.flush();
+        entityManager.clear();
+
+        // when
+        List<WalkingPreference> preferences = walkingPreferenceRepository
+                .findByMemberIdsAndCreatedAtBetween(
+                        List.of(targetMember.getId()),
+                        from,
+                        LocalDateTime.now().plusMinutes(1)
+                );
+
+        // then
+        assertThat(preferences)
+                .singleElement()
+                .satisfies(preference -> {
+                    assertThat(preference.getMember().getId()).isEqualTo(targetMember.getId());
+                    assertThat(preference.getWeekdayTime()).isEqualTo(LocalTime.of(18, 0));
                 });
     }
 
