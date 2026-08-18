@@ -203,7 +203,10 @@ public class WeatherQueryService {
     }
 
     /**
-     * DB의 최신 단기예보를 조회하여 기존 예보에 추가합니다.
+     * 최신 발표본과 직전 발표본을 한 번에 조회해 최신 발표본을 우선으로 병합합니다.
+     *
+     * <p>새 단기예보가 현재 시각의 예보를 아직 포함하지 않을 수 있으므로, 최신 발표본에서 비는 시간만
+     * 직전 발표본으로 보완합니다.</p>
      */
     private void addDbForecasts(
             ForecastType forecastType,
@@ -212,26 +215,42 @@ public class WeatherQueryService {
             LocalDateTime endTime,
             Map<LocalDateTime, WeatherDTO.WeatherList> forecasts
     ) {
-        weatherForecastRepository
-                .findFirstByNxAndNyAndTypeOrderByBaseDateTimeDesc(
-                        gridPoint.nx(),
-                        gridPoint.ny(),
-                        forecastType
-                )
-                .map(WeatherForecastEntity::getWeather)
-                .ifPresentOrElse(
-                        weather -> addForecasts(
-                                weather.weatherList(),
-                                startTime,
-                                endTime,
-                                forecasts
-                        ),
-                        () -> log.debug(
-                                "DB 백업 날씨가 없습니다. nx={}, ny={}",
-                                gridPoint.nx(),
-                                gridPoint.ny()
-                        )
-                );
+        List<WeatherForecastEntity> candidates = weatherForecastRepository
+                .findLatestAndPreviousByGridPoint(gridPoint, forecastType);
+
+        if (candidates.isEmpty()) {
+            log.debug(
+                    "DB 백업 날씨가 없습니다. nx={}, ny={}",
+                    gridPoint.nx(),
+                    gridPoint.ny()
+            );
+            return;
+        }
+
+        WeatherDTO mergedWeather = mergeLatestAndPreviousForecasts(candidates);
+        addForecasts(mergedWeather.weatherList(), startTime, endTime, forecasts);
+    }
+
+    private WeatherDTO mergeLatestAndPreviousForecasts(
+            List<WeatherForecastEntity> candidates
+    ) {
+        Map<LocalDateTime, WeatherDTO.WeatherList> mergedForecasts = new TreeMap<>();
+
+        for (WeatherForecastEntity candidate : candidates) {
+            List<WeatherDTO.WeatherList> weatherList = candidate.getWeather().weatherList();
+
+            if (weatherList == null) {
+                continue;
+            }
+
+            for (WeatherDTO.WeatherList weather : weatherList) {
+                if (hasValidDateTime(weather)) {
+                    mergedForecasts.putIfAbsent(toDateTime(weather), weather);
+                }
+            }
+        }
+
+        return new WeatherDTO(new ArrayList<>(mergedForecasts.values()));
     }
 
     /**
