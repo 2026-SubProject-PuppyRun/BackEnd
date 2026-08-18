@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.notification.entity.NotificationType;
@@ -23,7 +24,7 @@ import org.zerock.puppyrun.tracking.repository.TrackingRepository;
  * <p>산책하지 않은 회원, 3km 이상 산책한 회원, 그 외 회원을 구분해
  * 각 FCM 토큰에 대응하는 개인화된 전송 작업을 반환합니다.</p>
  */
-@Service
+@Component
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ReminderSender implements Sender {

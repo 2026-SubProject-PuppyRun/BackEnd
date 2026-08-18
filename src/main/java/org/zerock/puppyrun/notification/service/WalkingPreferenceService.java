@@ -8,8 +8,10 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -121,7 +123,7 @@ public class WalkingPreferenceService {
 
             // 회원별 산책 기록 목록에서 가장 최근의 산책 기록(Tracking) 1개씩만 추출
             Map<UUID, Tracking> latestTrackingMap = trackingMap.entrySet().stream()
-                    .collect(Collectors.toMap(Map.Entry::getKey, entry -> findLatestTracking(entry.getValue())));
+                    .collect(Collectors.toMap(Entry::getKey, entry -> findLatestTracking(entry.getValue())));
 
             // 각 회원의 최신 산책 기록에 대한 경로(TrackingRoute) 데이터를 일괄 조회하여 Map으로 매핑
             Map<UUID, TrackingRoute> routeMap = trackingRouteRepository.findAllByTrackingIdIn(
@@ -259,12 +261,12 @@ public class WalkingPreferenceService {
 
         // 전체 시간대 버킷별 점수 맵 생성 (LocalTime 기준 정렬)
         Map<LocalTime, Integer> bucketScores = scores.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
+                .sorted(Entry.comparingByKey())
                 .collect(Collectors.toMap(
                         entry -> LocalTime.of(entry.getKey() * BUCKET_SIZE_HOURS, 0),
                         entry -> entry.getValue().score,
                         (left, right) -> left,
-                        java.util.LinkedHashMap::new
+                        LinkedHashMap::new
                 ));
         return getBestScore(scores, bucketScores);
     }
@@ -315,9 +317,9 @@ public class WalkingPreferenceService {
     ) {
         return scores.entrySet().stream()
                 .max(Comparator
-                        .comparingInt((Map.Entry<Integer, ScoreAccumulator> entry) -> entry.getValue().score)
+                        .comparingInt((Entry<Integer, ScoreAccumulator> entry) -> entry.getValue().score)
                         .thenComparing(entry -> entry.getValue().latestStartedAt)
-                        .thenComparing(Map.Entry<Integer, ScoreAccumulator>::getKey, Comparator.reverseOrder()))
+                        .thenComparing(Entry<Integer, ScoreAccumulator>::getKey, Comparator.reverseOrder()))
                 .map(entry -> new PreferenceScore(
                         LocalTime.of(entry.getKey() * BUCKET_SIZE_HOURS, 0),
                         entry.getValue().score,

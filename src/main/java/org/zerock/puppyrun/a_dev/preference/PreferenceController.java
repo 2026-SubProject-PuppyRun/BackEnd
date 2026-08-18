@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.zerock.puppyrun.a_dev.config.DevOnly;
-import org.zerock.puppyrun.common.scheduler.WalkingPreferenceScheduler;
+import org.zerock.puppyrun.tracking.scheduler.WalkingPreferenceScheduler;
 
 @DevOnly
 @RestController

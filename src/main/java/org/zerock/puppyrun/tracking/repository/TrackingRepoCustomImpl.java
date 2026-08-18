@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
+import org.zerock.puppyrun.common.pagination.SliceResult;
 import org.zerock.puppyrun.statistics.DTO.PetActivityTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
@@ -40,7 +41,7 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public MainTrackingSummary findMainTrackingSummaries(UUID memberId, Pageable pageable) {
+    public SliceResult<MainTrackingSummary> findMainTrackingSummaries(UUID memberId, Pageable pageable) {
         List<Tuple> result = queryFactory
                 .select(
                         tracking.id,
@@ -67,10 +68,10 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
             result.remove(pageable.getPageSize()); // 안전하게 마지막 항목 제거
         }
 
-        List<MainTrackingSummary.TrackingSummary> summaries = result.stream()
+        List<MainTrackingSummary> summaries = result.stream()
                 .map(r -> {
                     List<RoutePoint> path = r.get(trackingRoute.rawPath); // originalPath 직접 추출
-                    return new MainTrackingSummary.TrackingSummary(
+                    return new MainTrackingSummary(
                             r.get(tracking.id),
                             r.get(trackingImage.imageUrl),
                             path != null ? path : List.of()
@@ -78,7 +79,7 @@ public class TrackingRepoCustomImpl implements TrackingRepoCustom {
                 })
                 .toList();
 
-        return new MainTrackingSummary(summaries, hasNext);
+        return new SliceResult<>(summaries, hasNext);
     }
 
     @Override

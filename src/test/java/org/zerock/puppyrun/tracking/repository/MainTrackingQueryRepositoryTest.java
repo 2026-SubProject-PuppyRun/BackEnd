@@ -12,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.zerock.puppyrun.a_config.TestContainerConfig;
+import org.zerock.puppyrun.common.pagination.SliceResult;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.tracking.DTO.MainTrackingSummary;
 import org.zerock.puppyrun.tracking.entity.RoutePoint;
@@ -63,19 +64,22 @@ class MainTrackingQueryRepositoryTest extends TestContainerConfig {
 
         // when
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
-        MainTrackingSummary summaryResult = trackingRepository.findMainTrackingSummaries(member.getId(), pageable);
-        List<MainTrackingSummary.TrackingSummary> summaries = summaryResult.trackingSummaries();
+        SliceResult<MainTrackingSummary> summaryResult = trackingRepository.findMainTrackingSummaries(
+                member.getId(),
+                pageable
+        );
+        List<MainTrackingSummary> summaries = summaryResult.content();
 
         // then
         assertThat(statistics.getPrepareStatementCount()).isEqualTo(1L);
         assertThat(summaries).hasSize(2);
 
-        MainTrackingSummary.TrackingSummary latestSummary = summaries.getFirst();
+        MainTrackingSummary latestSummary = summaries.getFirst();
         assertThat(latestSummary.trackingId()).isEqualTo(latestTracking.getId());
         assertThat(latestSummary.featuredImage()).isEqualTo("tracking/featured.jpg");
         assertThat(latestSummary.path()).containsExactlyElementsOf(latestPath);
 
-        MainTrackingSummary.TrackingSummary olderSummary = summaries.getLast();
+        MainTrackingSummary olderSummary = summaries.getLast();
         assertThat(olderSummary.trackingId()).isEqualTo(olderTracking.getId());
         assertThat(olderSummary.featuredImage()).isNull();
         assertThat(olderSummary.path())

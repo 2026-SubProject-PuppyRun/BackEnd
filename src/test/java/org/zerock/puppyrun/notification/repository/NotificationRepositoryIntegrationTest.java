@@ -53,13 +53,13 @@ class NotificationRepositoryIntegrationTest extends TestContainerConfig {
                 null,
                 PageRequest.of(0, 100),
                 NotificationType.DAILY_WALKING_REMINDER
-        );
+        ).content();
         List<EnabledNotifications> noticeRecipients = notificationRepository.findNextMembers(
                 null,
                 null,
                 PageRequest.of(0, 100),
                 NotificationType.NOTICE
-        );
+        ).content();
 
         // then
         assertThat(dailyRecipients)
@@ -89,7 +89,7 @@ class NotificationRepositoryIntegrationTest extends TestContainerConfig {
                 null,
                 PageRequest.of(0, 100),
                 NotificationType.DAILY_WALKING_REMINDER
-        );
+        ).content();
 
         // then
         assertThat(deactivatedCount).isEqualTo(1);

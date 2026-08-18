@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.common.exception.UserForbiddenException;
+import org.zerock.puppyrun.common.pagination.SliceResult;
 import org.zerock.puppyrun.tracking.DTO.MainTrackingSummary;
 import org.zerock.puppyrun.tracking.DTO.TrackingDetailSummary;
 import org.zerock.puppyrun.tracking.controller.response.MainTrackingResponse;
@@ -25,7 +26,7 @@ public class TrackingQueryService {
      * 산책 리스트 조회
      */
     public MainTrackingResponse getTrackingListResponse(UUID memberId, Pageable pageable) {
-        MainTrackingSummary summaries = trackingRepository.findMainTrackingSummaries(memberId, pageable);
+        SliceResult<MainTrackingSummary> summaries = trackingRepository.findMainTrackingSummaries(memberId, pageable);
         return MainTrackingResponse.from(summaries);
     }
 
