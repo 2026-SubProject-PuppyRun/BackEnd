@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,8 +48,12 @@ class PetQueryServiceTest {
         UserPrincipal principal = principal();
         Pet firstPet = pet("몽이", 12_000);
         Pet secondPet = pet("초코", 55_000);
+        UUID firstPetId = firstPet.getId();
+        UUID secondPetId = secondPet.getId();
         when(petRepository.findAllByMemberId(principal.id()))
                 .thenReturn(List.of(firstPet, secondPet));
+        when(petStatistics.getTotalWalkedDistances(List.of(firstPetId, secondPetId)))
+                .thenReturn(Map.of(firstPetId, 12_000, secondPetId, 55_000));
 
         // when
         PetProgressResponse result = petQueryService.getPetProgress(principal, null);
@@ -85,6 +90,7 @@ class PetQueryServiceTest {
         UUID petId = UUID.randomUUID();
         Pet pet = pet(petId, "몽이", 12_000);
         when(petRepository.findByIdAndVerifyOwnership(petId, principal.id())).thenReturn(pet);
+        when(petStatistics.getTotalWalkedDistances(List.of(petId))).thenReturn(Map.of(petId, 12_000));
 
         // when
         PetProgressResponse result = petQueryService.getPetProgress(principal, List.of(petId));
@@ -106,9 +112,13 @@ class PetQueryServiceTest {
         UserPrincipal principal = principal();
         Pet firstPet = pet("몽이", 12_000);
         Pet secondPet = pet("초코", 55_000);
-        List<UUID> requestedIds = List.of(firstPet.getId(), secondPet.getId());
+        UUID firstPetId = firstPet.getId();
+        UUID secondPetId = secondPet.getId();
+        List<UUID> requestedIds = List.of(firstPetId, secondPetId);
         when(petRepository.findAllByMemberIdAndIdIn(principal.id(), requestedIds))
                 .thenReturn(List.of(secondPet, firstPet));
+        when(petStatistics.getTotalWalkedDistances(requestedIds))
+                .thenReturn(Map.of(firstPetId, 12_000, secondPetId, 55_000));
 
         // when
         PetProgressResponse result = petQueryService.getPetProgress(principal, requestedIds);
@@ -149,7 +159,6 @@ class PetQueryServiceTest {
         Pet pet = mock(Pet.class);
         when(pet.getId()).thenReturn(petId);
         when(pet.getName()).thenReturn(name);
-        when(pet.getWalkedDistance()).thenReturn(walkedDistance);
         return pet;
     }
 }

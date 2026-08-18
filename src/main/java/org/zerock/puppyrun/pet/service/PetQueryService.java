@@ -37,7 +37,7 @@ public class PetQueryService {
      */
     public PetDetailResponse getPet(UserPrincipal userPrincipal, UUID petId) {
         Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
-        return PetDetailResponse.of(pet);
+        return PetDetailResponse.of(pet, petStatistics.getTotalWalkedDistance(pet));
     }
 
     /**
@@ -67,7 +67,7 @@ public class PetQueryService {
         // 사용자 소유 펫 전체 조회
         if (petIds == null || petIds.isEmpty()) {
             List<Pet> pets = petRepository.findAllByMemberId(userPrincipal.id());
-            return PetProgressResponse.from(pets);
+            return progressResponse(pets);
         }
 
         // 중복 제거
@@ -81,7 +81,7 @@ public class PetQueryService {
                     distinctPetIds.getFirst(),
                     userPrincipal.id()
             );
-            return PetProgressResponse.from(pet);
+            return progressResponse(List.of(pet));
         }
 
         // 복수 조회
@@ -97,7 +97,18 @@ public class PetQueryService {
                 .map(petById::get)
                 .toList();
 
-        return PetProgressResponse.from(orderedPets);
+        return progressResponse(orderedPets);
+    }
+
+    private PetProgressResponse progressResponse(List<Pet> pets) {
+        if (pets.isEmpty()) {
+            return PetProgressResponse.from(List.of(), Map.of());
+        }
+
+        Map<UUID, Integer> walkedDistances = petStatistics.getTotalWalkedDistances(
+                pets.stream().map(Pet::getId).toList()
+        );
+        return PetProgressResponse.from(pets, walkedDistances);
     }
 
 }

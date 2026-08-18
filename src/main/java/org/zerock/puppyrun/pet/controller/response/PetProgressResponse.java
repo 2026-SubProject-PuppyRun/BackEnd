@@ -1,6 +1,7 @@
 package org.zerock.puppyrun.pet.controller.response;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.Builder;
 import org.zerock.puppyrun.common.s3.support.S3Url;
@@ -11,16 +12,10 @@ public record PetProgressResponse(
         List<PetProgress> petProgresses
 ) {
 
-    public static PetProgressResponse from(List<Pet> pets) {
+    public static PetProgressResponse from(List<Pet> pets, Map<UUID, Integer> walkedDistances) {
         List<PetProgress> petProgresses = pets.stream()
-                .map(PetProgress::from)
+                .map(pet -> PetProgress.from(pet, walkedDistances.getOrDefault(pet.getId(), 0)))
                 .toList();
-
-        return new PetProgressResponse(petProgresses);
-    }
-
-    public static PetProgressResponse from(Pet pets) {
-        List<PetProgress> petProgresses = List.of(PetProgress.from(pets));
 
         return new PetProgressResponse(petProgresses);
     }
@@ -33,12 +28,12 @@ public record PetProgressResponse(
             TrackingProgress trackingProgress
     ) {
 
-        public static PetProgress from(Pet pet) {
+        public static PetProgress from(Pet pet, int walkedDistance) {
             return PetProgress.builder()
                     .petId(pet.getId())
                     .name(pet.getName())
                     .profileImage(pet.getProfileImageUrl())
-                    .trackingProgress(TrackingProgress.from(pet.getWalkedDistance()))
+                    .trackingProgress(TrackingProgress.from(walkedDistance))
                     .build();
         }
 

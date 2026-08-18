@@ -166,8 +166,6 @@ public class TrackingCommandService {
             throw new UserForbiddenException("본인의 소유가 아닌 강아지는 산책에 등록할 수 없습니다.");
         }
 
-        petList.forEach(pet -> pet.addWalkedDistance(savedTracking.getDistance()));
-
         List<PetTracking> petTrackingList = petList.stream()
                 .map(pet -> PetTracking.builder()
                         .pet(pet)

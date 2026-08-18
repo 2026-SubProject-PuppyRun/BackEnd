@@ -2,8 +2,11 @@ package org.zerock.puppyrun.statistics.service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -13,6 +16,7 @@ import org.zerock.puppyrun.pet.entity.Pet;
 import org.zerock.puppyrun.pet.entity.PetWeightLog;
 import org.zerock.puppyrun.pet.repository.PetWeightLogRepository;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
+import org.zerock.puppyrun.tracking.DTO.PetWalkedDistance;
 import org.zerock.puppyrun.tracking.repository.PetTrackingRepository;
 
 @Component
@@ -86,7 +90,15 @@ public class PetStatistics {
      * @param pet 펫 엔티티
      */
     public int getTotalWalkedDistance(Pet pet) {
-        return petTrackingRepository.sumTotalDistanceByPetId(pet.getId());
+        return getTotalWalkedDistances(List.of(pet.getId())).getOrDefault(pet.getId(), 0);
+    }
+
+    /**
+     * 펫 목록의 실제 누적 산책 거리를 GROUP BY 집계로 한 번에 조회합니다.
+     */
+    public Map<UUID, Integer> getTotalWalkedDistances(List<UUID> petIds) {
+        return petTrackingRepository.findTotalWalkedDistancesByPetIds(petIds).stream()
+                .collect(Collectors.toMap(PetWalkedDistance::petId, PetWalkedDistance::walkedDistance));
     }
 
     /**

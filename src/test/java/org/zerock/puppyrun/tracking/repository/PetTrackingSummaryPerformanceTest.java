@@ -278,7 +278,7 @@ class PetTrackingSummaryPerformanceTest extends TestContainerConfig {
         }
         return new TotalPetTracking(
                 pet.getId(), startDate, endDate, pet.getName(), pet.getProfileImageUrl(),
-                pet.getColor(), pet.getWalkedDistance(),
+                pet.getColor(), 0,
                 Math.toIntExact(totals.get("distance", Long.class)),
                 Math.toIntExact(totals.get("duration", Long.class)),
                 totals.get("count", Long.class),
@@ -297,7 +297,7 @@ class PetTrackingSummaryPerformanceTest extends TestContainerConfig {
         }
         return new TotalPetTracking(
                 pet.getId(), startDate, endDate, pet.getName(), pet.getProfileImageUrl(),
-                pet.getColor(), pet.getWalkedDistance(),
+                pet.getColor(), 0,
                 Math.toIntExact(totals.distance),
                 Math.toIntExact(totals.duration),
                 totals.count,
@@ -308,7 +308,7 @@ class PetTrackingSummaryPerformanceTest extends TestContainerConfig {
     private TotalPetTracking emptySummary(Pet pet, LocalDate startDate, LocalDate endDate) {
         return new TotalPetTracking(
                 pet.getId(), startDate, endDate, pet.getName(), pet.getProfileImageUrl(),
-                pet.getColor(), pet.getWalkedDistance(), 0, 0, 0L, 0.0, 0);
+                pet.getColor(), 0, 0, 0, 0L, 0.0, 0);
     }
 
     private double medianMillis(Supplier<List<TotalPetTracking>> invocation) {
