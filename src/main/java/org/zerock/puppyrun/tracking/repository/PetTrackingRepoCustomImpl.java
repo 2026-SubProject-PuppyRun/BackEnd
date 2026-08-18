@@ -9,6 +9,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
+import org.zerock.puppyrun.tracking.DTO.PetWalkedDistance;
 
 import static org.zerock.puppyrun.pet.entity.QPet.pet;
 import static org.zerock.puppyrun.tracking.entity.QPetTracking.petTracking;
@@ -30,6 +31,26 @@ public class PetTrackingRepoCustomImpl implements PetTrackingRepoCustom {
                 .fetchOne();
 
         return result != null ? result : 0;
+    }
+
+    @Override
+    public List<PetWalkedDistance> findTotalWalkedDistancesByPetIds(List<UUID> petIds) {
+        if (petIds.isEmpty()) {
+            return List.of();
+        }
+
+        return queryFactory
+                .select(Projections.constructor(
+                        PetWalkedDistance.class,
+                        pet.id,
+                        tracking.distance.sum().coalesce(0)
+                ))
+                .from(pet)
+                .leftJoin(petTracking).on(petTracking.pet.eq(pet))
+                .leftJoin(petTracking.tracking, tracking)
+                .where(pet.id.in(petIds))
+                .groupBy(pet.id)
+                .fetch();
     }
 
     @Override
