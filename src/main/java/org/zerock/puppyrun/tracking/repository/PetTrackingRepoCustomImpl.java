@@ -2,6 +2,7 @@ package org.zerock.puppyrun.tracking.repository;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDate;
 import java.util.List;
@@ -10,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.zerock.puppyrun.tracking.DTO.TotalPetTracking;
 import org.zerock.puppyrun.tracking.DTO.PetWalkedDistance;
+import org.zerock.puppyrun.tracking.entity.QPetTracking;
+import org.zerock.puppyrun.tracking.entity.QTracking;
 
 import static org.zerock.puppyrun.pet.entity.QPet.pet;
 import static org.zerock.puppyrun.tracking.entity.QPetTracking.petTracking;
@@ -20,18 +23,6 @@ import static org.zerock.puppyrun.tracking.entity.QTracking.tracking;
 public class PetTrackingRepoCustomImpl implements PetTrackingRepoCustom {
 
     private final JPAQueryFactory queryFactory;
-
-    @Override
-    public int sumTotalDistanceByPetId(UUID petId) {
-        Integer result = queryFactory
-                .select(tracking.distance.sum().coalesce(0))
-                .from(petTracking)
-                .join(petTracking.tracking, tracking)
-                .where(petTracking.pet.id.eq(petId))
-                .fetchOne();
-
-        return result != null ? result : 0;
-    }
 
     @Override
     public List<PetWalkedDistance> findTotalWalkedDistancesByPetIds(List<UUID> petIds) {
@@ -67,6 +58,9 @@ public class PetTrackingRepoCustomImpl implements PetTrackingRepoCustom {
 
     @Override
     public List<TotalPetTracking> getTrackingSummaryByPetId(List<UUID> petId, LocalDate startDate, LocalDate endDate) {
+        QPetTracking totalPetTracking = new QPetTracking("totalPetTracking");
+        QTracking totalTracking = new QTracking("totalTracking");
+
         return queryFactory
                 .select(Projections.constructor(TotalPetTracking.class,
                         pet.id,
@@ -75,7 +69,11 @@ public class PetTrackingRepoCustomImpl implements PetTrackingRepoCustom {
                         pet.name,
                         pet.profileImageUrl,
                         pet.color,
-                        pet.walkedDistance,
+                        JPAExpressions
+                                .select(totalTracking.distance.sum().coalesce(0))
+                                .from(totalPetTracking)
+                                .join(totalPetTracking.tracking, totalTracking)
+                                .where(totalPetTracking.pet.eq(pet)),
                         tracking.distance.sum().coalesce(0),
                         tracking.duration.sum().coalesce(0),
                         tracking.count(),
@@ -91,7 +89,7 @@ public class PetTrackingRepoCustomImpl implements PetTrackingRepoCustom {
                                 .and(tracking.startedAt.lt(endDate.plusDays(1).atStartOfDay())) // < endDate+1 00:00
                 )
                 .where(pet.id.in(petId))
-                .groupBy(pet.id, pet.name, pet.profileImageUrl, pet.color, pet.walkedDistance)
+                .groupBy(pet.id, pet.name, pet.profileImageUrl, pet.color)
                 .fetch();
     }
 
