@@ -8,7 +8,6 @@ import static org.mockito.Mockito.mock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -109,9 +108,9 @@ class WeatherQueryServiceTest {
                 .type(org.zerock.puppyrun.weather.utils.WeatherForecast.ForecastType.SHORT_TERM)
                 .weather(dbWeatherData)
                 .build();
-        given(weatherForecastRepository.findFirstByNxAndNyAndTypeOrderByBaseDateTimeDesc(
-                98, 76, org.zerock.puppyrun.weather.utils.WeatherForecast.ForecastType.SHORT_TERM
-        )).willReturn(Optional.of(mockEntity));
+        given(weatherForecastRepository.findLatestAndPreviousByGridPoint(
+                gridPoint, org.zerock.puppyrun.weather.utils.WeatherForecast.ForecastType.SHORT_TERM
+        )).willReturn(List.of(mockEntity));
 
         // when (limit = 4)
         WeatherDTO result = weatherQueryService.getFcstWeather(gridPoint, now, 4);
@@ -120,6 +119,44 @@ class WeatherQueryServiceTest {
         assertThat(result.weatherList())
                 .extracting(WeatherDTO.WeatherList::temp)
                 .containsExactly("ultra", "short", "db", "db");
+    }
+
+    @Test
+    @DisplayName("최신 단기예보에 없는 시간은 직전 단기예보로 보완하고 겹치는 시간은 최신 값을 사용한다")
+    void mergeLatestAndPreviousDbForecasts() {
+        // given
+        GridPoint gridPoint = new GridPoint(63, 103);
+        LocalDateTime now = LocalDateTime.of(2026, 8, 18, 17, 35);
+        org.zerock.puppyrun.weather.utils.WeatherForecast.ForecastType forecastType =
+                org.zerock.puppyrun.weather.utils.WeatherForecast.ForecastType.SHORT_TERM;
+
+        WeatherForecastEntity latestForecast = WeatherForecastEntity.builder()
+                .baseDateTime(LocalDateTime.of(2026, 8, 18, 14, 0))
+                .nx(gridPoint.nx())
+                .ny(gridPoint.ny())
+                .type(forecastType)
+                .weather(weatherWithTemp("20260818", "latest", "1800", "1900"))
+                .build();
+        WeatherForecastEntity previousForecast = WeatherForecastEntity.builder()
+                .baseDateTime(LocalDateTime.of(2026, 8, 18, 11, 0))
+                .nx(gridPoint.nx())
+                .ny(gridPoint.ny())
+                .type(forecastType)
+                .weather(weatherWithTemp("20260818", "previous", "1700", "1800", "1900"))
+                .build();
+        given(weatherForecastRepository.findLatestAndPreviousByGridPoint(gridPoint, forecastType))
+                .willReturn(List.of(latestForecast, previousForecast));
+
+        // when
+        WeatherDTO result = weatherQueryService.getFcstWeather(gridPoint, now, 3);
+
+        // then
+        assertThat(result.weatherList())
+                .extracting(WeatherDTO.WeatherList::time)
+                .containsExactly("1700", "1800", "1900");
+        assertThat(result.weatherList())
+                .extracting(WeatherDTO.WeatherList::temp)
+                .containsExactly("previous", "latest", "latest");
     }
 
     @Test
@@ -185,9 +222,9 @@ class WeatherQueryServiceTest {
         // given
         GridPoint gridPoint = new GridPoint(98, 76);
         LocalDateTime now = LocalDateTime.of(2026, 8, 3, 10, 30);
-        given(weatherForecastRepository.findFirstByNxAndNyAndTypeOrderByBaseDateTimeDesc(
-                98, 76, org.zerock.puppyrun.weather.utils.WeatherForecast.ForecastType.SHORT_TERM
-        )).willReturn(Optional.empty());
+        given(weatherForecastRepository.findLatestAndPreviousByGridPoint(
+                gridPoint, org.zerock.puppyrun.weather.utils.WeatherForecast.ForecastType.SHORT_TERM
+        )).willReturn(List.of());
 
         // when & then
         assertThatThrownBy(() -> weatherQueryService.getFcstWeather(
