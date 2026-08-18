@@ -27,7 +27,7 @@ public record WeatherResponse(
                 .temp(weather.temp())
                 .sky(weather.sky().getCode())
                 .pty(weather.pty().getCode())
-                .pcp(weather.pcp())
+                .pcp(weather.pcp().toString())
                 .build();
         return WeatherResponse.builder()
                 .detail(detail)

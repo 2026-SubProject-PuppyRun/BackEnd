@@ -39,7 +39,7 @@ public class WeatherFixture {
                         "25",
                         SkyType.SUNNY,
                         PrecipitationType.NONE,
-                        "강수없음"
+                        0.0
                 )
         ));
     }

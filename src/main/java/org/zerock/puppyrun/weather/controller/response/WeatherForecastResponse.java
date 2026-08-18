@@ -58,7 +58,7 @@ public record WeatherForecastResponse(
                     .temp(dtoDetail.temp())
                     .sky(dtoDetail.sky().getCode()) // Enum -> Code String 변환
                     .pty(dtoDetail.pty().getCode()) // Enum -> Code String 변환
-                    .pcp(dtoDetail.pcp())
+                    .pcp(dtoDetail.pcp().toString())
                     .build();
         }
     }

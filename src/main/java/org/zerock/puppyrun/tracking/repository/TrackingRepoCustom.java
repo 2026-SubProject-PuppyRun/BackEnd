@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
+import org.zerock.puppyrun.common.pagination.SliceResult;
 import org.zerock.puppyrun.statistics.DTO.PetActivityTracking;
 import org.zerock.puppyrun.tracking.DTO.DailyMemberStat;
 import org.zerock.puppyrun.tracking.DTO.DailyTracking;
@@ -19,7 +20,7 @@ public interface TrackingRepoCustom {
     /**
      * 회원의 산책 목록을 대표 이미지, 경로와 함께 조회합니다.
      */
-    MainTrackingSummary findMainTrackingSummaries(UUID memberId, Pageable pageable);
+    SliceResult<MainTrackingSummary> findMainTrackingSummaries(UUID memberId, Pageable pageable);
 
     /**
      * 산책 상세 기본 정보와 경로 및 일기를 조회합니다.
@@ -39,12 +40,20 @@ public interface TrackingRepoCustom {
     /**
      * 기준 시각 이후 산책한 회원 ID를 페이지 단위로 조회합니다.
      */
-    List<UUID> findActiveMemberIds(LocalDateTime startDateTime, Pageable pageable);
+    List<UUID> findActiveMemberIds(
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime,
+            Pageable pageable
+    );
 
     /**
      * 여러 회원의 기준 시각 이후 산책 기록을 회원과 함께 조회합니다.
      */
-    List<Tracking> findAllByMemberIdsAndDateRange(List<UUID> memberIds, LocalDateTime startDateTime);
+    List<Tracking> findAllByMemberIdsAndDateRange(
+            List<UUID> memberIds,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    );
 
     /**
      * 멤버의 특정 기간 동안의 일별 산책 누적 거리, 누적 시간, 산책 횟수를 쿼리로 조회

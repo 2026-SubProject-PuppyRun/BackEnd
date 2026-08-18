@@ -1,5 +1,7 @@
 package org.zerock.puppyrun.tracking.repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,5 +19,7 @@ public interface TrackingRouteRepository extends JpaRepository<TrackingRoute, UU
      * @return 경로 데이터. 존재하지 않으면 빈 Optional
      */
     Optional<TrackingRoute> findByTrackingId(UUID trackingId);
+
+    List<TrackingRoute> findAllByTrackingIdIn(Collection<UUID> trackingIds);
 
 }

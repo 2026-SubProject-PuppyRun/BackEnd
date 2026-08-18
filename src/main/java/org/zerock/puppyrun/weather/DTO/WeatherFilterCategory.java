@@ -10,6 +10,6 @@ public record WeatherFilterCategory(
         String temp,
         String sky,
         String pty,
-        String precipitationAmount
+        String pcp
 ) {
 }

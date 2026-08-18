@@ -7,9 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.zerock.puppyrun.common.pagination.SliceResult;
 import org.zerock.puppyrun.notification.entity.NotificationType;
 import org.zerock.puppyrun.notification.client.NotificationEventClient;
 import org.zerock.puppyrun.notification.repository.DTO.EnabledNotifications;
@@ -33,48 +33,54 @@ public class NotificationProcessor {
     private final NotificationRepository notificationRepository;
     private final NotificationEventClient notificationEventClient;
 
-    private static final int CHUNK_SIZE = 1000;
+    private static final int PAGE_SIZE = 1000;
 
     /**
      * 알림 수신 대상자를 순차 조회해 회원별로 개인화된 토큰 메시지를 발송합니다.
      *
-     * <p>대상자는 생성 시각과 회원 ID로 구성된 커서를 기준으로 페이지 크기보다 한 명 더 조회해
-     * 다음 데이터 존재 여부를 판단하고, 실제 메시지 내용은 전달받은 {@link Sender} 구현체가 생성합니다.</p>
+     * <p>대상자는 생성 시각과 회원 ID로 구성된 커서를 기준으로 조회하며, 다음 조회 여부는
+     * Repository가 반환한 {@link SliceResult#hasNext()}로 판단합니다.</p>
      *
      * @param type   조회할 알림 유형
      * @param sender 회원별 토큰 메시지 생성 전략
      */
-    @Async("notificationTaskExecutor")
     public void broadcast(NotificationType type, Sender sender) {
-        // Limit만 1000으로 걸어주는 용도의 Pageable
-        Pageable limitOnly = PageRequest.of(0, CHUNK_SIZE);
+        Pageable limitOnly = PageRequest.of(0, PAGE_SIZE);
 
         LocalDateTime lastCreatedAt = null;
         UUID lastMemberId = null;
-        List<EnabledNotifications> memberSettings;
+        SliceResult<EnabledNotifications> recipientSlice;
+        int pageCount = 0;
+        int requestedCount = 0;
 
         do {
-            memberSettings = notificationRepository.findNextMembers(
+            recipientSlice = notificationRepository.findNextMembers(
                     lastCreatedAt,
                     lastMemberId,
                     limitOnly,
                     type
             );
+            List<EnabledNotifications> memberSettings = recipientSlice.content();
             if (memberSettings.isEmpty()) {
                 break; // 더 이상 데이터가 없으면 탈출
             }
-            // 메세지를 다르게 만드는 분기
+
             List<PushTask> pushTasks = sender.createPushTasks(memberSettings);
 
             // 검색된 멤버 알림 처리
             notificationEventClient.sendMessagesInBulk(pushTasks);
+            pageCount++;
+            requestedCount += pushTasks.size();
 
             EnabledNotifications lastMember = memberSettings.getLast();
             lastCreatedAt = lastMember.createdAt();
             lastMemberId = lastMember.memberId();
 
-            // CHUNK_SIZE 보다 크면 다시 조회
-        } while (memberSettings.size() > CHUNK_SIZE);
+        } while (recipientSlice.hasNext());
+
+        log.info("event=walking_reminder_requests_queued, type={}, pageCount={}, requestedCount={}",
+                type, pageCount, requestedCount
+        );
     }
 
     /**
@@ -84,7 +90,6 @@ public class NotificationProcessor {
      * @param title 알림 제목
      * @param body  알림 본문
      */
-    @Async("notificationTaskExecutor")
     public void broadcast(NotificationType type, String title, String body) {
 
         // 공통 메세지 생성

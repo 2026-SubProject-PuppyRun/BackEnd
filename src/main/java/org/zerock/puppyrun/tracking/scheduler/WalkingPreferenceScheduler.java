@@ -1,5 +1,7 @@
-package org.zerock.puppyrun.common.scheduler;
+package org.zerock.puppyrun.tracking.scheduler;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,6 +15,7 @@ import org.zerock.puppyrun.notification.service.WalkingPreferenceService;
 @RequiredArgsConstructor
 @Slf4j
 public class WalkingPreferenceScheduler {
+    private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
 
     private final WalkingPreferenceService walkingPreferenceService;
 
@@ -21,9 +24,10 @@ public class WalkingPreferenceScheduler {
      */
     @Scheduled(cron = "0 0 3 * * *")
     public void scheduledPreferenceUpdate() {
+        LocalDateTime now = LocalDateTime.now(KOREA_ZONE);
         log.info("정기 산책 패턴 분석을 시작합니다.");
         try {
-            walkingPreferenceService.updateAllMemberPreferences();
+            walkingPreferenceService.createDailySnapshots(now);
         } catch (Exception exception) {
             log.error("산책 패턴 분석 중 오류가 발생했습니다.", exception);
         }

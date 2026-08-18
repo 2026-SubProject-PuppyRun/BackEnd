@@ -10,6 +10,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
+import org.zerock.puppyrun.common.pagination.SliceResult;
 import org.zerock.puppyrun.member.entity.Status;
 import org.zerock.puppyrun.notification.entity.NotificationType;
 import org.zerock.puppyrun.notification.repository.DTO.EnabledNotifications;
@@ -23,14 +24,14 @@ public class NotificationRepoCustomImpl implements NotificationRepoCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<EnabledNotifications> findNextMembers(
+    public SliceResult<EnabledNotifications> findNextMembers(
             LocalDateTime lastCreatedAt,
             UUID lastMemberId,
             Pageable pageable,
             NotificationType type
     ) {
 
-        return queryFactory
+        List<EnabledNotifications> fetched = queryFactory
                 .select(Projections.constructor(EnabledNotifications.class,
                         notificationSettings.member.id,
                         Expressions.constant(type),
@@ -49,7 +50,12 @@ public class NotificationRepoCustomImpl implements NotificationRepoCustom {
                 .orderBy(member.createdAt.asc(), member.id.asc())
                 .limit(pageable.getPageSize() + 1)
                 .fetch();
+        boolean hasNext = fetched.size() > pageable.getPageSize();
+        List<EnabledNotifications> content = hasNext
+                ? fetched.subList(0, pageable.getPageSize())
+                : fetched;
 
+        return new SliceResult<>(content, hasNext);
     }
 
     private BooleanExpression afterCursor(LocalDateTime lastCreatedAt, UUID lastMemberId) {
