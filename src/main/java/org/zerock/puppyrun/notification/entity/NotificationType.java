@@ -15,6 +15,7 @@ public enum NotificationType {
     // 활동/산책 (ACT)
     DAILY_WALKING_REMINDER("ACT_001", Priority.HIGH, "일일 산책 리마인더"),
     WALK_GOAL_ACHIEVED("ACT_002", Priority.NORMAL, "주간 산책 목표 달성"),
+    RECOMMEND_TIME_REMINDER("ACT_003", Priority.NORMAL, "산책 시간 추천"),
 
     //  마케팅/이벤트 (MKT)
     EVENT_PROMO("MKT_001", Priority.NORMAL, "이벤트 및 프로모션 안내");
