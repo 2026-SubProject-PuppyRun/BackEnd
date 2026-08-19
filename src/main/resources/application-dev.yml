@@ -4,11 +4,11 @@ spring:
     hibernate:
       ddl-auto: update
 
-    show-sql: true
+    show-sql: false
 
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
   docker:
     compose:
@@ -21,7 +21,6 @@ spring:
 logging:
   level:
     root: INFO
-    org.zerock.puppyrun: DEBUG
 
 
 # 날씨 보상 재시도 지연 TTL
