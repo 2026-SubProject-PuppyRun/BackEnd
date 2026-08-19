@@ -88,7 +88,7 @@ class WeatherFailureCompensationIntegrationTest extends TestContainerConfig {
     }
 
     @Test
-    @DisplayName("DB 저장 실패 시 실제 RabbitMQ 1초 지연 DB 큐로 메시지가 발송되고 1초 후 비동기 리스너가 수신하여 2차 DB 멱등 영속화를 완결한다")
+    @DisplayName("DB 저장 실패 메시지를 실제 RabbitMQ 1초 지연 큐로 전달하고 비동기 리스너가 수신하여 DB에 영속화한다")
     void dbFailureFlowWithRealRabbitMqE2E() {
         // given
         WeatherForecast forecast = WeatherFixture.createShortTermForecast();
@@ -99,7 +99,7 @@ class WeatherFailureCompensationIntegrationTest extends TestContainerConfig {
         // when (실제 DB 지연 큐로 발행)
         dbRetryPublisher.publish(List.of(command));
 
-        // then (1초 지연 후 @RabbitListener가 메시지 수신 후 DB 멱등 저장 완료 대기)
+        // then (1초 지연 후 @RabbitListener가 메시지를 수신하여 DB 저장을 완료할 때까지 대기)
         Awaitility.await()
                 .atMost(Duration.ofSeconds(5))
                 .untilAsserted(() -> {

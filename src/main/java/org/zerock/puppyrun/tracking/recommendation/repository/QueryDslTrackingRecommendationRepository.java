@@ -24,8 +24,7 @@ import org.zerock.puppyrun.tracking.entity.Visibility;
  * 위치 기반 추천 경로 조회를 QueryDSL로 구현합니다.
  *
  * <p>MySQL이 공개 여부 조인을 먼저 수행하면 {@code start_point} 공간 인덱스를 사용하지 않을 수 있습니다.
- * 이를 방지하기 위해 공간 인덱스로 거리순 후보 ID를 먼저 조회하고, 후보의 공개 여부를 두 번째
- * 쿼리에서 확인합니다.</p>
+ * 이를 방지하기 위해 공간 인덱스로 거리순 후보 ID를 먼저 조회하고, 후보의 공개 여부를 두 번째 쿼리에서 확인합니다.</p>
  */
 @Repository
 @RequiredArgsConstructor
@@ -62,7 +61,7 @@ public class QueryDslTrackingRecommendationRepository implements TrackingRecomme
         SimpleExpression<Point> userPoint = geometryFromText(Point.class, pointWkt);
         SimpleExpression<Geometry> searchBounds = geometryFromText(Geometry.class, boundsWkt);
         BooleanExpression startsWithinBounds = Expressions.booleanTemplate(
-                "function('MBRContains', {0}, {1}) = 1",
+                "contains({0}, {1})",
                 searchBounds,
                 trackingRoute.startPoint
         );

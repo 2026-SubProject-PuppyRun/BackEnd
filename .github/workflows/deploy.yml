@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: '배포할 불변 ECR 이미지 태그 (예: Git SHA)'
+        description: '배포할 ECR 이미지 태그 (예: 1234567890)'
         required: true
         type: string
 
@@ -26,7 +26,7 @@ jobs:
       group: puppyrun-production-deploy
       cancel-in-progress: false
     env:
-      RELEASE_TAG: ${{ github.run_id }}-${{ github.run_attempt }}
+      RELEASE_TAG: ${{ github.run_id }}
 
     steps:
       - name: Checkout
@@ -54,20 +54,20 @@ jobs:
         if: github.event_name == 'push'
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push immutable Docker image
+      - name: Build, tag, and push release Docker image
         if: github.event_name == 'push'
         run: |
           docker build -t puppyrun-backend:latest .
           docker tag puppyrun-backend:latest \
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:${{ github.sha }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:${{ env.RELEASE_TAG }}
           docker push \
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:${{ github.sha }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/puppyrun-backend:${{ env.RELEASE_TAG }}
 
       # SSM에는 EC2에 고정 설치된 deploy.sh 실행 요청만 전달한다.
       - name: Trigger EC2 deployment
         env:
           INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
-          DEPLOY_IMAGE_TAG: ${{ github.event_name == 'push' && github.sha || github.event.inputs.image_tag }}
+          DEPLOY_IMAGE_TAG: ${{ github.event_name == 'push' && env.RELEASE_TAG || github.event.inputs.image_tag }}
         run: |
           set -euo pipefail
           printf -v quoted_image_tag '%q' "$DEPLOY_IMAGE_TAG"
