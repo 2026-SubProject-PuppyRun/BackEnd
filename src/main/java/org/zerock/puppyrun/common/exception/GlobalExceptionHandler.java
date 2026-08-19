@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 
@@ -165,6 +166,22 @@ public class GlobalExceptionHandler {
                 .body(errorResponse);
     }
 
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleHttpRequestMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException e,
+            HttpServletRequest request
+    ) {
+        ErrorCode errorCode = ErrorCode.METHOD_NOT_ALLOWED;
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(
+                        errorCode.getCode(),
+                        errorCode.getDescription(),
+                        e.getMessage(),
+                        request.getRequestURI()
+                ));
+    }
 
     /**
      * 그 외 예상치 못한 모든 예외
@@ -174,7 +191,7 @@ public class GlobalExceptionHandler {
             Exception e,
             HttpServletRequest request) {
 
-        log.error("Unhandled RuntimeException: ", e); // 스택 트레이스 전체 로깅
+        log.error("Unhandled RuntimeException: ", e.getMessage(), e); // 스택 트레이스 전체 로깅
         ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
 
         ErrorResponse errorResponse = ErrorResponse.of(
