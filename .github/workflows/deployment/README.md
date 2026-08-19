@@ -4,7 +4,7 @@ Compose의 관심사를 두 개로 분리한다.
 
 | 구성 | 파일 | 관리 대상 | 실행 명령 |
 | --- | --- | --- | --- |
-| backend | `compose/docker-compose.backend.yml` | Spring Boot 이미지, Firebase mount, health check, rollback | `scripts/deploy.sh <github-sha>` |
+| backend | `compose/docker-compose.backend.yml` | Spring Boot 이미지, Firebase mount, health check, rollback | `scripts/deploy.sh <release-tag>` |
 | infra | `compose/docker-compose.infra.yml` | RabbitMQ, Grafana Alloy, EC2 metric 수집 | `scripts/infra.sh up` |
 
 두 Compose는 `puppyrun-app`(backend ↔ RabbitMQ)과 `puppyrun-observability`(Alloy → backend metrics) 네트워크만 공유한다. 따라서 backend 배포나 rollback은 RabbitMQ와 Alloy를 재생성하지 않는다.
@@ -71,7 +71,7 @@ sudo /home/ubuntu/puppyrun/scripts/infra.sh status
 실패하면 ECR에서 다시 받지 않고 로컬 `current` 이미지로 즉시 복구한다. `previous`는 수동 rollback용으로 보관한다.
 
 ```bash
-sudo /home/ubuntu/puppyrun/scripts/deploy.sh <github-sha>
+sudo /home/ubuntu/puppyrun/scripts/deploy.sh <release-tag>
 sudo /home/ubuntu/puppyrun/scripts/rollback.sh
 ```
 
