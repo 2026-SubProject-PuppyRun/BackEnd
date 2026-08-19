@@ -2,7 +2,7 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [dev, cd-test]
+    branches: [ dev, cd-test ]
     paths:
       - 'src/main/**'
       - 'build.gradle'
@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: '배포할 ECR 이미지 태그 (예: 1234567890)'
+        description: '배포할 ECR 이미지 태그 (예: 1234567890-SHA)'
         required: true
         type: string
 
@@ -26,7 +26,7 @@ jobs:
       group: puppyrun-production-deploy
       cancel-in-progress: false
     env:
-      RELEASE_TAG: ${{ github.run_id }}
+      RELEASE_TAG: ${{ github.run_id }}-${{ github.sha }}
 
     steps:
       - name: Checkout
