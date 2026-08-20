@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.zerock.puppyrun.auth.oauth2.entity.SocialProvider;
-import org.zerock.puppyrun.auth.oauth2.exception.OAuth2AuthenticationException;
 
 class OAuth2UserProfileTest {
 
@@ -43,7 +42,7 @@ class OAuth2UserProfileTest {
         ));
 
         // then
-        assertThat(thrown).isInstanceOf(OAuth2AuthenticationException.class)
+        assertThat(thrown).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("소셜 로그인 제공자가 비어있습니다.");
     }
 
@@ -61,7 +60,7 @@ class OAuth2UserProfileTest {
         ));
 
         // then
-        assertThat(thrown).isInstanceOf(OAuth2AuthenticationException.class)
+        assertThat(thrown).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("소셜 사용자 식별자가 비어있습니다.");
     }
 
@@ -79,7 +78,7 @@ class OAuth2UserProfileTest {
         ));
 
         // then
-        assertThat(thrown).isInstanceOf(OAuth2AuthenticationException.class)
+        assertThat(thrown).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("소셜 이메일 제공 동의가 필요합니다.");
     }
 
