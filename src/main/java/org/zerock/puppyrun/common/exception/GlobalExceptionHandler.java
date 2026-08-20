@@ -104,6 +104,33 @@ public class GlobalExceptionHandler {
                 .body(errorResponse);
     }
 
+    /**
+     * 내부 DTO 생성 시 불변식 검증에 실패한 경우를 처리합니다.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
+            IllegalArgumentException e,
+            HttpServletRequest request) {
+        ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
+
+        log.warn(
+                "exceptionType={}, errorCode={}, status={}, uri={}, message={}",
+                e.getClass().getSimpleName(),
+                errorCode.getCode(),
+                errorCode.getHttpStatus().value(),
+                request.getRequestURI(),
+                e.getMessage()
+        );
+
+        return ResponseEntity.status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(
+                        errorCode.getCode(),
+                        errorCode.getDescription(),
+                        e.getMessage(),
+                        request.getRequestURI()
+                ));
+    }
+
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ErrorResponse> handleMissingRequestParameter(
