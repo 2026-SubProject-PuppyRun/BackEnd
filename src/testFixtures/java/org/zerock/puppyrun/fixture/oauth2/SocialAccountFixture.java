@@ -8,22 +8,19 @@ import org.zerock.puppyrun.auth.oauth2.entity.SocialProvider;
  */
 public enum SocialAccountFixture {
 
-    EXISTING_GOOGLE("google-existing-id", "existing@example.com", "existing-member"),
-    NEW_GOOGLE("google-new-id", "new@example.com", "puppy"),
+    EXISTING_GOOGLE("google-existing-id", "existing@example.com"),
+    NEW_GOOGLE("google-new-id", "new@example.com"),
     EXISTING_EMAIL_WITH_NEW_GOOGLE_ID(
             "google-new-provider-id",
-            "existing@example.com",
-            "puppy"
+            "existing@example.com"
     );
 
     private final String providerUserId;
     private final String email;
-    private final String nickname;
 
-    SocialAccountFixture(String providerUserId, String email, String nickname) {
+    SocialAccountFixture(String providerUserId, String email) {
         this.providerUserId = providerUserId;
         this.email = email;
-        this.nickname = nickname;
     }
 
     /**
@@ -35,8 +32,7 @@ public enum SocialAccountFixture {
         return new OAuth2UserProfile(
                 SocialProvider.GOOGLE,
                 providerUserId,
-                email,
-                nickname
+                email
         );
     }
 

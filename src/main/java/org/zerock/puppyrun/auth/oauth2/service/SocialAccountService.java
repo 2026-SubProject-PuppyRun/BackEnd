@@ -4,6 +4,7 @@ import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.auth.oauth2.entity.SocialAccount;
@@ -22,7 +23,7 @@ import org.zerock.puppyrun.member.service.MemberRegistrationService;
  * <p>소셜 제공자의 사용자 식별자로 기존 계정을 찾고, 계정이 없으면 회원과
  * 소셜 계정을 하나의 트랜잭션에서 생성합니다.</p>
  */
-@Service
+@Component
 @RequiredArgsConstructor
 public class SocialAccountService {
     private static final int MAX_NICKNAME_LENGTH = 20;
@@ -42,12 +43,6 @@ public class SocialAccountService {
      */
     @Transactional
     public Member findOrCreateMember(OAuth2UserProfile profile) {
-        if (profile == null || profile.provider() == null) {
-            throw new OAuth2AuthenticationException("소셜 사용자 정보가 비어있습니다.");
-        }
-        requireText(profile.providerUserId(), "소셜 사용자 식별자가 비어있습니다.");
-        requireText(profile.email(), "소셜 이메일 제공 동의가 필요합니다.");
-
         return socialAccountRepository
                 .findByProviderAndProviderUserId(
                         profile.provider(),

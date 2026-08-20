@@ -24,9 +24,9 @@ public class OAuth2AuthController {
     private final SocialAuthService socialAuthService;
 
     /**
-     * 소셜 제공자의 인가 코드로 로그인하고 PuppyRun 토큰을 발급합니다.
+     * 소셜 제공자의 액세스 토큰으로 로그인하고 PuppyRun 토큰을 발급합니다.
      *
-     * @param request 인가 코드와 리다이렉트 URL
+     * @param request 소셜 제공자 액세스 토큰
      * @param social  소셜 로그인 제공자 이름
      * @return PuppyRun 액세스 토큰과 리프레시 토큰
      */
