@@ -17,6 +17,7 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "CLIENT_002", "요청한 값을 찾을 수 없습니다."),
     EXISTS_RESOURCE(HttpStatus.CONFLICT, "CLIENT_003", "이미 존재하는 값입니다."),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "CLIENT_004", "지원하지 않는 HTTP 메서드입니다."),
+    UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "CLIENT_005", "지원하지 않는 Content-Type입니다."),
 
     // 인증/인가 관련 에러
     USER_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH_001", "로그인 정보가 유효하지 않습니다."),
