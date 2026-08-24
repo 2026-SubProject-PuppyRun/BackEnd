@@ -7,12 +7,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 
 @RestControllerAdvice
@@ -28,11 +30,13 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         log.warn(
-                "exceptionType={}, errorCode={}, status={}, uri={}, message={}",
+                "Handled business exception. exceptionType={}, errorCode={}, status={}, method={}, uri={}, contentType={}, message={}",
                 e.getClass().getSimpleName(),
                 e.getErrorCode().getCode(),
                 e.getErrorCode().getHttpStatus().value(),
+                request.getMethod(),
                 request.getRequestURI(),
+                request.getContentType(),
                 e.getMessage()
         );
 
@@ -114,11 +118,13 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
 
         log.warn(
-                "exceptionType={}, errorCode={}, status={}, uri={}, message={}",
+                "Handled exception. exceptionType={}, errorCode={}, status={}, method={}, uri={}, contentType={}, message={}",
                 e.getClass().getSimpleName(),
                 errorCode.getCode(),
                 errorCode.getHttpStatus().value(),
+                request.getMethod(),
                 request.getRequestURI(),
+                request.getContentType(),
                 e.getMessage()
         );
 
@@ -210,6 +216,62 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(
+            NoResourceFoundException e,
+            HttpServletRequest request
+    ) {
+        ErrorCode errorCode = ErrorCode.RESOURCE_NOT_FOUND;
+
+        log.warn(
+                "Handled exception. exceptionType={}, errorCode={}, status={}, method={}, uri={}, contentType={}, message={}",
+                e.getClass().getSimpleName(),
+                errorCode.getCode(),
+                errorCode.getHttpStatus().value(),
+                request.getMethod(),
+                request.getRequestURI(),
+                request.getContentType(),
+                e.getMessage()
+        );
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(
+                        errorCode.getCode(),
+                        errorCode.getDescription(),
+                        "요청한 리소스를 찾을 수 없습니다.",
+                        request.getRequestURI()
+                ));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMediaTypeNotSupportedException(
+            HttpMediaTypeNotSupportedException e,
+            HttpServletRequest request
+    ) {
+        ErrorCode errorCode = ErrorCode.UNSUPPORTED_MEDIA_TYPE;
+
+        log.warn(
+                "Handled exception. exceptionType={}, errorCode={}, status={}, method={}, uri={}, contentType={}, message={}",
+                e.getClass().getSimpleName(),
+                errorCode.getCode(),
+                errorCode.getHttpStatus().value(),
+                request.getMethod(),
+                request.getRequestURI(),
+                request.getContentType(),
+                e.getMessage()
+        );
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
+                .body(ErrorResponse.of(
+                        errorCode.getCode(),
+                        errorCode.getDescription(),
+                        "지원하지 않는 Content-Type입니다.",
+                        request.getRequestURI()
+                ));
+    }
+
     /**
      * 그 외 예상치 못한 모든 예외
      */
@@ -218,8 +280,19 @@ public class GlobalExceptionHandler {
             Exception e,
             HttpServletRequest request) {
 
-        log.error("Unhandled RuntimeException: ", e.getMessage(), e); // 스택 트레이스 전체 로깅
         ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
+
+        log.error(
+                "Unhandled exception. exceptionType={}, errorCode={}, status={}, method={}, uri={}, contentType={}, message={}",
+                e.getClass().getSimpleName(),
+                errorCode.getCode(),
+                errorCode.getHttpStatus().value(),
+                request.getMethod(),
+                request.getRequestURI(),
+                request.getContentType(),
+                e.getMessage(),
+                e
+        );
 
         ErrorResponse errorResponse = ErrorResponse.of(
                 errorCode.getCode(),
