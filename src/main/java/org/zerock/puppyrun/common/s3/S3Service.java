@@ -120,7 +120,7 @@ public class S3Service {
      *
      * @param files 삭제할 파일들의 Key 또는 Full URL 리스트
      */
-    @Async
+    @Async("applicationTaskExecutor")
     public void deleteAll(List<String> files) {
         if (files == null || files.isEmpty()) {
             return;
@@ -134,7 +134,7 @@ public class S3Service {
      *
      * @param file 삭제할 파일의 Key 또는 Full URL
      */
-    @Async
+    @Async("applicationTaskExecutor")
     public void delete(String file) {
         if (file == null) {
             return; // null이면 넘어감
