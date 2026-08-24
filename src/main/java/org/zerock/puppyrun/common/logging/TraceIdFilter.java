@@ -49,25 +49,15 @@ public class TraceIdFilter extends OncePerRequestFilter {
         int status = response.getStatus();
         String contentType = request.getContentType() == null ? "-" : request.getContentType();
 
-        if (status >= 400) {
-            log.warn(
-                    "HTTP request completed. method={}, uri={}, status={}, contentType={}, durationMs={}",
-                    request.getMethod(),
-                    request.getRequestURI(),
-                    status,
-                    contentType,
-                    durationMs
-            );
-            return;
-        }
+        switch (status / 100) {
+            case 5 -> log.error("HTTP request error. method={}, uri={}, status={}, contentType={}, durationMs={}",
+                    request.getMethod(), request.getRequestURI(), status, contentType, durationMs);
 
-        log.info(
-                "HTTP request completed. method={}, uri={}, status={}, contentType={}, durationMs={}",
-                request.getMethod(),
-                request.getRequestURI(),
-                status,
-                contentType,
-                durationMs
-        );
+            case 4 -> log.warn("HTTP request warn. method={}, uri={}, status={}, contentType={}, durationMs={}",
+                    request.getMethod(), request.getRequestURI(), status, contentType, durationMs);
+
+            default -> log.info("HTTP request completed. method={}, uri={}, status={}, contentType={}, durationMs={}",
+                    request.getMethod(), request.getRequestURI(), status, contentType, durationMs);
+        }
     }
 }
