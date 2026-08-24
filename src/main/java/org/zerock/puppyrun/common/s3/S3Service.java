@@ -15,15 +15,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import org.zerock.puppyrun.common.exception.DataIntegrityException;
 import org.zerock.puppyrun.common.s3.rollback.S3RollbackEvent;
 
 /**
- * AWS S3 파일 업로드 및 삭제를 담당하는 인프라 서비스입니다. 모든 업로드 작업은 DB 트랜잭션 롤백 시 자동 삭제를 위한 이벤트를 발행합니다.
+ * AWS S3 파일 업로드 및 삭제를 담당하는 인프라 서비스입니다. 다중 업로드는 성공한 객체를 롤백 보상 이벤트에 등록해 현재 DB 트랜잭션이 실패할 때 정리합니다.
  */
 @Slf4j
 @Service
@@ -58,7 +57,7 @@ public class S3Service {
     }
 
     /**
-     * 여러 파일을 병렬로 S3에 업로드합니다.
+     * 여러 파일을 순차적으로 S3에 업로드합니다.
      *
      * @param files 업로드할 멀티파트 파일 리스트
      * @param path  저장될 도메인 경로(PathContext)
@@ -68,40 +67,33 @@ public class S3Service {
         if (files == null || files.isEmpty()) {
             return List.of();
         }
-        
+
         // null이거나 비어있는 파일은 "첨부하지 않은 것"으로 간주하여 필터링 (skip)
-        List<CompletableFuture<String>> futures = files.stream()
+        List<MultipartFile> validFiles = files.stream()
                 .filter(file -> file != null && !file.isEmpty())
-                .map(file -> CompletableFuture.supplyAsync(() -> uploadOne(file, path)))
                 .toList();
 
-        if (futures.isEmpty()) {
+        if (validFiles.isEmpty()) {
             return List.of();
         }
 
-        // 일부 업로드가 실패해도 나머지 작업까지 모두 끝나야 정확한 보상 대상을 알 수 있음
+        List<String> uploadedKeys = new ArrayList<>(validFiles.size());
         try {
-            CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
-        } catch (CompletionException e) {
-            List<String> uploadedKeys = futures.stream()
-                    .filter(future -> !future.isCompletedExceptionally())
-                    .map(CompletableFuture::join)
-                    .toList();
-
-            // 성공한 파일은 현재 트랜잭션이 롤백될 때 함께 삭제되도록 등록
+            for (MultipartFile file : validFiles) {
+                uploadedKeys.add(uploadOne(file, path));
+            }
+        } catch (RuntimeException e) {
+            // 첫 실패 이전까지 성공한 객체를 현재 트랜잭션의 롤백 대상으로 등록
             publishRollbackEvent(uploadedKeys);
-            log.warn("다중 S3 업로드가 일부 실패했습니다. 롤백 대상: {}건", uploadedKeys.size(), e);
+            log.warn("순차 S3 업로드가 중단되었습니다. 성공: {}건, 롤백 대상: {}건",
+                    uploadedKeys.size(), uploadedKeys.size(), e);
             throw e;
         }
 
-        List<String> uploadedKeys = futures.stream()
-                .map(CompletableFuture::join)
-                .toList();
-
-        // 업로드된 모든 파일에 대해 통합 롤백 이벤트 발행
+        // 모두 성공한 경우에도 이후 DB 트랜잭션 실패에 대비해 통합 롤백 이벤트 발행
         publishRollbackEvent(uploadedKeys);
 
-        return uploadedKeys;
+        return List.copyOf(uploadedKeys);
     }
 
     private String uploadOne(MultipartFile file, PathContext path) {
@@ -120,7 +112,7 @@ public class S3Service {
      *
      * @param files 삭제할 파일들의 Key 또는 Full URL 리스트
      */
-    @Async
+    @Async("applicationTaskExecutor")
     public void deleteAll(List<String> files) {
         if (files == null || files.isEmpty()) {
             return;
@@ -134,7 +126,7 @@ public class S3Service {
      *
      * @param file 삭제할 파일의 Key 또는 Full URL
      */
-    @Async
+    @Async("applicationTaskExecutor")
     public void delete(String file) {
         if (file == null) {
             return; // null이면 넘어감
