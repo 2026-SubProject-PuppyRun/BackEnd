@@ -94,7 +94,6 @@ public class Diary extends BaseEntity {
     public void update(UpdateDiaryDTO updateDiaryDTO) {
         this.title = updateDiaryDTO.title();
         this.content = updateDiaryDTO.content();
-        this.writingTime = updateDiaryDTO.writingTime();
         this.temp = updateDiaryDTO.temp();
         this.sky = updateDiaryDTO.sky();
         this.pty = updateDiaryDTO.pty();
