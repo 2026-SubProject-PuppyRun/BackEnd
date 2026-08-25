@@ -10,7 +10,6 @@ import org.zerock.puppyrun.weather.DTO.SkyType;
 public record UpdateDiaryDTO(
         String title,
         String content,
-        LocalDateTime writingTime,
         String temp,
         SkyType sky,
         PrecipitationType pty
