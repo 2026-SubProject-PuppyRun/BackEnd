@@ -6,6 +6,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
@@ -26,12 +27,13 @@ import org.zerock.puppyrun.diary.entity.Diary;
 import org.zerock.puppyrun.diary.repository.DiaryRepository;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.repository.MemberRepository;
+import org.zerock.puppyrun.member.service.AccountDeletionS3CleanupEvent;
 import org.zerock.puppyrun.pet.repository.PetRepository;
+import org.zerock.puppyrun.tracking.repository.TrackingImageRepository;
 import org.zerock.puppyrun.tracking.controller.request.ChangeVisibilityRequest;
 import org.zerock.puppyrun.tracking.controller.request.RegisterTrackingRequest;
 import org.zerock.puppyrun.tracking.controller.request.RegisterTrackingRequest.restPeriods;
 import org.zerock.puppyrun.tracking.controller.request.UpdateTrackingRequest;
-import org.zerock.puppyrun.tracking.DTO.UpdateTrackingDTO;
 import org.zerock.puppyrun.tracking.controller.response.TrackingDetailResponse;
 
 @Service
@@ -45,6 +47,8 @@ public class TrackingCommandService {
     private final MemberRepository memberRepository;
     private final PetTrackingRepository petTrackingRepository;
     private final PetRepository petRepository;
+    private final TrackingImageRepository trackingImageRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 이미지 업로드를 의존성 주입
     private final S3Service s3Service;
@@ -147,6 +151,20 @@ public class TrackingCommandService {
 
         if (!images.isEmpty()) {
             s3Service.deleteAll(images);
+        }
+    }
+
+    /**
+     * 회원 탈퇴 시 보존되는 산책을 비공개로 전환하고 이미지 참조를 정리합니다.
+     */
+    public void deleteForDeletedMember(UUID memberId) {
+        List<String> imagePaths = trackingImageRepository.findImageUrlsByMemberId(memberId);
+
+        trackingRepository.updateVisibilityByMemberId(memberId, Visibility.PRIVATE);
+        trackingImageRepository.deleteByTrackingMemberId(memberId);
+
+        if (!imagePaths.isEmpty()) {
+            eventPublisher.publishEvent(new AccountDeletionS3CleanupEvent(imagePaths));
         }
     }
 

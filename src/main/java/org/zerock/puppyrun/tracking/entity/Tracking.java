@@ -36,8 +36,8 @@ public class Tracking extends BaseEntity {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY) // 다대일 관계, 지연 로딩
-    @JoinColumn(name = "member_id", nullable = false) // 외래 키 컬럼명 지정
-    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "member_id") // 회원 탈퇴 후에도 산책 기록은 보존한다.
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private Member member;
 
     @Column(nullable = false)

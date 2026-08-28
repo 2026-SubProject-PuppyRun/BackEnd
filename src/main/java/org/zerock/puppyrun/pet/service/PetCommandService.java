@@ -1,9 +1,11 @@
 package org.zerock.puppyrun.pet.service;
 
 import java.util.UUID;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.zerock.puppyrun.common.s3.PathContext.PetProfileContext;
@@ -11,6 +13,7 @@ import org.zerock.puppyrun.common.s3.S3Service;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.repository.MemberRepository;
+import org.zerock.puppyrun.member.service.AccountDeletionS3CleanupEvent;
 import org.zerock.puppyrun.pet.DTO.UpdatePetDTO;
 import org.zerock.puppyrun.pet.controller.request.RegisterPetRequest;
 import org.zerock.puppyrun.pet.controller.request.RegisterPetWeightLogRequest;
@@ -35,6 +38,7 @@ public class PetCommandService {
     private final PetStatistics petStatistics;
 
     private final S3Service s3Service;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 새로운 펫을 등록합니다.
@@ -135,6 +139,17 @@ public class PetCommandService {
     public void deletePet(UserPrincipal userPrincipal, UUID petId) {
         Pet pet = petRepository.findByIdAndVerifyOwnership(petId, userPrincipal.id());
         petRepository.deleteById(petId);
+    }
+
+    /**
+     * 회원 탈퇴 시 삭제되는 펫들의 프로필 이미지를 정리합니다.
+     */
+    public void deleteForDeletedMember(UUID memberId) {
+        List<String> imagePaths = petRepository.findProfileImageUrlsByMemberId(memberId);
+
+        if (!imagePaths.isEmpty()) {
+            eventPublisher.publishEvent(new AccountDeletionS3CleanupEvent(imagePaths));
+        }
     }
 
     /**

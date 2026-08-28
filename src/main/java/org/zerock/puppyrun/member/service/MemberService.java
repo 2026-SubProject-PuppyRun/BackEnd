@@ -9,9 +9,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.member.DTO.MemberDTO;
 import org.zerock.puppyrun.member.entity.Member;
-import org.zerock.puppyrun.member.exception.UserNotFoundException;
 import org.zerock.puppyrun.member.exception.UserUnauthorizedException;
 import org.zerock.puppyrun.member.repository.MemberRepository;
+import org.zerock.puppyrun.notification.service.NotificationCommandService;
+import org.zerock.puppyrun.pet.service.PetCommandService;
+import org.zerock.puppyrun.tracking.service.TrackingCommandService;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +22,9 @@ import org.zerock.puppyrun.member.repository.MemberRepository;
 public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TrackingCommandService trackingCommandService;
+    private final PetCommandService petCommandService;
+    private final NotificationCommandService notificationCommandService;
 
     /**
      * 비밀번호 일치 여부 확인
@@ -115,11 +120,14 @@ public class MemberService {
      */
     @Transactional
     public void accountDelete(UUID id, String password) {
-        // TODO 나중에 기능 개발 할 예정
         Member member = memberRepository.findByIdOrThrow(id);
         String encodedPassword = member.getPassword();
         matchPassword(password, encodedPassword);
-        member.setDeactivate();
+
+        trackingCommandService.deleteForDeletedMember(id);
+        petCommandService.deleteForDeletedMember(id);
+        notificationCommandService.unsubscribeDeletedMember(id);
+        memberRepository.delete(member);
     }
 
 }
