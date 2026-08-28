@@ -17,6 +17,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.zerock.puppyrun.common.entity.BaseEntity;
 import org.zerock.puppyrun.common.exception.DataIntegrityException;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.pet.DTO.UpdatePetDTO;
 
@@ -31,6 +33,7 @@ public class Pet extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Member member;
 
     @Column(nullable = false, length = 50)

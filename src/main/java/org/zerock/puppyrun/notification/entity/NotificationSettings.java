@@ -21,6 +21,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.zerock.puppyrun.common.entity.BaseEntity;
 import org.zerock.puppyrun.member.entity.Member;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 
 @Entity
@@ -32,6 +34,7 @@ public class NotificationSettings extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false, unique = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Member member;
 
     // 푸시 알림을 보낼 기기의 고유 주소
