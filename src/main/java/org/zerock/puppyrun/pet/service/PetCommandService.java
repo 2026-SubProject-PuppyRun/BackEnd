@@ -144,7 +144,7 @@ public class PetCommandService {
     /**
      * 회원 탈퇴 시 삭제되는 펫들의 프로필 이미지를 정리합니다.
      */
-    public void deleteProfileImagesForDeletedMember(UUID memberId) {
+    public void deleteForDeletedMember(UUID memberId) {
         List<String> imagePaths = petRepository.findProfileImageUrlsByMemberId(memberId);
 
         if (!imagePaths.isEmpty()) {

@@ -34,7 +34,6 @@ import org.zerock.puppyrun.tracking.controller.request.ChangeVisibilityRequest;
 import org.zerock.puppyrun.tracking.controller.request.RegisterTrackingRequest;
 import org.zerock.puppyrun.tracking.controller.request.RegisterTrackingRequest.restPeriods;
 import org.zerock.puppyrun.tracking.controller.request.UpdateTrackingRequest;
-import org.zerock.puppyrun.tracking.DTO.UpdateTrackingDTO;
 import org.zerock.puppyrun.tracking.controller.response.TrackingDetailResponse;
 
 @Service
@@ -155,10 +154,13 @@ public class TrackingCommandService {
         }
     }
 
-    /** 회원 탈퇴 시 보존되는 산책의 이미지 참조를 정리합니다. */
-    public void deleteImagesForDeletedMember(UUID memberId) {
+    /**
+     * 회원 탈퇴 시 보존되는 산책을 비공개로 전환하고 이미지 참조를 정리합니다.
+     */
+    public void deleteForDeletedMember(UUID memberId) {
         List<String> imagePaths = trackingImageRepository.findImageUrlsByMemberId(memberId);
 
+        trackingRepository.updateVisibilityByMemberId(memberId, Visibility.PRIVATE);
         trackingImageRepository.deleteByTrackingMemberId(memberId);
 
         if (!imagePaths.isEmpty()) {

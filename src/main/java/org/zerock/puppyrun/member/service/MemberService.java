@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.member.DTO.MemberDTO;
 import org.zerock.puppyrun.member.entity.Member;
-import org.zerock.puppyrun.member.exception.UserNotFoundException;
 import org.zerock.puppyrun.member.exception.UserUnauthorizedException;
 import org.zerock.puppyrun.member.repository.MemberRepository;
 import org.zerock.puppyrun.notification.service.NotificationCommandService;
@@ -125,8 +124,8 @@ public class MemberService {
         String encodedPassword = member.getPassword();
         matchPassword(password, encodedPassword);
 
-        trackingCommandService.deleteImagesForDeletedMember(id);
-        petCommandService.deleteProfileImagesForDeletedMember(id);
+        trackingCommandService.deleteForDeletedMember(id);
+        petCommandService.deleteForDeletedMember(id);
         notificationCommandService.unsubscribeDeletedMember(id);
         memberRepository.delete(member);
     }

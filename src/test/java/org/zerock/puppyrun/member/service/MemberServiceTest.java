@@ -111,7 +111,9 @@ class MemberServiceTest extends TestContainerConfig {
         ).content()).isEmpty();
         assertThat(trackingRepository.findById(tracking.getId())).isPresent()
                 .get()
-                .extracting(savedTracking -> savedTracking.getMember())
-                .isNull();
+                .satisfies(savedTracking -> {
+                    assertThat(savedTracking.getMember()).isNull();
+                    assertThat(savedTracking.getVisibility()).isEqualTo(Visibility.PRIVATE);
+                });
     }
 }

@@ -3,10 +3,14 @@ package org.zerock.puppyrun.tracking.repository;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.zerock.puppyrun.common.exception.ResourceNotFoundException;
 import org.zerock.puppyrun.common.exception.UserForbiddenException;
 import org.zerock.puppyrun.tracking.entity.Tracking;
+import org.zerock.puppyrun.tracking.entity.Visibility;
 
 @Repository
 public interface TrackingRepository extends JpaRepository<Tracking, UUID>, TrackingRepoCustom {
@@ -30,5 +34,16 @@ public interface TrackingRepository extends JpaRepository<Tracking, UUID>, Track
     }
 
     List<Tracking> findAllByMemberId(UUID memberId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Tracking tracking
+               set tracking.visibility = :visibility
+             where tracking.member.id = :memberId
+            """)
+    void updateVisibilityByMemberId(
+            @Param("memberId") UUID memberId,
+            @Param("visibility") Visibility visibility
+    );
 
 }
