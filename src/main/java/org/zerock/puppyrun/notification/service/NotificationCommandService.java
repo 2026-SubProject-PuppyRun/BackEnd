@@ -2,9 +2,11 @@ package org.zerock.puppyrun.notification.service;
 
 import java.util.Arrays;
 import java.util.Set;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.common.exception.BusinessException;
@@ -12,6 +14,7 @@ import org.zerock.puppyrun.common.exception.ExistsResourceException;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.exception.UserNotFoundException;
 import org.zerock.puppyrun.member.repository.MemberRepository;
+import org.zerock.puppyrun.member.service.AccountDeletionNotificationCleanupEvent;
 import org.zerock.puppyrun.notification.client.NotificationEventClient;
 import org.zerock.puppyrun.notification.controller.request.FcmTokenUpdateRequest;
 import org.zerock.puppyrun.notification.controller.request.NotificationAgreeRequest;
@@ -37,6 +40,7 @@ public class NotificationCommandService {
     private final NotificationRepository notificationRepository;
     private final MemberRepository memberRepository;
     private final NotificationEventClient notificationEventClient;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 특정 알림 타입의 수신 여부를 개별적으로 켜거나 끕니다. 알림 상태 변경 시, 해당 알림에 매핑된 FCM 토픽 구독 상태도 함께 동기화됩니다.
@@ -210,6 +214,16 @@ public class NotificationCommandService {
                 userPrincipal.id(),
                 allowedTypes.size()
         );
+    }
+
+    /** 회원 탈퇴가 커밋된 후 FCM 토픽 구독을 해제하도록 이벤트를 발행합니다. */
+    public void unsubscribeDeletedMember(UUID memberId) {
+        notificationRepository.findByMemberId(memberId)
+                .map(NotificationSettings::getFcmToken)
+                .filter(token -> !token.isBlank())
+                .ifPresent(token -> eventPublisher.publishEvent(
+                        new AccountDeletionNotificationCleanupEvent(token)
+                ));
     }
 
     /**
