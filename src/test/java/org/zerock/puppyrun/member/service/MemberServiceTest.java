@@ -94,7 +94,7 @@ class MemberServiceTest extends TestContainerConfig {
         entityManager.clear();
 
         // when
-        memberService.accountDelete(member.getId(), rawPassword);
+        memberService.accountDelete(member.getId());
         entityManager.flush();
         entityManager.clear();
 
