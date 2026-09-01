@@ -115,14 +115,11 @@ public class MemberService {
     /**
      * 계정 삭제
      *
-     * @param id       유저 고유 아이디
-     * @param password 비밀번호
+     * @param id 유저 고유 아이디
      */
     @Transactional
-    public void accountDelete(UUID id, String password) {
+    public void accountDelete(UUID id) {
         Member member = memberRepository.findByIdOrThrow(id);
-        String encodedPassword = member.getPassword();
-        matchPassword(password, encodedPassword);
 
         trackingCommandService.deleteForDeletedMember(id);
         petCommandService.deleteForDeletedMember(id);

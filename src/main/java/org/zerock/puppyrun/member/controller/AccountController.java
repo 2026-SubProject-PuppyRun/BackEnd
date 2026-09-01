@@ -14,7 +14,6 @@ import org.zerock.puppyrun.common.auth.security.UserPrincipal;
 import org.zerock.puppyrun.member.DTO.MemberDTO;
 import org.zerock.puppyrun.member.controller.request.ChangeNicknameRequest;
 import org.zerock.puppyrun.member.controller.request.ChangePasswordRequest;
-import org.zerock.puppyrun.member.controller.request.DeleteAccountRequest;
 import org.zerock.puppyrun.member.controller.response.AccountResponse;
 import org.zerock.puppyrun.member.service.MemberService;
 
@@ -79,10 +78,9 @@ public class AccountController {
     // 계정 삭제
     @DeleteMapping
     public ResponseEntity<Void> deleteAccount(
-            @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @Valid @RequestBody DeleteAccountRequest request
+            @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
-        memberService.accountDelete(userPrincipal.id(), request.password());
+        memberService.accountDelete(userPrincipal.id());
         return ResponseEntity.noContent().build();
     }
 }
