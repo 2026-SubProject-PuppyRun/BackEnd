@@ -40,6 +40,9 @@ public enum ErrorCode {
     // 알림 설정 에러
     NOT_EXISTS_FCM_TOKEN(HttpStatus.NOT_FOUND, "NOTI_001", "FCM 토큰이 존재하지 않습니다."),
 
+    // 약관 동의 에러
+    TERMS_VERSION_CHANGED(HttpStatus.CONFLICT, "TERMS_001", "약관 버전이 변경되었습니다."),
+
     // 유저 에러
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_001", "유저를 찾을 수 없습니다."),
     EXISTS_USER(HttpStatus.CONFLICT, "USER_002", "이미 존재하는 유저입니다.");
