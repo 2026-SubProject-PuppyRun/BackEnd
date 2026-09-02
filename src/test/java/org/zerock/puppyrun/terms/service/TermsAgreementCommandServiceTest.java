@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.zerock.puppyrun.a_config.TestContainerConfig;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
+import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.member.DTO.MemberDTO;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.entity.UserRole;
@@ -42,8 +43,8 @@ class TermsAgreementCommandServiceTest extends TestContainerConfig {
     private MemberRepository memberRepository;
 
     @Test
-    @DisplayName("회원이 동의한 서비스 이용약관과 개인정보 처리방침 버전을 함께 저장한다")
-    void agreeRequiredTerms() {
+    @DisplayName("회원이 동의한 필수 약관과 마케팅 수신 동의 버전을 함께 저장한다")
+    void agreeTerms() {
         // given
         UserPrincipal principal = registerMember("terms-agreement");
         TermsAgreementRequest request = currentVersionRequest();
@@ -57,7 +58,9 @@ class TermsAgreementCommandServiceTest extends TestContainerConfig {
                 .extracting(TermsAgreement::getTermsType, TermsAgreement::getTermsVersion)
                 .containsExactlyInAnyOrder(
                         tuple(TermsType.SERVICE_TERMS, TermsType.SERVICE_TERMS.currentVersion()),
-                        tuple(TermsType.PRIVACY_POLICY, TermsType.PRIVACY_POLICY.currentVersion())
+                        tuple(TermsType.PRIVACY_POLICY, TermsType.PRIVACY_POLICY.currentVersion()),
+                        tuple(TermsType.LOCATION_INFORMATION, TermsType.LOCATION_INFORMATION.currentVersion()),
+                        tuple(TermsType.MARKETING_AGREEMENT, TermsType.MARKETING_AGREEMENT.currentVersion())
                 );
         assertThat(agreements)
                 .extracting(TermsAgreement::getAgreedAt)
@@ -77,7 +80,7 @@ class TermsAgreementCommandServiceTest extends TestContainerConfig {
         termsAgreementCommandService.agree(principal, request);
 
         // then
-        assertThat(termsAgreementRepository.findAllByMemberId(principal.id())).hasSize(2);
+        assertThat(termsAgreementRepository.findAllByMemberId(principal.id())).hasSize(4);
     }
 
     @Test
@@ -85,7 +88,12 @@ class TermsAgreementCommandServiceTest extends TestContainerConfig {
     void rejectOutdatedTermsVersion() {
         // given
         UserPrincipal principal = registerMember("outdated-agreement");
-        TermsAgreementRequest request = request("0.9", TermsType.PRIVACY_POLICY.currentVersion());
+        TermsAgreementRequest request = request(
+                TermsType.SERVICE_TERMS.currentVersion(),
+                TermsType.PRIVACY_POLICY.currentVersion(),
+                "0.9",
+                false
+        );
 
         // when & then
         assertThatThrownBy(() -> termsAgreementCommandService.agree(principal, request))
@@ -113,7 +121,12 @@ class TermsAgreementCommandServiceTest extends TestContainerConfig {
         // then
         assertThat(termsAgreementRepository.findAllByMemberId(principal.id()))
                 .extracting(TermsAgreement::getTermsType)
-                .containsExactlyInAnyOrder(TermsType.SERVICE_TERMS, TermsType.PRIVACY_POLICY);
+                .containsExactlyInAnyOrder(
+                        TermsType.SERVICE_TERMS,
+                        TermsType.PRIVACY_POLICY,
+                        TermsType.LOCATION_INFORMATION,
+                        TermsType.MARKETING_AGREEMENT
+                );
     }
 
     @Test
@@ -139,8 +152,70 @@ class TermsAgreementCommandServiceTest extends TestContainerConfig {
                 )
                 .containsExactly(
                         tuple(TermsType.SERVICE_TERMS, TermsType.SERVICE_TERMS.currentVersion(), true),
-                        tuple(TermsType.PRIVACY_POLICY, TermsType.PRIVACY_POLICY.currentVersion(), true)
+                        tuple(TermsType.PRIVACY_POLICY, TermsType.PRIVACY_POLICY.currentVersion(), true),
+                        tuple(TermsType.LOCATION_INFORMATION, TermsType.LOCATION_INFORMATION.currentVersion(), true),
+                        tuple(TermsType.MARKETING_AGREEMENT, TermsType.MARKETING_AGREEMENT.currentVersion(), true)
                 );
+    }
+
+    @Test
+    @DisplayName("마케팅 수신에 동의하지 않아도 필수 약관 동의는 완료된다")
+    void agreeRequiredTermsWithoutMarketingAgreement() {
+        // given
+        UserPrincipal principal = registerMember("without-marketing-agreement");
+        TermsAgreementRequest request = currentVersionRequest(false);
+
+        // when
+        termsAgreementCommandService.agree(principal, request);
+        TermsAgreementStatusResponse status = termsAgreementQueryService.getStatus(principal.id());
+
+        // then
+        assertThat(termsAgreementRepository.findAllByMemberId(principal.id()))
+                .extracting(TermsAgreement::getTermsType)
+                .containsExactlyInAnyOrder(
+                        TermsType.SERVICE_TERMS,
+                        TermsType.PRIVACY_POLICY,
+                        TermsType.LOCATION_INFORMATION
+                );
+        assertThat(status.agreementRequired()).isFalse();
+        assertThat(status.terms())
+                .filteredOn(term -> term.type() == TermsType.MARKETING_AGREEMENT)
+                .extracting(
+                        TermsAgreementStatusResponse.TermStatus::required,
+                        TermsAgreementStatusResponse.TermStatus::agreed
+                )
+                .containsExactly(tuple(false, false));
+    }
+
+    @Test
+    @DisplayName("필수 약관에 동의하지 않으면 동의 이력을 저장하지 않는다")
+    void rejectRequiredTermsDisagreement() {
+        // given
+        UserPrincipal principal = registerMember("required-terms-disagreement");
+        TermsAgreementRequest request = new TermsAgreementRequest(
+                new TermsAgreementRequest.ServiceTerms(
+                        false,
+                        TermsType.SERVICE_TERMS.currentVersion()
+                ),
+                new TermsAgreementRequest.PrivacyPolicy(
+                        true,
+                        TermsType.PRIVACY_POLICY.currentVersion()
+                ),
+                new TermsAgreementRequest.LocationInformation(
+                        true,
+                        TermsType.LOCATION_INFORMATION.currentVersion()
+                ),
+                new TermsAgreementRequest.MarketingAgreement(
+                        false,
+                        TermsType.MARKETING_AGREEMENT.currentVersion()
+                )
+        );
+
+        // when & then
+        assertThatThrownBy(() -> termsAgreementCommandService.agree(principal, request))
+                .isInstanceOf(InvalidValueException.class)
+                .hasMessage("필수 약관에 동의해야 합니다.");
+        assertThat(termsAgreementRepository.findAllByMemberId(principal.id())).isEmpty();
     }
 
     private UserPrincipal registerMember(String identifier) {
@@ -152,19 +227,33 @@ class TermsAgreementCommandServiceTest extends TestContainerConfig {
         return new UserPrincipal(member.id(), member.email(), UserRole.USER);
     }
 
-    private TermsAgreementRequest request(String serviceTermsVersion, String privacyPolicyVersion) {
+    private TermsAgreementRequest request(
+            String serviceTermsVersion,
+            String privacyPolicyVersion,
+            String locationInformationVersion,
+            boolean marketingAgreed
+    ) {
         return new TermsAgreementRequest(
-                true,
-                serviceTermsVersion,
-                true,
-                privacyPolicyVersion
+                new TermsAgreementRequest.ServiceTerms(true, serviceTermsVersion),
+                new TermsAgreementRequest.PrivacyPolicy(true, privacyPolicyVersion),
+                new TermsAgreementRequest.LocationInformation(true, locationInformationVersion),
+                new TermsAgreementRequest.MarketingAgreement(
+                        marketingAgreed,
+                        TermsType.MARKETING_AGREEMENT.currentVersion()
+                )
         );
     }
 
     private TermsAgreementRequest currentVersionRequest() {
+        return currentVersionRequest(true);
+    }
+
+    private TermsAgreementRequest currentVersionRequest(boolean marketingAgreed) {
         return request(
                 TermsType.SERVICE_TERMS.currentVersion(),
-                TermsType.PRIVACY_POLICY.currentVersion()
+                TermsType.PRIVACY_POLICY.currentVersion(),
+                TermsType.LOCATION_INFORMATION.currentVersion(),
+                marketingAgreed
         );
     }
 }
