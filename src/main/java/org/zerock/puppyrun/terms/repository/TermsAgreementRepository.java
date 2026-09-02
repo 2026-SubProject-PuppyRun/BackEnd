@@ -8,4 +8,6 @@ import org.zerock.puppyrun.terms.entity.TermsAgreement;
 public interface TermsAgreementRepository extends JpaRepository<TermsAgreement, UUID> {
 
     List<TermsAgreement> findAllByMemberId(UUID memberId);
+
+    List<TermsAgreement> findAllByMemberIdAndWithdrawnAtIsNull(UUID memberId);
 }
