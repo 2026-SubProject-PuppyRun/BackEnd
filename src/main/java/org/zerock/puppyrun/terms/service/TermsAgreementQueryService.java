@@ -25,7 +25,9 @@ public class TermsAgreementQueryService {
 
         return TermsAgreementStatusResponse.from(List.of(
                 statusOf(TermsType.SERVICE_TERMS, agreements),
-                statusOf(TermsType.PRIVACY_POLICY, agreements)
+                statusOf(TermsType.PRIVACY_POLICY, agreements),
+                statusOf(TermsType.LOCATION_INFORMATION, agreements),
+                statusOf(TermsType.MARKETING_AGREEMENT, agreements)
         ));
     }
 
@@ -42,6 +44,7 @@ public class TermsAgreementQueryService {
         return new TermStatus(
                 termsType,
                 currentVersion,
+                termsType.required(),
                 currentAgreement.isPresent(),
                 currentAgreement.map(TermsAgreement::getAgreedAt).orElse(null)
         );

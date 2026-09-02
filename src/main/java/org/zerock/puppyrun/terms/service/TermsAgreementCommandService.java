@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zerock.puppyrun.common.auth.security.UserPrincipal;
+import org.zerock.puppyrun.common.exception.InvalidValueException;
 import org.zerock.puppyrun.member.entity.Member;
 import org.zerock.puppyrun.member.exception.UserNotFoundException;
 import org.zerock.puppyrun.member.repository.MemberRepository;
@@ -26,6 +27,7 @@ public class TermsAgreementCommandService {
 
     @Transactional
     public void agree(UserPrincipal userPrincipal, TermsAgreementRequest request) {
+        validateRequiredAgreements(request);
         validateCurrentVersions(request);
 
         Member member = memberRepository.findByIdForUpdate(userPrincipal.id())
@@ -44,6 +46,17 @@ public class TermsAgreementCommandService {
                         agreedAt
                 )
         );
+        if (Boolean.TRUE.equals(request.marketingAgreement().agreed())) {
+            addIfMissing(
+                    newAgreements,
+                    currentAgreements,
+                    createAgreement(
+                            member,
+                            TermsType.MARKETING_AGREEMENT,
+                            agreedAt
+                    )
+            );
+        }
         addIfMissing(
                 newAgreements,
                 currentAgreements,
@@ -53,18 +66,44 @@ public class TermsAgreementCommandService {
                         agreedAt
                 )
         );
+        addIfMissing(
+                newAgreements,
+                currentAgreements,
+                createAgreement(
+                        member,
+                        TermsType.LOCATION_INFORMATION,
+                        agreedAt
+                )
+        );
 
         if (!newAgreements.isEmpty()) {
             termsAgreementRepository.saveAll(newAgreements);
         }
     }
 
+    private void validateRequiredAgreements(TermsAgreementRequest request) {
+        boolean serviceTermsAgreed = request.serviceTerms() != null
+                && Boolean.TRUE.equals(request.serviceTerms().agreed());
+        boolean privacyPolicyAgreed = request.privacyPolicy() != null
+                && Boolean.TRUE.equals(request.privacyPolicy().agreed());
+        boolean locationInformationAgreed = request.locationInformation() != null
+                && Boolean.TRUE.equals(request.locationInformation().agreed());
+        if (!serviceTermsAgreed || !privacyPolicyAgreed || !locationInformationAgreed) {
+            throw new InvalidValueException("필수 약관에 동의해야 합니다.");
+        }
+    }
+
     private void validateCurrentVersions(TermsAgreementRequest request) {
         boolean serviceVersionChanged = !TermsType.SERVICE_TERMS.currentVersion()
-                .equals(request.serviceTermsVersion());
+                .equals(request.serviceTerms().version());
         boolean privacyVersionChanged = !TermsType.PRIVACY_POLICY.currentVersion()
-                .equals(request.privacyPolicyVersion());
-        if (serviceVersionChanged || privacyVersionChanged) {
+                .equals(request.privacyPolicy().version());
+        boolean locationVersionChanged = !TermsType.LOCATION_INFORMATION.currentVersion()
+                .equals(request.locationInformation().version());
+        boolean marketingVersionChanged = Boolean.TRUE.equals(request.marketingAgreement().agreed())
+                && !TermsType.MARKETING_AGREEMENT.currentVersion()
+                .equals(request.marketingAgreement().version());
+        if (serviceVersionChanged || privacyVersionChanged || locationVersionChanged || marketingVersionChanged) {
             throw new TermsVersionChangedException("현재 약관 버전을 다시 확인해주세요.");
         }
     }
